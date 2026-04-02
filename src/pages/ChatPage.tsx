@@ -130,7 +130,7 @@ const ChatPage = () => {
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
 
       // Save assistant message
-      await supabase.from("chat_messages").insert({
+      await (supabase as any).from("chat_messages").insert({
         conversation_id: convId,
         user_id: user.id,
         role: "assistant",
