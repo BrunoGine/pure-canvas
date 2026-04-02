@@ -138,7 +138,7 @@ const ChatPage = () => {
       });
 
       // Update conversation timestamp
-      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
+      await (supabase as any).from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
       loadConversations();
     } catch (error) {
       console.error("Error calling Harp.I.A:", error);
