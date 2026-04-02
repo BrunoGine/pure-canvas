@@ -77,7 +77,7 @@ const ChatPage = () => {
 
   const deleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { error } = await supabase.from("conversations").delete().eq("id", id);
+    const { error } = await (supabase as any).from("conversations").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: "Não foi possível excluir a conversa.", variant: "destructive" });
       return;
