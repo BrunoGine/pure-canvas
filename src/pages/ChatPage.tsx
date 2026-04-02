@@ -44,12 +44,12 @@ const ChatPage = () => {
 
   const loadConversations = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("conversations")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
-    if (!error && data) setConversations(data);
+    if (!error && data) setConversations(data as Conversation[]);
   }, [user]);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ const ChatPage = () => {
   }, [loadConversations]);
 
   const loadMessages = async (conversationId: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("chat_messages")
       .select("role, content")
       .eq("conversation_id", conversationId)
@@ -77,7 +77,7 @@ const ChatPage = () => {
 
   const deleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { error } = await supabase.from("conversations").delete().eq("id", id);
+    const { error } = await (supabase as any).from("conversations").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro", description: "Não foi possível excluir a conversa.", variant: "destructive" });
       return;
@@ -101,7 +101,7 @@ const ChatPage = () => {
       let convId = currentConversationId;
       if (!convId) {
         const title = msg.length > 40 ? msg.slice(0, 40) + "..." : msg;
-        const { data: conv, error: convErr } = await supabase
+        const { data: conv, error: convErr } = await (supabase as any)
           .from("conversations")
           .insert({ user_id: user.id, title })
           .select("id")
@@ -112,7 +112,7 @@ const ChatPage = () => {
       }
 
       // Save user message
-      await supabase.from("chat_messages").insert({
+      await (supabase as any).from("chat_messages").insert({
         conversation_id: convId,
         user_id: user.id,
         role: "user",
@@ -130,7 +130,7 @@ const ChatPage = () => {
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
 
       // Save assistant message
-      await supabase.from("chat_messages").insert({
+      await (supabase as any).from("chat_messages").insert({
         conversation_id: convId,
         user_id: user.id,
         role: "assistant",
@@ -138,7 +138,7 @@ const ChatPage = () => {
       });
 
       // Update conversation timestamp
-      await supabase.from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
+      await (supabase as any).from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
       loadConversations();
     } catch (error) {
       console.error("Error calling Harp.I.A:", error);
