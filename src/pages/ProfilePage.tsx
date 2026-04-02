@@ -47,7 +47,7 @@ const ProfilePage = () => {
     const { error } = await supabase
       .from("profiles")
       .update({ display_name: editName.trim() })
-      .eq("user_id", user.id);
+      .eq("id", user.id);
     if (error) {
       toast({ title: "Erro", description: "Não foi possível salvar o nome.", variant: "destructive" });
       return;
