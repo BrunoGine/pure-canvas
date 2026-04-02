@@ -24,7 +24,7 @@ const ProfilePage = () => {
     supabase
       .from("profiles")
       .select("display_name, avatar_url")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single()
       .then(({ data }) => {
         const displayName = data?.display_name || user.user_metadata?.display_name || "Usuário";
