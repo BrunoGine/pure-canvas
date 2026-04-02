@@ -57,7 +57,7 @@ const ChatPage = () => {
   }, [loadConversations]);
 
   const loadMessages = async (conversationId: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("chat_messages")
       .select("role, content")
       .eq("conversation_id", conversationId)
