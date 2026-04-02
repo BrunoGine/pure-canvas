@@ -44,12 +44,12 @@ const ChatPage = () => {
 
   const loadConversations = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("conversations")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
-    if (!error && data) setConversations(data);
+    if (!error && data) setConversations(data as Conversation[]);
   }, [user]);
 
   useEffect(() => {
