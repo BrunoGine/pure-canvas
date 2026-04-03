@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN theme_preference TEXT DEFAULT NULL CHECK (theme_preference IN ('light', 'dark'));
