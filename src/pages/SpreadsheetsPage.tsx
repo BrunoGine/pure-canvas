@@ -6,13 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PluggyConnect } from "pluggy-connect-sdk";
 import { useBankConnections, useBankAccounts, useBankTransactions, useCreateConnectToken, useSyncItem } from "@/hooks/useBankData";
-
-declare global {
-  interface Window {
-    PluggyConnect: any;
-  }
-}
 
 interface Transaction {
   id: string;
@@ -46,21 +41,11 @@ const SpreadsheetsPage = () => {
   const createToken = useCreateConnectToken();
   const syncItem = useSyncItem();
 
-  // Load Pluggy Connect script
-  useEffect(() => {
-    if (document.getElementById("pluggy-connect-script")) return;
-    const script = document.createElement("script");
-    script.id = "pluggy-connect-script";
-    script.src = "https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js";
-    script.async = true;
-    document.head.appendChild(script);
-  }, []);
-
   const handleConnectBank = useCallback(async () => {
     try {
       const connectToken = await createToken.mutateAsync();
       
-      const pluggyConnect = new window.PluggyConnect({
+      const pluggyConnect = new PluggyConnect({
         connectToken,
         onSuccess: async (data: { item: { id: string } }) => {
           await syncItem.mutateAsync(data.item.id);
