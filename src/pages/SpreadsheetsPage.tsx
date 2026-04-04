@@ -41,21 +41,11 @@ const SpreadsheetsPage = () => {
   const createToken = useCreateConnectToken();
   const syncItem = useSyncItem();
 
-  // Load Pluggy Connect script
-  useEffect(() => {
-    if (document.getElementById("pluggy-connect-script")) return;
-    const script = document.createElement("script");
-    script.id = "pluggy-connect-script";
-    script.src = "https://cdn.pluggy.ai/pluggy-connect/v2/pluggy-connect.js";
-    script.async = true;
-    document.head.appendChild(script);
-  }, []);
-
   const handleConnectBank = useCallback(async () => {
     try {
       const connectToken = await createToken.mutateAsync();
       
-      const pluggyConnect = new window.PluggyConnect({
+      const pluggyConnect = new PluggyConnect({
         connectToken,
         onSuccess: async (data: { item: { id: string } }) => {
           await syncItem.mutateAsync(data.item.id);
