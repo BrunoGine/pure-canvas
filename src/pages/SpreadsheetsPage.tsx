@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PluggyConnect from "pluggy-connect-sdk";
+import { PluggyConnect } from "pluggy-connect-sdk";
 import { useBankConnections, useBankAccounts, useBankTransactions, useCreateConnectToken, useSyncItem } from "@/hooks/useBankData";
 
 interface Transaction {
