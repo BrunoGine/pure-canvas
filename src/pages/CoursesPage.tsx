@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { GraduationCap, Clock, Star, PlayCircle, BookOpen, TrendingUp, PiggyBank, CreditCard } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const courses = [
@@ -12,7 +11,6 @@ const courses = [
     level: "Iniciante",
     icon: PiggyBank,
     rating: 4.8,
-    color: "bg-primary/10 text-primary",
   },
   {
     title: "Investimentos para Iniciantes",
@@ -22,7 +20,6 @@ const courses = [
     level: "Iniciante",
     icon: TrendingUp,
     rating: 4.9,
-    color: "bg-accent/10 text-accent",
   },
   {
     title: "Controle de Dívidas",
@@ -32,7 +29,6 @@ const courses = [
     level: "Intermediário",
     icon: CreditCard,
     rating: 4.7,
-    color: "bg-destructive/10 text-destructive",
   },
   {
     title: "Planejamento Financeiro Avançado",
@@ -42,7 +38,6 @@ const courses = [
     level: "Avançado",
     icon: BookOpen,
     rating: 4.6,
-    color: "bg-primary/10 text-primary",
   },
 ];
 
@@ -58,22 +53,26 @@ const CoursesPage = () => {
 
       {/* Featured */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="gradient-primary border-0 shadow-elevated overflow-hidden">
-          <CardContent className="p-6">
-            <Badge variant="secondary" className="mb-3 bg-primary-foreground/20 text-primary-foreground border-0 text-[10px]">
+        <div className="relative rounded-2xl overflow-hidden">
+          <div className="absolute inset-0 gradient-primary opacity-95" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-white/30" />
+          <div className="relative p-6">
+            <Badge className="mb-3 bg-white/15 text-white border-white/20 text-[10px] backdrop-blur-sm">
               EM DESTAQUE
             </Badge>
-            <h3 className="text-primary-foreground text-lg font-display font-bold mb-1">
+            <h3 className="text-white text-lg font-display font-bold mb-1">
               Jornada Financeira Completa
             </h3>
-            <p className="text-primary-foreground/70 text-sm mb-4">
+            <p className="text-white/70 text-sm mb-4">
               Do zero ao investidor: trilha completa com 50+ aulas.
             </p>
-            <button className="flex items-center gap-2 rounded-full bg-primary-foreground/20 px-4 py-2 text-sm font-medium text-primary-foreground backdrop-blur-sm">
+            <button className="flex items-center gap-2 rounded-xl bg-white/15 backdrop-blur-sm px-4 py-2.5 text-sm font-medium text-white border border-white/20 hover:bg-white/25 transition-all">
               <PlayCircle size={16} /> Começar agora
             </button>
-          </CardContent>
-        </Card>
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/10 to-transparent" />
+        </div>
       </motion.div>
 
       {/* Course List */}
@@ -85,23 +84,21 @@ const CoursesPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 + i * 0.05 }}
           >
-            <Card className="shadow-card hover:shadow-elevated transition-shadow cursor-pointer">
-              <CardContent className="p-4 flex gap-4">
-                <div className={`rounded-xl p-3 ${course.color} shrink-0 self-start`}>
-                  <course.icon size={22} />
+            <div className="glass-card rounded-xl hover:glow-border transition-all duration-300 cursor-pointer p-4 flex gap-4">
+              <div className="rounded-xl p-3 bg-primary/10 border border-primary/20 shrink-0 self-start">
+                <course.icon size={22} className="text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold leading-tight mb-1">{course.title}</h3>
+                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{course.description}</p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Clock size={12} /> {course.duration}</span>
+                  <span>{course.lessons} aulas</span>
+                  <span className="flex items-center gap-1"><Star size={12} className="text-yellow-500" /> {course.rating}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold leading-tight mb-1">{course.title}</h3>
-                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{course.description}</p>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1"><Clock size={12} /> {course.duration}</span>
-                    <span>{course.lessons} aulas</span>
-                    <span className="flex items-center gap-1"><Star size={12} className="text-yellow-500" /> {course.rating}</span>
-                  </div>
-                  <Badge variant="outline" className="mt-2 text-[10px]">{course.level}</Badge>
-                </div>
-              </CardContent>
-            </Card>
+                <Badge variant="outline" className="mt-2 text-[10px] border-border/50">{course.level}</Badge>
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>

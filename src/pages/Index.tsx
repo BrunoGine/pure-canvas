@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import HomePage from "./HomePage";
 import SpreadsheetsPage from "./SpreadsheetsPage";
@@ -8,8 +8,8 @@ import ProfilePage from "./ProfilePage";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center">
-      <main className="w-full max-w-lg px-4 pt-6">
+    <div className="min-h-screen bg-background flex flex-col items-center ambient-glow overflow-hidden">
+      <main className="w-full max-w-lg px-4 pt-6 relative z-10">
         <Routes>
           <Route index element={<HomePage />} />
           <Route path="planilhas" element={<SpreadsheetsPage />} />
