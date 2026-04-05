@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, Wallet, Plus, ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, Target, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,47 +43,61 @@ const HomePage = () => {
     <div className="space-y-6 pb-24">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <p className="text-muted-foreground text-sm">Olá, {userName} 👋</p>
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles size={14} className="text-primary" />
+          <p className="text-muted-foreground text-sm">Olá, {userName} 👋</p>
+        </div>
         <h1 className="font-display text-2xl font-bold">Seu Resumo</h1>
       </motion.div>
 
-      {/* Balance Card */}
+      {/* Balance Card — Liquid Glass */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="gradient-primary border-0 shadow-elevated overflow-hidden">
-          <CardContent className="p-6">
+        <div className="relative rounded-2xl overflow-hidden">
+          {/* Background gradient */}
+          <div className="absolute inset-0 gradient-primary opacity-95" />
+          {/* Glass highlight overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
+          {/* Inner glow at top */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-white/30" />
+
+          <div className="relative p-6">
             <div className="flex items-center gap-2 mb-1">
-              <Wallet size={16} className="text-primary-foreground/70" />
-              <p className="text-primary-foreground/70 text-sm font-medium">Saldo Atual</p>
+              <div className="w-8 h-8 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                <Wallet size={16} className="text-white" />
+              </div>
+              <p className="text-white/70 text-sm font-medium">Saldo Atual</p>
             </div>
-            <p className="text-primary-foreground text-3xl font-display font-bold">
+            <p className="text-white text-3xl font-display font-bold mt-2 glow-text">
               R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </p>
-            <div className="flex gap-6 mt-4">
-              <div className="flex items-center gap-2">
-                <div className="rounded-full bg-primary-foreground/20 p-1.5">
-                  <ArrowUpRight size={14} className="text-primary-foreground" />
+            <div className="flex gap-6 mt-5">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-white/15 backdrop-blur-sm p-2 border border-white/10">
+                  <ArrowUpRight size={14} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-primary-foreground/60 text-[10px]">Receitas</p>
-                  <p className="text-primary-foreground text-sm font-semibold">
+                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Receitas</p>
+                  <p className="text-white text-sm font-semibold">
                     R$ {income.toLocaleString("pt-BR")}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="rounded-full bg-primary-foreground/20 p-1.5">
-                  <ArrowDownLeft size={14} className="text-primary-foreground" />
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-white/15 backdrop-blur-sm p-2 border border-white/10">
+                  <ArrowDownLeft size={14} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-primary-foreground/60 text-[10px]">Despesas</p>
-                  <p className="text-primary-foreground text-sm font-semibold">
+                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Despesas</p>
+                  <p className="text-white text-sm font-semibold">
                     R$ {expenses.toLocaleString("pt-BR")}
                   </p>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          {/* Bottom reflection */}
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/10 to-transparent" />
+        </div>
       </motion.div>
 
       {/* Goals */}
@@ -93,17 +106,22 @@ const HomePage = () => {
           <h2 className="font-display text-lg font-semibold flex items-center gap-2">
             <Target size={18} className="text-primary" /> Metas
           </h2>
-          <button className="text-primary text-xs font-medium flex items-center gap-1">
+          <button className="text-primary text-xs font-medium flex items-center gap-1 hover:gap-2 transition-all">
             <Plus size={14} /> Nova
           </button>
         </div>
         <div className="space-y-3">
           {goals.map((goal, i) => (
-            <Card key={i} className="shadow-card">
-              <CardContent className="p-4">
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 + i * 0.05 }}
+            >
+              <div className="glass-card rounded-xl p-4 hover:glow-border transition-all duration-300">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">{goal.name}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs font-semibold text-primary">
                     {Math.round((goal.current / goal.target) * 100)}%
                   </span>
                 </div>
@@ -112,8 +130,8 @@ const HomePage = () => {
                   <span>R$ {goal.current.toLocaleString("pt-BR")}</span>
                   <span>R$ {goal.target.toLocaleString("pt-BR")}</span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </motion.div>
           ))}
         </div>
       </motion.section>
@@ -124,12 +142,18 @@ const HomePage = () => {
           {income > expenses ? <TrendingUp size={18} className="text-primary" /> : <TrendingDown size={18} className="text-destructive" />}
           Transações Recentes
         </h2>
-        <Card className="shadow-card">
-          <CardContent className="p-0 divide-y divide-border">
+        <div className="glass-card rounded-xl overflow-hidden">
+          <div className="divide-y divide-border/50">
             {recentTransactions.map((tx, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-3">
+              <motion.div
+                key={i}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.35 + i * 0.05 }}
+                className="flex items-center justify-between px-4 py-3.5 hover:bg-primary/5 transition-colors"
+              >
                 <div className="flex items-center gap-3">
-                  <div className={`rounded-full p-2 ${tx.type === "income" ? "bg-primary/10" : "bg-destructive/10"}`}>
+                  <div className={`rounded-xl p-2 ${tx.type === "income" ? "bg-primary/10 border border-primary/20" : "bg-destructive/10 border border-destructive/20"}`}>
                     {tx.type === "income" ? (
                       <ArrowUpRight size={14} className="text-primary" />
                     ) : (
@@ -141,13 +165,13 @@ const HomePage = () => {
                     <p className="text-xs text-muted-foreground">{tx.date}</p>
                   </div>
                 </div>
-                <span className={`text-sm font-semibold ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
+                <span className={`text-sm font-bold tabular-nums ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
                   {tx.type === "income" ? "+" : ""}R$ {Math.abs(tx.amount).toLocaleString("pt-BR")}
                 </span>
-              </div>
+              </motion.div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </motion.section>
     </div>
   );

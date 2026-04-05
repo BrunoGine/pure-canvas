@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Plus, Table2, Landmark, RefreshCw, Download, Loader2, BarChart3 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,9 +52,7 @@ const SpreadsheetsPage = () => {
         onSuccess: async (data: { item: { id: string } }) => {
           await syncItem.mutateAsync(data.item.id);
         },
-        onError: (error: any) => {
-          console.error("Pluggy Connect error:", error);
-        },
+        onError: (error: any) => console.error("Pluggy Connect error:", error),
       });
       pluggyConnect.init();
     } catch (err) {
@@ -128,77 +125,72 @@ const SpreadsheetsPage = () => {
       </motion.div>
 
       {/* Bank Connection */}
-      <Card className="shadow-card border-primary/20">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Landmark size={18} className="text-primary" />
-              <h3 className="text-sm font-semibold">Open Finance</h3>
+      <div className="glass-card rounded-xl p-4 glow-border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Landmark size={16} className="text-primary" />
             </div>
-            <div className="flex gap-2">
-              {connections.length > 0 && (
-                <Button variant="outline" size="sm" onClick={handleSyncAll} disabled={isLoading}>
-                  {syncItem.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <RefreshCw size={14} className="mr-1" />}
-                  Sincronizar
-                </Button>
-              )}
-              <Button size="sm" onClick={handleConnectBank} disabled={isLoading} className="gradient-primary border-0 text-primary-foreground">
-                {createToken.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <Landmark size={14} className="mr-1" />}
-                Conectar Banco
-              </Button>
-            </div>
+            <h3 className="text-sm font-semibold">Open Finance</h3>
           </div>
-          {connections.length > 0 ? (
-            <div className="space-y-2">
-              {connections.map(conn => (
-                <div key={conn.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-lg px-3 py-2">
-                  <span className="font-medium">{conn.institution_name || "Banco"}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${conn.status === "UPDATED" || conn.status === "connected" ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
-                    {conn.status === "UPDATED" || conn.status === "connected" ? "Conectado" : conn.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              Conecte sua conta bancária para gerar planilhas dinâmicas automaticamente via Open Finance.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+          <div className="flex gap-2">
+            {connections.length > 0 && (
+              <Button variant="outline" size="sm" onClick={handleSyncAll} disabled={isLoading} className="border-border/50 bg-secondary/30">
+                {syncItem.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <RefreshCw size={14} className="mr-1" />}
+                Sincronizar
+              </Button>
+            )}
+            <Button size="sm" onClick={handleConnectBank} disabled={isLoading} className="gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
+              {createToken.isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <Landmark size={14} className="mr-1" />}
+              Conectar Banco
+            </Button>
+          </div>
+        </div>
+        {connections.length > 0 ? (
+          <div className="space-y-2">
+            {connections.map(conn => (
+              <div key={conn.id} className="flex items-center justify-between text-sm bg-secondary/30 rounded-lg px-3 py-2 border border-border/30">
+                <span className="font-medium">{conn.institution_name || "Banco"}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${conn.status === "UPDATED" || conn.status === "connected" ? "bg-primary/15 text-primary border border-primary/20" : "bg-secondary text-muted-foreground"}`}>
+                  {conn.status === "UPDATED" || conn.status === "connected" ? "Conectado" : conn.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Conecte sua conta bancária para gerar planilhas dinâmicas automaticamente via Open Finance.
+          </p>
+        )}
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
-        <Card className="shadow-card">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Receitas</p>
-            <p className="text-lg font-bold text-primary">R$ {totalIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-muted-foreground">Despesas</p>
-            <p className="text-lg font-bold text-destructive">R$ {totalExpense.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
-          </CardContent>
-        </Card>
+        <div className="glass-card rounded-xl p-4 text-center">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Receitas</p>
+          <p className="text-lg font-bold text-primary mt-1 tabular-nums">R$ {totalIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+        </div>
+        <div className="glass-card rounded-xl p-4 text-center">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Despesas</p>
+          <p className="text-lg font-bold text-destructive mt-1 tabular-nums">R$ {totalExpense.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+        </div>
       </div>
 
       {/* Main Tabs */}
       <Tabs defaultValue="dashboard" className="w-full">
         <div className="flex items-center justify-between mb-2">
-          <TabsList>
-            <TabsTrigger value="dashboard" className="gap-1">
+          <TabsList className="glass border border-border/30">
+            <TabsTrigger value="dashboard" className="gap-1 data-[state=active]:shadow-glow">
               <BarChart3 size={14} /> Dashboard
             </TabsTrigger>
-            <TabsTrigger value="transactions">Transações</TabsTrigger>
-            <TabsTrigger value="manual">Manual</TabsTrigger>
+            <TabsTrigger value="transactions" className="data-[state=active]:shadow-glow">Transações</TabsTrigger>
+            <TabsTrigger value="manual" className="data-[state=active]:shadow-glow">Manual</TabsTrigger>
           </TabsList>
-          <Button variant="outline" size="sm" onClick={exportCSV}>
+          <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30">
             <Download size={14} className="mr-1" /> CSV
           </Button>
         </div>
 
-        {/* Dashboard - Dynamic Spreadsheets */}
         <TabsContent value="dashboard" className="space-y-4">
           <AccountsSummary accounts={accounts} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -207,43 +199,34 @@ const SpreadsheetsPage = () => {
           </div>
         </TabsContent>
 
-        {/* All Transactions */}
         <TabsContent value="transactions">
-          <TransactionTable
-            manualTransactions={transactions}
-            bankTransactions={bankTransactions}
-            onRemoveManual={remove}
-            showSource
-          />
+          <TransactionTable manualTransactions={transactions} bankTransactions={bankTransactions} onRemoveManual={remove} showSource />
         </TabsContent>
 
-        {/* Manual Entry */}
         <TabsContent value="manual" className="space-y-4">
-          <Card className="shadow-card">
-            <CardContent className="p-4 space-y-3">
-              <h3 className="text-sm font-semibold">Nova Transação Manual</h3>
-              <Input placeholder="Descrição" value={desc} onChange={e => setDesc(e.target.value)} />
-              <Input placeholder="Valor" type="number" value={amount} onChange={e => setAmount(e.target.value)} />
-              <div className="grid grid-cols-2 gap-3">
-                <Select value={type} onValueChange={(v: "income" | "expense") => setType(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="income">Receita</SelectItem>
-                    <SelectItem value="expense">Despesa</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-primary-foreground">
-                <Plus size={16} className="mr-1" /> Adicionar
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="glass-card rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold">Nova Transação Manual</h3>
+            <Input placeholder="Descrição" value={desc} onChange={e => setDesc(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
+            <Input placeholder="Valor" type="number" value={amount} onChange={e => setAmount(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
+            <div className="grid grid-cols-2 gap-3">
+              <Select value={type} onValueChange={(v: "income" | "expense") => setType(v)}>
+                <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="income">Receita</SelectItem>
+                  <SelectItem value="expense">Despesa</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
+              <Plus size={16} className="mr-1" /> Adicionar
+            </Button>
+          </div>
           <TransactionTable manualTransactions={transactions} onRemoveManual={remove} />
         </TabsContent>
       </Tabs>

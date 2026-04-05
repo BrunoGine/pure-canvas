@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Bot, User, Sparkles, Plus, History, ChevronLeft, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -62,9 +61,7 @@ const ChatPage = () => {
       .select("role, content")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
-    if (!error && data) {
-      setMessages(data as Message[]);
-    }
+    if (!error && data) setMessages(data as Message[]);
     setCurrentConversationId(conversationId);
     setShowHistory(false);
   };
@@ -97,7 +94,6 @@ const ChatPage = () => {
     setIsTyping(true);
 
     try {
-      // Create conversation if new
       let convId = currentConversationId;
       if (!convId) {
         const title = msg.length > 40 ? msg.slice(0, 40) + "..." : msg;
@@ -111,7 +107,6 @@ const ChatPage = () => {
         setCurrentConversationId(convId);
       }
 
-      // Save user message
       await (supabase as any).from("chat_messages").insert({
         conversation_id: convId,
         user_id: user.id,
@@ -119,7 +114,6 @@ const ChatPage = () => {
         content: msg,
       });
 
-      // Call AI
       const { data, error } = await supabase.functions.invoke("harp-ia-chat", {
         body: { messages: updatedMessages },
       });
@@ -129,7 +123,6 @@ const ChatPage = () => {
       const reply = data?.reply || "Desculpe, não consegui processar sua pergunta. Tente novamente.";
       setMessages(prev => [...prev, { role: "assistant", content: reply }]);
 
-      // Save assistant message
       await (supabase as any).from("chat_messages").insert({
         conversation_id: convId,
         user_id: user.id,
@@ -137,7 +130,6 @@ const ChatPage = () => {
         content: reply,
       });
 
-      // Update conversation timestamp
       await (supabase as any).from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
       loadConversations();
     } catch (error) {
@@ -153,13 +145,12 @@ const ChatPage = () => {
     }
   };
 
-  // History sidebar view
   if (showHistory) {
     return (
       <div className="flex flex-col h-[calc(100vh-5rem)]">
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-4">
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowHistory(false)} className="p-1.5 rounded-full hover:bg-muted transition-colors">
+            <button onClick={() => setShowHistory(false)} className="p-1.5 rounded-full hover:bg-secondary transition-colors">
               <ChevronLeft size={20} />
             </button>
             <h1 className="font-display text-xl font-bold">Histórico de Conversas</h1>
@@ -175,26 +166,19 @@ const ChatPage = () => {
             </div>
           ) : (
             conversations.map((conv) => (
-              <motion.div
-                key={conv.id}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card
-                  className={`shadow-card cursor-pointer hover:shadow-elevated transition-shadow ${
-                    currentConversationId === conv.id ? "ring-2 ring-primary" : ""
+              <motion.div key={conv.id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}>
+                <div
+                  className={`glass-card rounded-xl cursor-pointer hover:glow-border transition-all duration-300 ${
+                    currentConversationId === conv.id ? "glow-border" : ""
                   }`}
                   onClick={() => loadMessages(conv.id)}
                 >
-                  <CardContent className="p-3 flex items-center justify-between">
+                  <div className="p-3 flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{conv.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(conv.updated_at).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
+                          day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
                         })}
                       </p>
                     </div>
@@ -204,8 +188,8 @@ const ChatPage = () => {
                     >
                       <Trash2 size={14} />
                     </button>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             ))
           )}
@@ -214,7 +198,7 @@ const ChatPage = () => {
         <div className="pt-3 pb-1">
           <button
             onClick={startNewChat}
-            className="w-full py-2.5 rounded-full gradient-primary text-primary-foreground font-medium text-sm flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl gradient-primary text-white font-medium text-sm flex items-center justify-center gap-2 shadow-glow hover:shadow-elevated transition-all duration-300"
           >
             <Plus size={16} /> Nova Conversa
           </button>
@@ -225,7 +209,6 @@ const ChatPage = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)]">
-      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
@@ -234,45 +217,35 @@ const ChatPage = () => {
           <p className="text-muted-foreground text-sm">Seu assistente de educação financeira</p>
         </div>
         <div className="flex gap-1.5">
-          <button
-            onClick={() => setShowHistory(true)}
-            className="p-2 rounded-full hover:bg-muted transition-colors"
-            title="Histórico"
-          >
+          <button onClick={() => setShowHistory(true)} className="p-2 rounded-xl hover:bg-secondary transition-colors" title="Histórico">
             <History size={18} className="text-muted-foreground" />
           </button>
-          <button
-            onClick={startNewChat}
-            className="p-2 rounded-full hover:bg-muted transition-colors"
-            title="Nova conversa"
-          >
+          <button onClick={startNewChat} className="p-2 rounded-xl hover:bg-secondary transition-colors" title="Nova conversa">
             <Plus size={18} className="text-muted-foreground" />
           </button>
         </div>
       </motion.div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 pr-1">
         {messages.length === 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-8">
             <div className="text-center space-y-2">
-              <div className="mx-auto w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-elevated">
-                <Bot size={28} className="text-primary-foreground" />
+              <div className="mx-auto w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-glow relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
+                <Bot size={28} className="text-white relative z-10" />
               </div>
               <h3 className="font-display font-semibold">Olá! Sou a Harp.I.A 🤖</h3>
               <p className="text-sm text-muted-foreground">Especialista em educação financeira. Como posso ajudar?</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {suggestions.map((s, i) => (
-                <Card
+                <div
                   key={i}
-                  className="shadow-card cursor-pointer hover:shadow-elevated transition-shadow"
+                  className="glass-card rounded-xl cursor-pointer hover:glow-border transition-all duration-300 p-3"
                   onClick={() => send(s)}
                 >
-                  <CardContent className="p-3">
-                    <p className="text-xs font-medium">{s}</p>
-                  </CardContent>
-                </Card>
+                  <p className="text-xs font-medium">{s}</p>
+                </div>
               ))}
             </div>
           </motion.div>
@@ -286,15 +259,15 @@ const ChatPage = () => {
             className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}
           >
             {msg.role === "assistant" && (
-              <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center shrink-0 mt-1">
-                <Bot size={14} className="text-primary-foreground" />
+              <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center shrink-0 mt-1 shadow-glow">
+                <Bot size={14} className="text-white" />
               </div>
             )}
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
                 msg.role === "user"
-                  ? "gradient-primary text-primary-foreground rounded-br-md"
-                  : "bg-muted rounded-bl-md"
+                  ? "gradient-primary text-white rounded-br-md shadow-glow"
+                  : "glass-card rounded-bl-md"
               }`}
             >
               {msg.role === "assistant" ? (
@@ -306,7 +279,7 @@ const ChatPage = () => {
               )}
             </div>
             {msg.role === "user" && (
-              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 mt-1">
+              <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0 mt-1">
                 <User size={14} className="text-muted-foreground" />
               </div>
             )}
@@ -315,14 +288,14 @@ const ChatPage = () => {
 
         {isTyping && (
           <div className="flex gap-2">
-            <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center shrink-0">
-              <Bot size={14} className="text-primary-foreground" />
+            <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center shrink-0 shadow-glow">
+              <Bot size={14} className="text-white" />
             </div>
-            <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+            <div className="glass-card rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-muted-foreground/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -330,7 +303,6 @@ const ChatPage = () => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div className="pt-3 pb-1">
         <div className="flex gap-2">
           <Input
@@ -338,12 +310,12 @@ const ChatPage = () => {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
             placeholder="Pergunte sobre finanças..."
-            className="rounded-full"
+            className="rounded-xl bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all"
           />
           <button
             onClick={() => send()}
             disabled={!input.trim() || isTyping}
-            className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center shrink-0 text-primary-foreground disabled:opacity-40 transition-opacity"
+            className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shrink-0 text-white disabled:opacity-40 transition-all shadow-glow hover:shadow-elevated"
           >
             <Send size={16} />
           </button>
