@@ -1,10 +1,18 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { BankTransaction } from "@/hooks/useBankData";
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string | null;
+  type: string;
+}
 
 interface Props {
-  transactions: BankTransaction[];
+  transactions: Transaction[];
 }
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -40,7 +48,7 @@ const MonthlyOverview = ({ transactions }: Props) => {
     return (
       <Card className="shadow-card">
         <CardContent className="p-6 text-center text-muted-foreground text-sm">
-          Conecte seu banco para ver o resumo mensal.
+          Adicione transações para ver o resumo mensal.
         </CardContent>
       </Card>
     );
@@ -69,7 +77,6 @@ const MonthlyOverview = ({ transactions }: Props) => {
           </ResponsiveContainer>
         </div>
 
-        {/* Monthly table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
