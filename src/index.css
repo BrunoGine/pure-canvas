@@ -91,7 +91,7 @@
     --gradient-glow: radial-gradient(ellipse at 50% 0%, hsla(221, 74%, 58%, 0.12) 0%, transparent 60%);
     --shadow-card: 0 4px 24px -4px hsla(0, 0%, 0%, 0.5);
     --shadow-elevated: 0 20px 60px -12px hsla(0, 0%, 0%, 0.7);
-    --shadow-glow: 0 0 60px -10px hsla(233, 70%, 58%, 0.25);
+    --shadow-glow: 0 0 60px -10px hsla(221, 74%, 58%, 0.25);
   }
 }
 
