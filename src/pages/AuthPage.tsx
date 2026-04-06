@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Wallet, Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, ArrowRight, Eye, EyeOff } from "lucide-react";
+import logoWhite from "@/assets/logo-white.png";
+import logoDark from "@/assets/logo-dark.png";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
