@@ -73,11 +73,12 @@ const AuthPage = () => {
         transition={{ duration: 0.6 }}
         className="flex flex-col items-center mb-8 relative z-10"
       >
-        <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-4 shadow-glow relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-transparent" />
-          <Wallet className="w-8 h-8 text-white relative z-10" />
-        </div>
-        <h1 className="text-2xl font-display font-bold text-foreground">FinApp</h1>
+        <img
+          src={theme === "dark" ? logoWhite : logoDark}
+          alt="Harpy Logo"
+          className="w-16 h-16 mb-4 drop-shadow-lg"
+        />
+        <h1 className="text-2xl font-display font-bold text-foreground">Harpy</h1>
         <p className="text-muted-foreground text-sm mt-1">Sua gestão financeira inteligente</p>
       </motion.div>
 
