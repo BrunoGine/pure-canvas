@@ -76,7 +76,7 @@ const AuthPage = () => {
         <img
           src={theme === "dark" ? logoWhite : logoDark}
           alt="Harpy Logo"
-          className="w-16 h-16 mb-4 drop-shadow-lg"
+          className="w-28 h-28 mb-4 drop-shadow-lg"
         />
         <h1 className="text-2xl font-display font-bold text-foreground">Harpy</h1>
         <p className="text-muted-foreground text-sm mt-1">Sua gestão financeira inteligente</p>
