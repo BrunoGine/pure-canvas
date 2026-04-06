@@ -86,9 +86,9 @@
     --glass-blur: 24px;
     --glass-highlight: linear-gradient(135deg, hsla(220, 15%, 25%, 0.3) 0%, hsla(220, 15%, 10%, 0.1) 100%);
 
-    --gradient-primary: linear-gradient(135deg, hsl(233, 70%, 58%), hsl(250, 80%, 48%));
+    --gradient-primary: linear-gradient(135deg, hsl(221, 74%, 58%), hsl(240, 80%, 48%));
     --gradient-card: linear-gradient(145deg, hsla(220, 15%, 10%, 0.7), hsla(220, 15%, 6%, 0.5));
-    --gradient-glow: radial-gradient(ellipse at 50% 0%, hsla(233, 70%, 58%, 0.12) 0%, transparent 60%);
+    --gradient-glow: radial-gradient(ellipse at 50% 0%, hsla(221, 74%, 58%, 0.12) 0%, transparent 60%);
     --shadow-card: 0 4px 24px -4px hsla(0, 0%, 0%, 0.5);
     --shadow-elevated: 0 20px 60px -12px hsla(0, 0%, 0%, 0.7);
     --shadow-glow: 0 0 60px -10px hsla(233, 70%, 58%, 0.25);
