@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { BankTransaction } from "@/hooks/useBankData";
 
 const COLORS = [
   "hsl(var(--primary))",
@@ -17,8 +16,17 @@ const COLORS = [
   "#14B8A6",
 ];
 
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string | null;
+  type: string;
+}
+
 interface Props {
-  transactions: BankTransaction[];
+  transactions: Transaction[];
 }
 
 const CategoryBreakdown = ({ transactions }: Props) => {
@@ -46,7 +54,7 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     return (
       <Card className="shadow-card">
         <CardContent className="p-6 text-center text-muted-foreground text-sm">
-          Conecte seu banco para ver a análise por categoria.
+          Adicione transações para ver a análise por categoria.
         </CardContent>
       </Card>
     );
