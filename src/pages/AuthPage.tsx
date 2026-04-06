@@ -11,6 +11,7 @@ import logoDark from "@/assets/logo-dark.png";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const AuthPage = () => {
+  const { theme } = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
