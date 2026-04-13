@@ -77,11 +77,6 @@ const SpreadsheetsPage = () => {
     if (selectedCategory === cat) setSelectedCategory(null);
   };
 
-  const save = (txs: Transaction[]) => {
-    setTransactions(txs);
-    localStorage.setItem("finapp-transactions", JSON.stringify(txs));
-  };
-
   const updateBudgets = (b: Record<string, number>) => {
     setBudgets(b);
     localStorage.setItem("finapp-budgets", JSON.stringify(b));
@@ -89,20 +84,18 @@ const SpreadsheetsPage = () => {
 
   const addTransaction = () => {
     if (!desc || !amount) return;
-    const tx: Transaction = {
-      id: Date.now().toString(),
+    addTx({
       description: desc,
       amount: parseFloat(amount),
       type,
       category,
       date: new Date().toISOString().split("T")[0],
-    };
-    save([tx, ...transactions]);
+    });
     setDesc("");
     setAmount("");
   };
 
-  const remove = (id: string) => save(transactions.filter(t => t.id !== id));
+  const remove = (id: string) => removeTx(id);
 
   const totalIncome = filteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const totalExpense = filteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
