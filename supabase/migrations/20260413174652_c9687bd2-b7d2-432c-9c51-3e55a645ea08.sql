@@ -1,0 +1,1 @@
+ALTER TABLE public.manual_transactions ADD COLUMN notes TEXT DEFAULT NULL;

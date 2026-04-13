@@ -10,6 +10,7 @@ export interface Transaction {
   type: "income" | "expense";
   category: string;
   date: string;
+  notes?: string | null;
 }
 
 export function useTransactions() {
