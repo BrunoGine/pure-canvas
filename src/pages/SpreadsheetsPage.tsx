@@ -232,7 +232,7 @@ const SpreadsheetsPage = () => {
                   mode="single"
                   selected={date}
                   onSelect={(d) => d && setDate(d)}
-                  initialFocus
+                  disabled={(d) => d > new Date()}
                   className={cn("p-3 pointer-events-auto")}
                 />
               </PopoverContent>
