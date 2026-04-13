@@ -296,6 +296,7 @@ const SpreadsheetsPage = () => {
                 </DialogContent>
               </Dialog>
             </div>
+            <Input placeholder="Anotação (opcional)" value={notes} onChange={e => setNotes(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
             <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
               <Plus size={16} className="mr-1" /> Adicionar
             </Button>
