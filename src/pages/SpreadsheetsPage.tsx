@@ -208,6 +208,32 @@ const SpreadsheetsPage = () => {
                   </div>
                 </DialogContent>
               </Dialog>
+
+              <Dialog open={removeCategoryDialogOpen} onOpenChange={setRemoveCategoryDialogOpen}>
+                <DialogContent className="glass-card border-border/30">
+                  <DialogHeader>
+                    <DialogTitle>Remover Categoria</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {categories.filter(c => c !== "Outros").map(c => (
+                      <div key={c} className="flex items-center justify-between p-2 rounded-lg bg-secondary/20 border border-border/30">
+                        <span className="text-sm">{c}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCategory(c)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    ))}
+                    {categories.filter(c => c !== "Outros").length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria para remover.</p>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
               <Plus size={16} className="mr-1" /> Adicionar
