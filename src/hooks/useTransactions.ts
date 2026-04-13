@@ -23,7 +23,7 @@ export function useTransactions() {
     setLoading(true);
     const { data, error } = await supabase
       .from("manual_transactions")
-      .select("id, description, amount, type, category, date")
+      .select("id, description, amount, type, category, date, notes")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
