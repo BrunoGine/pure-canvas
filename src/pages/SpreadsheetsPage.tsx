@@ -95,10 +95,11 @@ const SpreadsheetsPage = () => {
       amount: parseFloat(amount),
       type,
       category,
-      date: new Date().toISOString().split("T")[0],
+      date: format(date, "yyyy-MM-dd"),
     });
     setDesc("");
     setAmount("");
+    setDate(new Date());
   };
 
   const remove = (id: string) => removeTx(id);
