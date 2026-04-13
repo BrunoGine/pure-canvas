@@ -38,7 +38,7 @@ const SpreadsheetsPage = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
-  const categories = [...defaultCategories, ...customCategories];
+  const categories = [...defaultCategories.filter(c => c !== "Outros"), ...customCategories, "Outros"];
 
   const addCategory = () => {
     const trimmed = newCategoryName.trim();
