@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Table2, Download, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import TransactionTable from "@/components/spreadsheets/TransactionTable";
 import CategoryBreakdown from "@/components/spreadsheets/CategoryBreakdown";
 import MonthlyOverview from "@/components/spreadsheets/MonthlyOverview";
@@ -18,7 +19,7 @@ interface Transaction {
   date: string;
 }
 
-const categories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
+const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
@@ -30,6 +31,25 @@ const SpreadsheetsPage = () => {
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
   const [category, setCategory] = useState("Outros");
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    const saved = localStorage.getItem("finapp-custom-categories");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+
+  const categories = [...defaultCategories, ...customCategories];
+
+  const addCategory = () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed || categories.includes(trimmed)) return;
+    const updated = [...customCategories, trimmed];
+    setCustomCategories(updated);
+    localStorage.setItem("finapp-custom-categories", JSON.stringify(updated));
+    setCategory(trimmed);
+    setNewCategoryName("");
+    setCategoryDialogOpen(false);
+  };
 
   const save = (txs: Transaction[]) => {
     setTransactions(txs);
@@ -127,12 +147,41 @@ const SpreadsheetsPage = () => {
                   <SelectItem value="expense">Despesa</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} onValueChange={(v) => {
+                if (v === "__create__") {
+                  setCategoryDialogOpen(true);
+                } else {
+                  setCategory(v);
+                }
+              }}>
                 <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  <SelectItem value="__create__" className="text-primary font-medium">
+                    <span className="flex items-center gap-1"><Plus size={14} /> Criar categoria</span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
+
+              <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+                <DialogContent className="glass-card border-border/30">
+                  <DialogHeader>
+                    <DialogTitle>Nova Categoria</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <Input
+                      placeholder="Nome da categoria"
+                      value={newCategoryName}
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && addCategory()}
+                      className="bg-secondary/30 border-border/50"
+                    />
+                    <Button onClick={addCategory} className="w-full gradient-primary border-0 text-white">
+                      <Plus size={16} className="mr-1" /> Criar
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
             <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
               <Plus size={16} className="mr-1" /> Adicionar
