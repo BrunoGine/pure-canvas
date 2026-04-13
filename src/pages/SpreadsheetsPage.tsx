@@ -97,10 +97,12 @@ const SpreadsheetsPage = () => {
       type,
       category,
       date: format(date, "yyyy-MM-dd"),
+      notes: notes.trim() || null,
     });
     setDesc("");
     setAmount("");
     setDate(new Date());
+    setNotes("");
   };
 
   const remove = (id: string) => removeTx(id);
