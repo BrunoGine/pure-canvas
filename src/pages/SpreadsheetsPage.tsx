@@ -28,6 +28,7 @@ const SpreadsheetsPage = () => {
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
+  const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState("Outros");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
