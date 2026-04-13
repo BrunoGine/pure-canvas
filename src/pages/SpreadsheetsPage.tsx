@@ -23,11 +23,7 @@ const categories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde",
 const SpreadsheetsPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem("finapp-transactions");
-    return saved ? JSON.parse(saved) : [
-      { id: "1", description: "Salário", amount: 8500, type: "income", category: "Salário", date: "2026-03-28" },
-      { id: "2", description: "Aluguel", amount: 1800, type: "expense", category: "Moradia", date: "2026-03-27" },
-      { id: "3", description: "Supermercado", amount: 450, type: "expense", category: "Alimentação", date: "2026-03-26" },
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [desc, setDesc] = useState("");
