@@ -22,22 +22,13 @@ const HomePage = () => {
       });
   }, [user]);
 
-  const balance = 12450.80;
-  const income = 8500;
-  const expenses = 4230.50;
+  const balance = 0;
+  const income = 0;
+  const expenses = 0;
 
-  const goals = [
-    { name: "Reserva de emergência", current: 8000, target: 15000 },
-    { name: "Viagem", current: 3200, target: 5000 },
-    { name: "Investimentos", current: 12000, target: 50000 },
-  ];
+  const goals: { name: string; current: number; target: number }[] = [];
 
-  const recentTransactions = [
-    { name: "Salário", amount: 8500, type: "income" as const, date: "28 Mar" },
-    { name: "Aluguel", amount: -1800, type: "expense" as const, date: "27 Mar" },
-    { name: "Mercado", amount: -450, type: "expense" as const, date: "26 Mar" },
-    { name: "Freelance", amount: 1200, type: "income" as const, date: "25 Mar" },
-  ];
+  const recentTransactions: { name: string; amount: number; type: "income" | "expense"; date: string }[] = [];
 
   return (
     <div className="space-y-6 pb-24">
