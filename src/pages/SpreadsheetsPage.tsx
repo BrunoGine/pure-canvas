@@ -30,6 +30,7 @@ const SpreadsheetsPage = () => {
   const [type, setType] = useState<"income" | "expense">("expense");
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState("Outros");
+  const [notes, setNotes] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     const saved = localStorage.getItem("finapp-custom-categories");
@@ -96,10 +97,12 @@ const SpreadsheetsPage = () => {
       type,
       category,
       date: format(date, "yyyy-MM-dd"),
+      notes: notes.trim() || null,
     });
     setDesc("");
     setAmount("");
     setDate(new Date());
+    setNotes("");
   };
 
   const remove = (id: string) => removeTx(id);
@@ -293,6 +296,7 @@ const SpreadsheetsPage = () => {
                 </DialogContent>
               </Dialog>
             </div>
+            <Input placeholder="Anotação (opcional)" value={notes} onChange={e => setNotes(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
             <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
               <Plus size={16} className="mr-1" /> Adicionar
             </Button>

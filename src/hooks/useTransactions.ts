@@ -10,6 +10,7 @@ export interface Transaction {
   type: "income" | "expense";
   category: string;
   date: string;
+  notes?: string | null;
 }
 
 export function useTransactions() {
@@ -22,7 +23,7 @@ export function useTransactions() {
     setLoading(true);
     const { data, error } = await supabase
       .from("manual_transactions")
-      .select("id, description, amount, type, category, date")
+      .select("id, description, amount, type, category, date, notes")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -56,8 +57,9 @@ export function useTransactions() {
           type: tx.type,
           category: tx.category,
           date: tx.date,
+          notes: tx.notes || null,
         })
-        .select("id, description, amount, type, category, date")
+        .select("id, description, amount, type, category, date, notes")
         .single();
 
       if (error) {
