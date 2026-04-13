@@ -35,10 +35,15 @@ const SpreadsheetsPage = () => {
     const saved = localStorage.getItem("finapp-custom-categories");
     return saved ? JSON.parse(saved) : [];
   });
+  const [removedDefaults, setRemovedDefaults] = useState<string[]>(() => {
+    const saved = localStorage.getItem("finapp-removed-categories");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
 
-  const categories = [...defaultCategories.filter(c => c !== "Outros"), ...customCategories, "Outros"];
+  const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
 
   const addCategory = () => {
     const trimmed = newCategoryName.trim();
@@ -52,9 +57,16 @@ const SpreadsheetsPage = () => {
   };
 
   const removeCategory = (cat: string) => {
-    const updated = customCategories.filter(c => c !== cat);
-    setCustomCategories(updated);
-    localStorage.setItem("finapp-custom-categories", JSON.stringify(updated));
+    if (cat === "Outros") return;
+    if (customCategories.includes(cat)) {
+      const updated = customCategories.filter(c => c !== cat);
+      setCustomCategories(updated);
+      localStorage.setItem("finapp-custom-categories", JSON.stringify(updated));
+    } else {
+      const updated = [...removedDefaults, cat];
+      setRemovedDefaults(updated);
+      localStorage.setItem("finapp-removed-categories", JSON.stringify(updated));
+    }
     if (category === cat) setCategory("Outros");
   };
 
@@ -157,6 +169,8 @@ const SpreadsheetsPage = () => {
               <Select value={category} onValueChange={(v) => {
                 if (v === "__create__") {
                   setCategoryDialogOpen(true);
+                } else if (v === "__remove__") {
+                  setRemoveCategoryDialogOpen(true);
                 } else {
                   setCategory(v);
                 }
@@ -164,23 +178,13 @@ const SpreadsheetsPage = () => {
                 <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => (
-                    <SelectItem key={c} value={c}>
-                      <span className="flex items-center justify-between w-full gap-2">
-                        {c}
-                        {customCategories.includes(c) && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeCategory(c); }}
-                            className="text-destructive hover:text-destructive/80 ml-auto"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </span>
-                    </SelectItem>
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                   <SelectItem value="__create__" className="text-primary font-medium">
                     <span className="flex items-center gap-1"><Plus size={14} /> Criar categoria</span>
+                  </SelectItem>
+                  <SelectItem value="__remove__" className="text-destructive font-medium">
+                    <span className="flex items-center gap-1"><Trash2 size={14} /> Remover categoria</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -201,6 +205,32 @@ const SpreadsheetsPage = () => {
                     <Button onClick={addCategory} className="w-full gradient-primary border-0 text-white">
                       <Plus size={16} className="mr-1" /> Criar
                     </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={removeCategoryDialogOpen} onOpenChange={setRemoveCategoryDialogOpen}>
+                <DialogContent className="glass-card border-border/30">
+                  <DialogHeader>
+                    <DialogTitle>Remover Categoria</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {categories.filter(c => c !== "Outros").map(c => (
+                      <div key={c} className="flex items-center justify-between p-2 rounded-lg bg-secondary/20 border border-border/30">
+                        <span className="text-sm">{c}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeCategory(c)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    ))}
+                    {categories.filter(c => c !== "Outros").length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhuma categoria para remover.</p>
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
