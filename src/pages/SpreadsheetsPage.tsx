@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Table2, Download, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ interface Transaction {
   date: string;
 }
 
-const categories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
+const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
