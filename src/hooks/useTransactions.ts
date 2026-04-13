@@ -57,8 +57,9 @@ export function useTransactions() {
           type: tx.type,
           category: tx.category,
           date: tx.date,
+          notes: tx.notes || null,
         })
-        .select("id, description, amount, type, category, date")
+        .select("id, description, amount, type, category, date, notes")
         .single();
 
       if (error) {
