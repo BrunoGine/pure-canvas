@@ -20,6 +20,24 @@ interface Props {
   categories: string[];
 }
 
+const GlassTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl px-4 py-3 shadow-lg border border-border/20"
+      style={{
+        background: "hsl(var(--card) / 0.75)",
+        backdropFilter: "blur(12px)",
+      }}>
+      <p className="text-xs font-semibold text-foreground mb-1.5">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.dataKey} className="text-xs" style={{ color: p.color }}>
+          {p.name}: R$ {Number(p.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        </p>
+      ))}
+    </div>
+  );
+};
+
 const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }: Props) => {
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -29,7 +47,6 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
     const totalIncome = filtered.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const totalExpense = filtered.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
 
-    // Monthly data for last 6 months
     const months: Record<string, { income: number; expense: number }> = {};
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
@@ -117,22 +134,24 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
             <div className="glass-card rounded-xl p-4">
               <p className="text-xs font-semibold text-muted-foreground mb-3">Receitas vs Despesas (6 meses)</p>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={categoryData.chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: 8,
-                      fontSize: 12,
-                    }}
-                    formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="receitas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                <BarChart data={categoryData.chartData} barCategoryGap="20%">
+                  <defs>
+                    <linearGradient id="gradReceitasDialog" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
+                    </linearGradient>
+                    <linearGradient id="gradDespesasDialog" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={1} />
+                      <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.5} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" strokeOpacity={0.15} vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<GlassTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.2)" }} />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" iconSize={8} />
+                  <Bar dataKey="receitas" name="Receitas" fill="url(#gradReceitasDialog)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="despesas" name="Despesas" fill="url(#gradDespesasDialog)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

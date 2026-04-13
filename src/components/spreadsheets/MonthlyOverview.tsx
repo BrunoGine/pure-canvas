@@ -17,6 +17,24 @@ interface Props {
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+const GlassTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl px-4 py-3 shadow-lg border border-border/20"
+      style={{
+        background: "hsl(var(--card) / 0.75)",
+        backdropFilter: "blur(12px)",
+      }}>
+      <p className="text-xs font-semibold text-foreground mb-1.5">{label}</p>
+      {payload.map((p: any) => (
+        <p key={p.dataKey} className="text-xs" style={{ color: p.color }}>
+          {p.name}: R$ {Number(p.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        </p>
+      ))}
+    </div>
+  );
+};
+
 const MonthlyOverview = ({ transactions }: Props) => {
   const data = useMemo(() => {
     const grouped: Record<string, { income: number; expense: number }> = {};
@@ -61,18 +79,48 @@ const MonthlyOverview = ({ transactions }: Props) => {
 
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip
-                formatter={(value: number) =>
-                  `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                }
+            <BarChart data={data} barCategoryGap="20%">
+              <defs>
+                <linearGradient id="gradReceitas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
+                </linearGradient>
+                <linearGradient id="gradDespesas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={1} />
+                  <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.6} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border))" strokeOpacity={0.15} vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                axisLine={false}
+                tickLine={false}
               />
-              <Legend />
-              <Bar dataKey="Receitas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+              <YAxis
+                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip content={<GlassTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.2)" }} />
+              <Legend
+                wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                iconType="circle"
+                iconSize={8}
+              />
+              <Bar
+                dataKey="Receitas"
+                fill="url(#gradReceitas)"
+                radius={[6, 6, 0, 0]}
+                activeBar={{ fill: "hsl(var(--primary))", opacity: 0.9 }}
+              />
+              <Bar
+                dataKey="Despesas"
+                fill="url(#gradDespesas)"
+                radius={[6, 6, 0, 0]}
+                activeBar={{ fill: "hsl(var(--destructive))", opacity: 0.9 }}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>

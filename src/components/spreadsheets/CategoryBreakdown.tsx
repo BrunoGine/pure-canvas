@@ -13,27 +13,35 @@ import {
 import { BarChart3 } from "lucide-react";
 
 const COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--destructive))",
-  "#F59E0B",
-  "#10B981",
-  "#8B5CF6",
-  "#EC4899",
-  "#06B6D4",
-  "#F97316",
-  "#6366F1",
-  "#14B8A6",
+  "#6366F1", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6",
+  "#06B6D4", "#F97316", "#14B8A6", "#E11D48", "#7C3AED",
 ];
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-// Each category gets a unique chart type
-const CHART_TYPES: Record<string, string> = {};
 const CHART_OPTIONS = ["bar", "area", "line", "radar", "radialBar", "pie"];
 
-function getChartType(cat: string, index: number) {
+function getChartType(_cat: string, index: number) {
   return CHART_OPTIONS[index % CHART_OPTIONS.length];
 }
+
+const GlassTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl px-4 py-3 shadow-lg border border-border/20"
+      style={{
+        background: "hsl(var(--card) / 0.75)",
+        backdropFilter: "blur(12px)",
+      }}>
+      {label && <p className="text-xs font-semibold text-foreground mb-1.5">{label}</p>}
+      {payload.map((p: any) => (
+        <p key={p.dataKey || p.name} className="text-xs" style={{ color: p.color || p.payload?.fill }}>
+          {p.name}: R$ {Number(p.value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        </p>
+      ))}
+    </div>
+  );
+};
 
 interface Transaction {
   id: string;
@@ -70,7 +78,6 @@ const CategoryBreakdown = ({ transactions }: Props) => {
 
   const categoryNames = useMemo(() => data.map(d => d.name), [data]);
 
-  // Monthly data for the selected category
   const categoryMonthly = useMemo(() => {
     if (!selectedCat) return [];
     const filtered = transactions.filter(t => (t.category || "Sem categoria") === selectedCat);
@@ -100,7 +107,6 @@ const CategoryBreakdown = ({ transactions }: Props) => {
       });
   }, [transactions, selectedCat]);
 
-  // Sub-breakdown: top descriptions within selected category
   const subBreakdown = useMemo(() => {
     if (!selectedCat) return [];
     const filtered = transactions.filter(t => (t.category || "Sem categoria") === selectedCat);
@@ -131,6 +137,14 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     );
   }
 
+  const commonGridProps = {
+    strokeDasharray: "4 4",
+    stroke: "hsl(var(--border))",
+    strokeOpacity: 0.15,
+    vertical: false as const,
+  };
+  const commonAxisTick = { fontSize: 10, fill: "hsl(var(--muted-foreground))" };
+
   const renderCategoryChart = () => {
     if (!selectedCat || categoryMonthly.length === 0) return null;
 
@@ -138,14 +152,24 @@ const CategoryBreakdown = ({ transactions }: Props) => {
       case "bar":
         return (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={categoryMonthly}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `R$${v}`} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Legend />
-              <Bar dataKey="Despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Receitas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+            <BarChart data={categoryMonthly} barCategoryGap="20%">
+              <defs>
+                <linearGradient id="gradCatDespesas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={1} />
+                  <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0.5} />
+                </linearGradient>
+                <linearGradient id="gradCatReceitas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid {...commonGridProps} />
+              <XAxis dataKey="name" tick={commonAxisTick} axisLine={false} tickLine={false} />
+              <YAxis tick={commonAxisTick} tickFormatter={v => `R$${v}`} axisLine={false} tickLine={false} />
+              <Tooltip content={<GlassTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.2)" }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
+              <Bar dataKey="Despesas" fill="url(#gradCatDespesas)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="Receitas" fill="url(#gradCatReceitas)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -154,12 +178,22 @@ const CategoryBreakdown = ({ transactions }: Props) => {
         return (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={categoryMonthly}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `R$${v}`} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Area type="monotone" dataKey="Despesas" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.2} strokeWidth={2} />
-              <Area type="monotone" dataKey="Receitas" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} strokeWidth={2} />
+              <defs>
+                <linearGradient id="gradAreaDespesas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--destructive))" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="hsl(var(--destructive))" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradAreaReceitas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid {...commonGridProps} />
+              <XAxis dataKey="name" tick={commonAxisTick} axisLine={false} tickLine={false} />
+              <YAxis tick={commonAxisTick} tickFormatter={v => `R$${v}`} axisLine={false} tickLine={false} />
+              <Tooltip content={<GlassTooltip />} cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "4 4" }} />
+              <Area type="monotone" dataKey="Despesas" stroke="hsl(var(--destructive))" fill="url(#gradAreaDespesas)" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--destructive))" }} />
+              <Area type="monotone" dataKey="Receitas" stroke="hsl(var(--primary))" fill="url(#gradAreaReceitas)" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--primary))" }} />
             </AreaChart>
           </ResponsiveContainer>
         );
@@ -168,13 +202,13 @@ const CategoryBreakdown = ({ transactions }: Props) => {
         return (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={categoryMonthly}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `R$${v}`} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Legend />
-              <Line type="monotone" dataKey="Despesas" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={{ r: 4 }} />
-              <Line type="monotone" dataKey="Receitas" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4 }} />
+              <CartesianGrid {...commonGridProps} />
+              <XAxis dataKey="name" tick={commonAxisTick} axisLine={false} tickLine={false} />
+              <YAxis tick={commonAxisTick} tickFormatter={v => `R$${v}`} axisLine={false} tickLine={false} />
+              <Tooltip content={<GlassTooltip />} cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "4 4" }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
+              <Line type="monotone" dataKey="Despesas" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--destructive))", strokeWidth: 2, stroke: "hsl(var(--card))" }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="Receitas" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--card))" }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -183,11 +217,11 @@ const CategoryBreakdown = ({ transactions }: Props) => {
         return (
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={subBreakdown.length > 0 ? subBreakdown : [{ name: "—", value: 0 }]}>
-              <PolarGrid className="opacity-30" />
-              <PolarAngleAxis dataKey="name" tick={{ fontSize: 9 }} />
-              <PolarRadiusAxis tick={{ fontSize: 9 }} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Radar dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} strokeWidth={2} />
+              <PolarGrid stroke="hsl(var(--border))" strokeOpacity={0.2} />
+              <PolarAngleAxis dataKey="name" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+              <PolarRadiusAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+              <Tooltip content={<GlassTooltip />} />
+              <Radar dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
             </RadarChart>
           </ResponsiveContainer>
         );
@@ -196,9 +230,9 @@ const CategoryBreakdown = ({ transactions }: Props) => {
         return (
           <ResponsiveContainer width="100%" height="100%">
             <RadialBarChart innerRadius="20%" outerRadius="90%" data={subBreakdown.slice(0, 5)} startAngle={180} endAngle={0}>
-              <RadialBar dataKey="value" background cornerRadius={6} label={{ position: "insideStart", fill: "hsl(var(--foreground))", fontSize: 10 }} />
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Legend iconSize={10} formatter={(value, entry: any) => entry?.payload?.name} />
+              <RadialBar dataKey="value" background={{ fill: "hsl(var(--muted) / 0.15)" }} cornerRadius={6} label={{ position: "insideStart", fill: "hsl(var(--foreground))", fontSize: 10 }} />
+              <Tooltip content={<GlassTooltip />} />
+              <Legend iconSize={10} formatter={(_value: string, entry: any) => entry?.payload?.name} />
             </RadialBarChart>
           </ResponsiveContainer>
         );
@@ -207,13 +241,13 @@ const CategoryBreakdown = ({ transactions }: Props) => {
         return (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={subBreakdown} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3}>
+              <Pie data={subBreakdown} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={4} strokeWidth={0}>
                 {subBreakdown.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Legend />
+              <Tooltip content={<GlassTooltip />} />
+              <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
             </PieChart>
           </ResponsiveContainer>
         );
@@ -230,6 +264,19 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     radar: "Radar",
     radialBar: "Radial",
     pie: "Pizza",
+  };
+
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    if (percent < 0.05) return null;
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
   };
 
   return (
@@ -262,12 +309,18 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                     innerRadius={50}
                     outerRadius={80}
                     dataKey="value"
-                    paddingAngle={2}
+                    paddingAngle={4}
+                    strokeWidth={0}
                     cursor="pointer"
+                    labelLine={false}
+                    label={renderCustomLabel}
                     onClick={(_, index) => {
                       const cat = data[index]?.name;
                       setSelectedCat(selectedCat === cat ? null : cat);
                     }}
+                    animationBegin={0}
+                    animationDuration={800}
+                    animationEasing="ease-out"
                   >
                     {data.map((entry, i) => (
                       <Cell
@@ -279,8 +332,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                       />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                  <Legend />
+                  <Tooltip content={<GlassTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -349,7 +402,6 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                   {renderCategoryChart()}
                 </div>
 
-                {/* Top transactions */}
                 {subBreakdown.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="text-xs font-semibold text-muted-foreground">Maiores itens</p>
