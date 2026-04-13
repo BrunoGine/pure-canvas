@@ -35,10 +35,15 @@ const SpreadsheetsPage = () => {
     const saved = localStorage.getItem("finapp-custom-categories");
     return saved ? JSON.parse(saved) : [];
   });
+  const [removedDefaults, setRemovedDefaults] = useState<string[]>(() => {
+    const saved = localStorage.getItem("finapp-removed-categories");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
 
-  const categories = [...defaultCategories.filter(c => c !== "Outros"), ...customCategories, "Outros"];
+  const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
 
   const addCategory = () => {
     const trimmed = newCategoryName.trim();
@@ -52,9 +57,16 @@ const SpreadsheetsPage = () => {
   };
 
   const removeCategory = (cat: string) => {
-    const updated = customCategories.filter(c => c !== cat);
-    setCustomCategories(updated);
-    localStorage.setItem("finapp-custom-categories", JSON.stringify(updated));
+    if (cat === "Outros") return;
+    if (customCategories.includes(cat)) {
+      const updated = customCategories.filter(c => c !== cat);
+      setCustomCategories(updated);
+      localStorage.setItem("finapp-custom-categories", JSON.stringify(updated));
+    } else {
+      const updated = [...removedDefaults, cat];
+      setRemovedDefaults(updated);
+      localStorage.setItem("finapp-removed-categories", JSON.stringify(updated));
+    }
     if (category === cat) setCategory("Outros");
   };
 
@@ -157,6 +169,8 @@ const SpreadsheetsPage = () => {
               <Select value={category} onValueChange={(v) => {
                 if (v === "__create__") {
                   setCategoryDialogOpen(true);
+                } else if (v === "__remove__") {
+                  setRemoveCategoryDialogOpen(true);
                 } else {
                   setCategory(v);
                 }
@@ -164,23 +178,13 @@ const SpreadsheetsPage = () => {
                 <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map(c => (
-                    <SelectItem key={c} value={c}>
-                      <span className="flex items-center justify-between w-full gap-2">
-                        {c}
-                        {customCategories.includes(c) && (
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removeCategory(c); }}
-                            className="text-destructive hover:text-destructive/80 ml-auto"
-                          >
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </span>
-                    </SelectItem>
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                   <SelectItem value="__create__" className="text-primary font-medium">
                     <span className="flex items-center gap-1"><Plus size={14} /> Criar categoria</span>
+                  </SelectItem>
+                  <SelectItem value="__remove__" className="text-destructive font-medium">
+                    <span className="flex items-center gap-1"><Trash2 size={14} /> Remover categoria</span>
                   </SelectItem>
                 </SelectContent>
               </Select>
