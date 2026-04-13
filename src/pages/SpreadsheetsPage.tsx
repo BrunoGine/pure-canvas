@@ -12,6 +12,7 @@ import CategoryBreakdown from "@/components/spreadsheets/CategoryBreakdown";
 import MonthlyOverview from "@/components/spreadsheets/MonthlyOverview";
 import CategoryBudget from "@/components/spreadsheets/CategoryBudget";
 import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards";
+import CategorySpendingDialog from "@/components/spreadsheets/CategorySpendingDialog";
 
 interface Transaction {
   id: string;
@@ -50,6 +51,7 @@ const SpreadsheetsPage = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
+  const [spendingDialogOpen, setSpendingDialogOpen] = useState(false);
 
   const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
 
@@ -293,6 +295,15 @@ const SpreadsheetsPage = () => {
         </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-4">
+          <Button onClick={() => setSpendingDialogOpen(true)} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
+            <BarChart3 size={16} className="mr-2" /> Categoria do gasto
+          </Button>
+          <CategorySpendingDialog
+            open={spendingDialogOpen}
+            onOpenChange={setSpendingDialogOpen}
+            transactions={txForCharts}
+            categories={categories}
+          />
           <CategoryBudget
             transactions={txForCharts}
             categories={categories.filter(c => c !== "Outros")}
