@@ -13,23 +13,12 @@ import MonthlyOverview from "@/components/spreadsheets/MonthlyOverview";
 import CategoryBudget from "@/components/spreadsheets/CategoryBudget";
 import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards";
 import CategorySpendingDialog from "@/components/spreadsheets/CategorySpendingDialog";
-
-interface Transaction {
-  id: string;
-  description: string;
-  amount: number;
-  type: "income" | "expense";
-  category: string;
-  date: string;
-}
+import { useTransactions } from "@/hooks/useTransactions";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem("finapp-transactions");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { transactions, loading, addTransaction: addTx, removeTransaction: removeTx } = useTransactions();
 
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
