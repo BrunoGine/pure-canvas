@@ -1,14 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3, Trash2 } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import TransactionTable from "@/components/spreadsheets/TransactionTable";
 import CategoryBreakdown from "@/components/spreadsheets/CategoryBreakdown";
 import MonthlyOverview from "@/components/spreadsheets/MonthlyOverview";
+import CategoryBudget from "@/components/spreadsheets/CategoryBudget";
+import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards";
 
 interface Transaction {
   id: string;
@@ -31,6 +34,7 @@ const SpreadsheetsPage = () => {
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<"income" | "expense">("expense");
   const [category, setCategory] = useState("Outros");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     const saved = localStorage.getItem("finapp-custom-categories");
     return saved ? JSON.parse(saved) : [];
@@ -39,11 +43,22 @@ const SpreadsheetsPage = () => {
     const saved = localStorage.getItem("finapp-removed-categories");
     return saved ? JSON.parse(saved) : [];
   });
+  const [budgets, setBudgets] = useState<Record<string, number>>(() => {
+    const saved = localStorage.getItem("finapp-budgets");
+    return saved ? JSON.parse(saved) : {};
+  });
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
 
   const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
+
+  // Filter
+  const filteredTransactions = selectedCategory
+    ? transactions.filter(t => t.category === selectedCategory)
+    : transactions;
+
+  const usedCategories = [...new Set(transactions.map(t => t.category))];
 
   const addCategory = () => {
     const trimmed = newCategoryName.trim();
@@ -68,11 +83,17 @@ const SpreadsheetsPage = () => {
       localStorage.setItem("finapp-removed-categories", JSON.stringify(updated));
     }
     if (category === cat) setCategory("Outros");
+    if (selectedCategory === cat) setSelectedCategory(null);
   };
 
   const save = (txs: Transaction[]) => {
     setTransactions(txs);
     localStorage.setItem("finapp-transactions", JSON.stringify(txs));
+  };
+
+  const updateBudgets = (b: Record<string, number>) => {
+    setBudgets(b);
+    localStorage.setItem("finapp-budgets", JSON.stringify(b));
   };
 
   const addTransaction = () => {
@@ -92,12 +113,12 @@ const SpreadsheetsPage = () => {
 
   const remove = (id: string) => save(transactions.filter(t => t.id !== id));
 
-  const totalIncome = transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const totalIncome = filteredTransactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
+  const totalExpense = filteredTransactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
 
   const exportCSV = () => {
     const header = "Descrição,Valor,Tipo,Categoria,Data\n";
-    const rows = transactions.map(t =>
+    const rows = filteredTransactions.map(t =>
       `"${t.description}",${t.amount},${t.type},${t.category},${t.date}`
     ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
@@ -110,12 +131,7 @@ const SpreadsheetsPage = () => {
   };
 
   const txForCharts = transactions.map(t => ({
-    id: t.id,
-    description: t.description,
-    amount: t.amount,
-    date: t.date,
-    category: t.category,
-    type: t.type,
+    id: t.id, description: t.description, amount: t.amount, date: t.date, category: t.category, type: t.type,
   }));
 
   return (
@@ -126,6 +142,61 @@ const SpreadsheetsPage = () => {
         </h1>
         <p className="text-muted-foreground text-sm mt-1">Gerencie suas finanças manualmente</p>
       </motion.div>
+
+      {/* Category Filter Chips */}
+      {usedCategories.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Filter size={14} className="text-muted-foreground flex-shrink-0" />
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-1.5 pb-1">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  selectedCategory === null
+                    ? "gradient-primary text-white shadow-glow"
+                    : "bg-secondary/50 text-muted-foreground hover:bg-secondary border border-border/30"
+                }`}
+              >
+                Todas
+              </button>
+              {usedCategories.map(cat => {
+                const isOver = budgets[cat] && transactions
+                  .filter(t => {
+                    const d = new Date(t.date);
+                    const now = new Date();
+                    return t.type === "expense" && t.category === cat && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                  })
+                  .reduce((s, t) => s + Math.abs(t.amount), 0) > budgets[cat];
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all relative ${
+                      selectedCategory === cat
+                        ? "gradient-primary text-white shadow-glow"
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary border border-border/30"
+                    }`}
+                  >
+                    {cat}
+                    {isOver && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-background animate-pulse" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Summary Cards for selected category */}
+      {selectedCategory && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <CategorySummaryCards transactions={txForCharts} selectedCategory={selectedCategory} />
+        </motion.div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
@@ -167,13 +238,9 @@ const SpreadsheetsPage = () => {
                 </SelectContent>
               </Select>
               <Select value={category} onValueChange={(v) => {
-                if (v === "__create__") {
-                  setCategoryDialogOpen(true);
-                } else if (v === "__remove__") {
-                  setRemoveCategoryDialogOpen(true);
-                } else {
-                  setCategory(v);
-                }
+                if (v === "__create__") setCategoryDialogOpen(true);
+                else if (v === "__remove__") setRemoveCategoryDialogOpen(true);
+                else setCategory(v);
               }}>
                 <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -191,39 +258,22 @@ const SpreadsheetsPage = () => {
 
               <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                 <DialogContent className="glass-card border-border/30">
-                  <DialogHeader>
-                    <DialogTitle>Nova Categoria</DialogTitle>
-                  </DialogHeader>
+                  <DialogHeader><DialogTitle>Nova Categoria</DialogTitle></DialogHeader>
                   <div className="space-y-3">
-                    <Input
-                      placeholder="Nome da categoria"
-                      value={newCategoryName}
-                      onChange={e => setNewCategoryName(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && addCategory()}
-                      className="bg-secondary/30 border-border/50"
-                    />
-                    <Button onClick={addCategory} className="w-full gradient-primary border-0 text-white">
-                      <Plus size={16} className="mr-1" /> Criar
-                    </Button>
+                    <Input placeholder="Nome da categoria" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()} className="bg-secondary/30 border-border/50" />
+                    <Button onClick={addCategory} className="w-full gradient-primary border-0 text-white"><Plus size={16} className="mr-1" /> Criar</Button>
                   </div>
                 </DialogContent>
               </Dialog>
 
               <Dialog open={removeCategoryDialogOpen} onOpenChange={setRemoveCategoryDialogOpen}>
                 <DialogContent className="glass-card border-border/30">
-                  <DialogHeader>
-                    <DialogTitle>Remover Categoria</DialogTitle>
-                  </DialogHeader>
+                  <DialogHeader><DialogTitle>Remover Categoria</DialogTitle></DialogHeader>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {categories.filter(c => c !== "Outros").map(c => (
                       <div key={c} className="flex items-center justify-between p-2 rounded-lg bg-secondary/20 border border-border/30">
                         <span className="text-sm">{c}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeCategory(c)}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => removeCategory(c)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2">
                           <Trash2 size={14} />
                         </Button>
                       </div>
@@ -239,10 +289,16 @@ const SpreadsheetsPage = () => {
               <Plus size={16} className="mr-1" /> Adicionar
             </Button>
           </div>
-          <TransactionTable manualTransactions={transactions} onRemoveManual={remove} />
+          <TransactionTable manualTransactions={filteredTransactions} onRemoveManual={remove} />
         </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-4">
+          <CategoryBudget
+            transactions={txForCharts}
+            categories={categories.filter(c => c !== "Outros")}
+            budgets={budgets}
+            onUpdateBudgets={updateBudgets}
+          />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <MonthlyOverview transactions={txForCharts} />
             <CategoryBreakdown transactions={txForCharts} />
