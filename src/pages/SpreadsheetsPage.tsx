@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3 } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,6 +49,13 @@ const SpreadsheetsPage = () => {
     setCategory(trimmed);
     setNewCategoryName("");
     setCategoryDialogOpen(false);
+  };
+
+  const removeCategory = (cat: string) => {
+    const updated = customCategories.filter(c => c !== cat);
+    setCustomCategories(updated);
+    localStorage.setItem("finapp-custom-categories", JSON.stringify(updated));
+    if (category === cat) setCategory("Outros");
   };
 
   const save = (txs: Transaction[]) => {
@@ -156,7 +163,22 @@ const SpreadsheetsPage = () => {
               }}>
                 <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {categories.map(c => (
+                    <SelectItem key={c} value={c}>
+                      <span className="flex items-center justify-between w-full gap-2">
+                        {c}
+                        {customCategories.includes(c) && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeCategory(c); }}
+                            className="text-destructive hover:text-destructive/80 ml-auto"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </span>
+                    </SelectItem>
+                  ))}
                   <SelectItem value="__create__" className="text-primary font-medium">
                     <span className="flex items-center gap-1"><Plus size={14} /> Criar categoria</span>
                   </SelectItem>
