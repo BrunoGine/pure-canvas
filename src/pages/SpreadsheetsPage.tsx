@@ -2,12 +2,13 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -19,11 +20,13 @@ import CategoryBudget from "@/components/spreadsheets/CategoryBudget";
 import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards";
 import CategorySpendingDialog from "@/components/spreadsheets/CategorySpendingDialog";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
   const { transactions, loading, addTransaction: addTx, removeTransaction: removeTx } = useTransactions();
+  const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring } = useRecurringTransactions();
 
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
@@ -48,6 +51,13 @@ const SpreadsheetsPage = () => {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
   const [spendingDialogOpen, setSpendingDialogOpen] = useState(false);
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [recDesc, setRecDesc] = useState("");
+  const [recAmount, setRecAmount] = useState("");
+  const [recType, setRecType] = useState<"income" | "expense">("expense");
+  const [recCategory, setRecCategory] = useState("Outros");
+  const [recDay, setRecDay] = useState("1");
+  const [recNotes, setRecNotes] = useState("");
 
   const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
 
@@ -300,7 +310,100 @@ const SpreadsheetsPage = () => {
             <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
               <Plus size={16} className="mr-1" /> Adicionar
             </Button>
+            <Button variant="outline" onClick={() => setRecurringDialogOpen(true)} className="w-full border-border/50 bg-secondary/30">
+              <Repeat size={16} className="mr-1" /> Transação Recorrente
+            </Button>
           </div>
+
+          {/* Recurring Transactions List */}
+          {recurringTransactions.length > 0 && (
+            <div className="glass-card rounded-xl p-4 space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Repeat size={14} className="text-primary" /> Transações Recorrentes
+              </h3>
+              <div className="space-y-2">
+                {recurringTransactions.map((rec) => (
+                  <div key={rec.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/20 border border-border/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{rec.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        R$ {rec.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Dia {rec.day_of_month} · {rec.type === "income" ? "Receita" : "Despesa"} · {rec.category}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 ml-2">
+                      <Switch checked={rec.active} onCheckedChange={(v) => toggleRecurring(rec.id, v)} />
+                      <Button variant="ghost" size="icon" onClick={() => removeRecurring(rec.id)} className="text-destructive hover:text-destructive h-8 w-8">
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recurring Transaction Dialog */}
+          <Dialog open={recurringDialogOpen} onOpenChange={setRecurringDialogOpen}>
+            <DialogContent className="glass-card border-border/30">
+              <DialogHeader><DialogTitle>Nova Transação Recorrente</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <Input placeholder="Descrição" value={recDesc} onChange={e => setRecDesc(e.target.value)} className="bg-secondary/30 border-border/50" />
+                <Input placeholder="Valor" type="number" value={recAmount} onChange={e => setRecAmount(e.target.value)} className="bg-secondary/30 border-border/50" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Select value={recType} onValueChange={(v: "income" | "expense") => setRecType(v)}>
+                    <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="income">Receita</SelectItem>
+                      <SelectItem value="expense">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={recCategory} onValueChange={setRecCategory}>
+                    <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Dia do mês para executar (1-28)</label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={28}
+                    value={recDay}
+                    onChange={e => setRecDay(e.target.value)}
+                    className="bg-secondary/30 border-border/50"
+                  />
+                </div>
+                <Input placeholder="Anotação (opcional)" value={recNotes} onChange={e => setRecNotes(e.target.value)} className="bg-secondary/30 border-border/50" />
+                <Button
+                  onClick={() => {
+                    if (!recDesc || !recAmount || !recDay) return;
+                    const day = Math.min(28, Math.max(1, parseInt(recDay)));
+                    addRecurring({
+                      description: recDesc,
+                      amount: parseFloat(recAmount),
+                      type: recType,
+                      category: recCategory,
+                      notes: recNotes.trim() || null,
+                      day_of_month: day,
+                    });
+                    setRecDesc("");
+                    setRecAmount("");
+                    setRecDay("1");
+                    setRecNotes("");
+                    setRecurringDialogOpen(false);
+                  }}
+                  className="w-full gradient-primary border-0 text-white"
+                >
+                  <Repeat size={16} className="mr-1" /> Criar Recorrência
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <TransactionTable manualTransactions={filteredTransactions} onRemoveManual={remove} />
         </TabsContent>
 
