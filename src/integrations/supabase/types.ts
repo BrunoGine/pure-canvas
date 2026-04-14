@@ -270,6 +270,51 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_transactions: {
+        Row: {
+          active: boolean
+          amount: number
+          category: string
+          created_at: string
+          day_of_month: number
+          description: string
+          id: string
+          last_executed_at: string | null
+          notes: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          category?: string
+          created_at?: string
+          day_of_month?: number
+          description: string
+          id?: string
+          last_executed_at?: string | null
+          notes?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          category?: string
+          created_at?: string
+          day_of_month?: number
+          description?: string
+          id?: string
+          last_executed_at?: string | null
+          notes?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
