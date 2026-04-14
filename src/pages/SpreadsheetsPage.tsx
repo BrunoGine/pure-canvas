@@ -26,6 +26,7 @@ const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "S
 
 const SpreadsheetsPage = () => {
   const { transactions, loading, addTransaction: addTx, removeTransaction: removeTx } = useTransactions();
+  const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring } = useRecurringTransactions();
 
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
@@ -50,6 +51,13 @@ const SpreadsheetsPage = () => {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
   const [spendingDialogOpen, setSpendingDialogOpen] = useState(false);
+  const [recurringDialogOpen, setRecurringDialogOpen] = useState(false);
+  const [recDesc, setRecDesc] = useState("");
+  const [recAmount, setRecAmount] = useState("");
+  const [recType, setRecType] = useState<"income" | "expense">("expense");
+  const [recCategory, setRecCategory] = useState("Outros");
+  const [recDay, setRecDay] = useState("1");
+  const [recNotes, setRecNotes] = useState("");
 
   const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
 
