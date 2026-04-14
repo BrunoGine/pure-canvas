@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,7 @@ const HomePage = () => {
 
   const goals: { name: string; current: number; target: number }[] = [];
 
-  const recentTransactions: { name: string; amount: number; type: "income" | "expense"; date: string }[] = [];
+  const recentTransactions: { name: string; amount: number; type: "income" | "expense"; date: string; notes?: string | null }[] = [];
 
   return (
     <div className="space-y-6 pb-24">
@@ -156,9 +157,25 @@ const HomePage = () => {
                     <p className="text-xs text-muted-foreground">{tx.date}</p>
                   </div>
                 </div>
-                <span className={`text-sm font-bold tabular-nums ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
-                  {tx.type === "income" ? "+" : ""}R$ {Math.abs(tx.amount).toLocaleString("pt-BR")}
-                </span>
+                <div className="flex items-center gap-2">
+                  {tx.notes && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button className="text-muted-foreground hover:text-primary transition-colors">
+                            <StickyNote size={14} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[200px]">
+                          <p className="text-xs">{tx.notes}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  <span className={`text-sm font-bold tabular-nums ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
+                    {tx.type === "income" ? "+" : ""}R$ {Math.abs(tx.amount).toLocaleString("pt-BR")}
+                  </span>
+                </div>
               </motion.div>
             ))}
           </div>
