@@ -20,6 +20,7 @@ import CategoryBudget from "@/components/spreadsheets/CategoryBudget";
 import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards";
 import CategorySpendingDialog from "@/components/spreadsheets/CategorySpendingDialog";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
