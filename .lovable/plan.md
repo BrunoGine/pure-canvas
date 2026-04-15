@@ -1,25 +1,24 @@
 
 
-## Plano: Melhorar botões de anotação e apagar para mobile
+## Plano: Renomear "Receita/Despesa" para "Entrada/Saída"
 
-### Problema
-Os botões usam `Tooltip` (hover), que não funciona em telas touch. Os ícones são pequenos (14px), difíceis de tocar no celular.
+Trocar todos os textos visíveis ao usuário de "Receita"→"Entrada" e "Despesa"→"Saída" para linguagem mais acessível. Os valores internos (`type: "income" | "expense"`) permanecem iguais no banco e no código.
 
-### Solução
-Substituir o `Tooltip` por um `Popover` (abre ao clicar) para exibir a anotação, e aumentar o tamanho dos ícones e a área de toque dos botões.
+### Arquivos a alterar
 
-### Alterações
+1. **`src/pages/SpreadsheetsPage.tsx`** — labels do formulário, select de tipo, botões, textos
+2. **`src/pages/HomePage.tsx`** — cards de "Receitas"→"Entradas" e "Despesas"→"Saídas"
+3. **`src/components/spreadsheets/CategoryBreakdown.tsx`** — se houver menção a receita/despesa
+4. **`src/components/spreadsheets/CategorySummaryCards.tsx`** — cards de resumo
+5. **`src/components/spreadsheets/MonthlyOverview.tsx`** — se houver labels
 
-**1. `src/components/spreadsheets/TransactionTable.tsx`**
-- Substituir `Tooltip` por `Popover` do shadcn para o botão de anotação
-- Aumentar ícones de 14px para 18px
-- Adicionar padding nos botões (`p-2`) para aumentar a área de toque
-- Aumentar gap entre botões de `gap-1` para `gap-2`
+### Substituições
+| De | Para |
+|---|---|
+| Receita / Receitas | Entrada / Entradas |
+| Despesa / Despesas | Saída / Saídas |
+| income (label visível) | Entrada |
+| expense (label visível) | Saída |
 
-**2. `src/pages/HomePage.tsx`**
-- Mesmas alterações: `Tooltip` → `Popover`, ícones maiores (18px), área de toque maior
-
-### Detalhes técnicos
-- Imports: trocar `Tooltip/TooltipContent/TooltipProvider/TooltipTrigger` por `Popover/PopoverContent/PopoverTrigger` do `@/components/ui/popover`
-- O `Popover` abre com click (padrão), funcionando tanto em desktop quanto mobile
+Nenhuma alteração no banco de dados ou lógica — apenas textos exibidos na interface.
 
