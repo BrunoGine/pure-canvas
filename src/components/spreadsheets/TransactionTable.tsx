@@ -1,6 +1,6 @@
 import { Trash2, StickyNote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ManualTransaction {
   id: string;
