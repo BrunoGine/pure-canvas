@@ -116,14 +116,14 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
             <div className="grid grid-cols-2 gap-3">
               <div className="glass-card rounded-xl p-3 text-center">
                 <TrendingUp size={16} className="mx-auto text-primary mb-1" />
-                <p className="text-xs text-muted-foreground">Receitas</p>
+                <p className="text-xs text-muted-foreground">Entradas</p>
                 <p className="text-base font-bold text-primary tabular-nums">
                   R$ {categoryData.totalIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div className="glass-card rounded-xl p-3 text-center">
                 <TrendingDown size={16} className="mx-auto text-destructive mb-1" />
-                <p className="text-xs text-muted-foreground">Despesas</p>
+                <p className="text-xs text-muted-foreground">Saídas</p>
                 <p className="text-base font-bold text-destructive tabular-nums">
                   R$ {categoryData.totalExpense.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
@@ -132,7 +132,7 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
 
             {/* Chart */}
             <div className="glass-card rounded-xl p-4">
-              <p className="text-xs font-semibold text-muted-foreground mb-3">Receitas vs Despesas (6 meses)</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-3">Entradas vs Saídas (6 meses)</p>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={categoryData.chartData} barCategoryGap="20%">
                   <defs>
@@ -150,8 +150,8 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
                   <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <Tooltip content={<GlassTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.2)" }} />
                   <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} iconType="circle" iconSize={8} />
-                  <Bar dataKey="receitas" name="Receitas" fill="url(#gradReceitasDialog)" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="despesas" name="Despesas" fill="url(#gradDespesasDialog)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="receitas" name="Entradas" fill="url(#gradReceitasDialog)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="despesas" name="Saídas" fill="url(#gradDespesasDialog)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

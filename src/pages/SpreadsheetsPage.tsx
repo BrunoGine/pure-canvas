@@ -205,11 +205,11 @@ const SpreadsheetsPage = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
         <div className="glass-card rounded-xl p-4 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Receitas</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Entradas</p>
           <p className="text-lg font-bold text-primary mt-1 tabular-nums">R$ {totalIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
         </div>
         <div className="glass-card rounded-xl p-4 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Despesas</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Saídas</p>
           <p className="text-lg font-bold text-destructive mt-1 tabular-nums">R$ {totalExpense.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
         </div>
       </div>
@@ -254,8 +254,8 @@ const SpreadsheetsPage = () => {
               <Select value={type} onValueChange={(v: "income" | "expense") => setType(v)}>
                 <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="income">Receita</SelectItem>
-                  <SelectItem value="expense">Despesa</SelectItem>
+                  <SelectItem value="income">Entrada</SelectItem>
+                  <SelectItem value="expense">Saída</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={category} onValueChange={(v) => {
@@ -327,7 +327,7 @@ const SpreadsheetsPage = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{rec.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        R$ {rec.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Dia {rec.day_of_month} · {rec.type === "income" ? "Receita" : "Despesa"} · {rec.category}
+                        R$ {rec.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Dia {rec.day_of_month} · {rec.type === "income" ? "Entrada" : "Saída"} · {rec.category}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
@@ -353,8 +353,8 @@ const SpreadsheetsPage = () => {
                   <Select value={recType} onValueChange={(v: "income" | "expense") => setRecType(v)}>
                     <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="income">Receita</SelectItem>
-                      <SelectItem value="expense">Despesa</SelectItem>
+                      <SelectItem value="income">Entrada</SelectItem>
+                      <SelectItem value="expense">Saída</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={recCategory} onValueChange={setRecCategory}>

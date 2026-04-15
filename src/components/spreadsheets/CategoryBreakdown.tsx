@@ -100,8 +100,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
         const [year, month] = key.split("-");
         return {
           name: `${MONTHS[parseInt(month) - 1]}/${year.slice(2)}`,
-          Receitas: Math.round(val.income * 100) / 100,
-          Despesas: Math.round(val.expense * 100) / 100,
+          Entradas: Math.round(val.income * 100) / 100,
+          Saídas: Math.round(val.expense * 100) / 100,
           Total: Math.round(val.total * 100) / 100,
         };
       });
@@ -168,8 +168,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
               <YAxis tick={commonAxisTick} tickFormatter={v => `R$${v}`} axisLine={false} tickLine={false} />
               <Tooltip content={<GlassTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.2)" }} />
               <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
-              <Bar dataKey="Despesas" fill="url(#gradCatDespesas)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="Receitas" fill="url(#gradCatReceitas)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="Saídas" fill="url(#gradCatDespesas)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="Entradas" fill="url(#gradCatReceitas)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         );
@@ -192,8 +192,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
               <XAxis dataKey="name" tick={commonAxisTick} axisLine={false} tickLine={false} />
               <YAxis tick={commonAxisTick} tickFormatter={v => `R$${v}`} axisLine={false} tickLine={false} />
               <Tooltip content={<GlassTooltip />} cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "4 4" }} />
-              <Area type="monotone" dataKey="Despesas" stroke="hsl(var(--destructive))" fill="url(#gradAreaDespesas)" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--destructive))" }} />
-              <Area type="monotone" dataKey="Receitas" stroke="hsl(var(--primary))" fill="url(#gradAreaReceitas)" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--primary))" }} />
+              <Area type="monotone" dataKey="Saídas" stroke="hsl(var(--destructive))" fill="url(#gradAreaDespesas)" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--destructive))" }} />
+              <Area type="monotone" dataKey="Entradas" stroke="hsl(var(--primary))" fill="url(#gradAreaReceitas)" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--primary))" }} />
             </AreaChart>
           </ResponsiveContainer>
         );
@@ -207,8 +207,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
               <YAxis tick={commonAxisTick} tickFormatter={v => `R$${v}`} axisLine={false} tickLine={false} />
               <Tooltip content={<GlassTooltip />} cursor={{ stroke: "hsl(var(--muted-foreground))", strokeDasharray: "4 4" }} />
               <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
-              <Line type="monotone" dataKey="Despesas" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--destructive))", strokeWidth: 2, stroke: "hsl(var(--card))" }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="Receitas" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--card))" }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="Saídas" stroke="hsl(var(--destructive))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--destructive))", strokeWidth: 2, stroke: "hsl(var(--card))" }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="Entradas" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--card))" }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         );
@@ -290,8 +290,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="expense">Despesas</SelectItem>
-              <SelectItem value="income">Receitas</SelectItem>
+              <SelectItem value="expense">Saídas</SelectItem>
+              <SelectItem value="income">Entradas</SelectItem>
             </SelectContent>
           </Select>
         </div>
