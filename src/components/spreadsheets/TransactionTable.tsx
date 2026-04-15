@@ -52,24 +52,22 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual }: Transacti
                   {tx.type === "income" ? "+" : "-"}R$ {tx.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </td>
                 <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
+                  <div className="flex items-center justify-center gap-2">
                     {tx.notes && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button className="text-muted-foreground hover:text-primary transition-colors">
-                              <StickyNote size={14} />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[200px]">
-                            <p className="text-xs">{tx.notes}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
+                            <StickyNote size={18} />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent side="top" className="max-w-[220px] p-3">
+                          <p className="text-xs">{tx.notes}</p>
+                        </PopoverContent>
+                      </Popover>
                     )}
                     {onRemoveManual ? (
-                      <button onClick={() => onRemoveManual(tx.id)} className="text-muted-foreground hover:text-destructive transition-colors">
-                        <Trash2 size={14} />
+                      <button onClick={() => onRemoveManual(tx.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
+                        <Trash2 size={18} />
                       </button>
                     ) : null}
                   </div>
