@@ -68,7 +68,7 @@ const HomePage = () => {
                   <ArrowUpRight size={14} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Receitas</p>
+                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Entradas</p>
                   <p className="text-white text-sm font-semibold">
                     R$ {income.toLocaleString("pt-BR")}
                   </p>
@@ -79,7 +79,7 @@ const HomePage = () => {
                   <ArrowDownLeft size={14} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Despesas</p>
+                  <p className="text-white/50 text-[10px] uppercase tracking-wider">Saídas</p>
                   <p className="text-white text-sm font-semibold">
                     R$ {expenses.toLocaleString("pt-BR")}
                   </p>

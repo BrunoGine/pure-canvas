@@ -55,8 +55,8 @@ const MonthlyOverview = ({ transactions }: Props) => {
         const [year, month] = key.split("-");
         return {
           name: `${MONTHS[parseInt(month) - 1]}/${year.slice(2)}`,
-          Receitas: Math.round(val.income * 100) / 100,
-          Despesas: Math.round(val.expense * 100) / 100,
+          Entradas: Math.round(val.income * 100) / 100,
+          Saídas: Math.round(val.expense * 100) / 100,
           Saldo: Math.round((val.income - val.expense) * 100) / 100,
         };
       });
@@ -110,13 +110,13 @@ const MonthlyOverview = ({ transactions }: Props) => {
                 iconSize={8}
               />
               <Bar
-                dataKey="Receitas"
+                dataKey="Entradas"
                 fill="url(#gradReceitas)"
                 radius={[6, 6, 0, 0]}
                 activeBar={{ fill: "hsl(var(--primary))", opacity: 0.9 }}
               />
               <Bar
-                dataKey="Despesas"
+                dataKey="Saídas"
                 fill="url(#gradDespesas)"
                 radius={[6, 6, 0, 0]}
                 activeBar={{ fill: "hsl(var(--destructive))", opacity: 0.9 }}
@@ -130,8 +130,8 @@ const MonthlyOverview = ({ transactions }: Props) => {
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Mês</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Receitas</th>
-                <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Despesas</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Entradas</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Saídas</th>
                 <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Saldo</th>
               </tr>
             </thead>
@@ -140,10 +140,10 @@ const MonthlyOverview = ({ transactions }: Props) => {
                 <tr key={row.name}>
                   <td className="px-3 py-2 font-medium">{row.name}</td>
                   <td className="px-3 py-2 text-right text-primary">
-                    R$ {row.Receitas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    R$ {row.Entradas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-3 py-2 text-right text-destructive">
-                    R$ {row.Despesas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    R$ {row.Saídas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </td>
                   <td className={`px-3 py-2 text-right font-semibold ${row.Saldo >= 0 ? "text-primary" : "text-destructive"}`}>
                     R$ {row.Saldo.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
