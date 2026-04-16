@@ -420,16 +420,19 @@ const SpreadsheetsPage = () => {
             transactions={txForCharts}
             categories={categories}
           />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <MonthlyOverview transactions={txForCharts} />
+            <CategoryBreakdown transactions={txForCharts} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="budget" className="space-y-4">
           <CategoryBudget
             transactions={txForCharts}
             categories={categories.filter(c => c !== "Outros")}
             budgets={budgets}
             onUpdateBudgets={updateBudgets}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <MonthlyOverview transactions={txForCharts} />
-            <CategoryBreakdown transactions={txForCharts} />
-          </div>
         </TabsContent>
       </Tabs>
     </div>
