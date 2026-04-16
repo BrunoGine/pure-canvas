@@ -1,18 +1,37 @@
 
 
-## Plano: Ajustes no "Gastos por categoria"
+## Plano: Destacar categoria selecionada no gráfico
+
+### Objetivo
+Ao clicar numa fatia do gráfico de pizza (ou num item da lista) em `CategoryBreakdown.tsx`, destacar visualmente a categoria correspondente na lista abaixo.
 
 ### Investigação
-Preciso ler `src/components/spreadsheets/CategoryBreakdown.tsx` para entender a estrutura atual (título, filtro com "Todos", e gráficos exibidos ao clicar numa categoria).
+Já li o `CategoryBreakdown.tsx`. Hoje não há estado de seleção — clicar não faz nada. Preciso adicionar:
+- Estado `selectedCategory` (string | null)
+- Handler de clique no `Pie` (onClick na fatia) e nos itens da lista
+- Estilo de destaque na lista quando o item está selecionado
+- Toggle: clicar de novo na mesma categoria desmarca
 
-### Alterações em `CategoryBreakdown.tsx`
+### Alterações em `src/components/spreadsheets/CategoryBreakdown.tsx`
 
-1. **Título**: trocar "Gastos por categoria" → "Gráfico de Categorias"
-2. **Filtro de tipo**: remover a opção "Todos", deixando apenas "Entradas" e "Saídas". Definir o valor inicial como "Saídas" (ou o que estiver fazendo mais sentido) já que não haverá mais "Todos".
-3. **Remover gráficos ao clicar numa categoria**: remover o drill-down/gráficos secundários que aparecem ao selecionar uma categoria. Manter apenas o gráfico principal de categorias.
+1. **Novo estado**: `const [selectedCategory, setSelectedCategory] = useState<string | null>(null)`
+
+2. **Handler de clique**:
+   - No `Pie`: `onClick={(d) => setSelectedCategory(prev => prev === d.name ? null : d.name)}`
+   - No item da lista: mesmo handler, transformando o `<div>` num `<button>` para acessibilidade
+
+3. **Destaque visual no item selecionado da lista**:
+   - Borda/background mais forte (ex: `bg-secondary ring-1 ring-primary/40`)
+   - Quando há seleção, os outros itens ficam com `opacity-50` para reforçar o destaque
+   - Scroll automático até o item selecionado (opcional, usando `ref` + `scrollIntoView({ block: "nearest" })`)
+
+4. **Destaque visual na fatia do gráfico**:
+   - Aumentar `outerRadius` da fatia selecionada (ex: 80 → 88) usando a prop `activeIndex`/`activeShape` do Recharts, OU reduzir opacidade das outras fatias via `<Cell fillOpacity={...}>`
+
+5. **Reset**: ao trocar o filtro (`filterType`), limpar `selectedCategory`
 
 ### Detalhes técnicos
-- Garantir que ao remover "Todos", o estado padrão do filtro seja válido
-- Remover handlers de clique e estado relacionado aos sub-gráficos
-- Não alterar lógica de cálculo, apenas UI/interação
+- Cursor `cursor-pointer` nas fatias e itens
+- Sem novos componentes — apenas estado e estilos condicionais
+- Sem alteração de lógica de cálculo
 
