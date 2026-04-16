@@ -222,6 +222,9 @@ const SpreadsheetsPage = () => {
             <TabsTrigger value="dashboard" className="gap-1 data-[state=active]:shadow-glow">
               <BarChart3 size={14} /> Dashboard
             </TabsTrigger>
+            <TabsTrigger value="budget" className="gap-1 data-[state=active]:shadow-glow">
+              <Wallet size={14} /> Orçamento
+            </TabsTrigger>
           </TabsList>
           <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30">
             <Download size={14} className="mr-1" /> CSV
