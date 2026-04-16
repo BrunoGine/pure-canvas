@@ -1,24 +1,23 @@
 
 
-## Plano: Renomear "Receita/Despesa" para "Entrada/Saída"
+## Plano: Mover "Orçamento por Categoria" para uma aba
 
-Trocar todos os textos visíveis ao usuário de "Receita"→"Entrada" e "Despesa"→"Saída" para linguagem mais acessível. Os valores internos (`type: "income" | "expense"`) permanecem iguais no banco e no código.
+### Objetivo
+Adicionar uma terceira aba "Orçamento" ao lado de "Transações" e "Dashboard" na página de planilhas, movendo o componente `CategoryBudget` para dentro dela.
 
-### Arquivos a alterar
+### Investigação necessária
+Preciso confirmar a estrutura atual de tabs em `SpreadsheetsPage.tsx` e onde o `CategoryBudget` está renderizado hoje.
 
-1. **`src/pages/SpreadsheetsPage.tsx`** — labels do formulário, select de tipo, botões, textos
-2. **`src/pages/HomePage.tsx`** — cards de "Receitas"→"Entradas" e "Despesas"→"Saídas"
-3. **`src/components/spreadsheets/CategoryBreakdown.tsx`** — se houver menção a receita/despesa
-4. **`src/components/spreadsheets/CategorySummaryCards.tsx`** — cards de resumo
-5. **`src/components/spreadsheets/MonthlyOverview.tsx`** — se houver labels
+### Alterações
 
-### Substituições
-| De | Para |
-|---|---|
-| Receita / Receitas | Entrada / Entradas |
-| Despesa / Despesas | Saída / Saídas |
-| income (label visível) | Entrada |
-| expense (label visível) | Saída |
+**`src/pages/SpreadsheetsPage.tsx`**
+- Adicionar uma nova `TabsTrigger` "Orçamento" no `TabsList` (que passará de 2 para 3 colunas — `grid-cols-3`)
+- Criar uma nova `TabsContent value="budget"` contendo o componente `CategoryBudget`
+- Remover o `CategoryBudget` da localização atual (provavelmente dentro da aba Dashboard ou fora das tabs)
+- Manter as props existentes: `transactions`, `categories`, `budgets`, `onUpdateBudgets`
 
-Nenhuma alteração no banco de dados ou lógica — apenas textos exibidos na interface.
+### Detalhes técnicos
+- Usar ícone do `lucide-react` (ex: `Wallet` ou `Target`) no trigger para consistência visual com as outras abas
+- Garantir que o estado de `budgets` continue sendo gerenciado no `SpreadsheetsPage` e passado por props
+- Nenhuma mudança na lógica do `CategoryBudget.tsx` em si
 
