@@ -411,9 +411,6 @@ const SpreadsheetsPage = () => {
         </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-4">
-          <Button onClick={() => setSpendingDialogOpen(true)} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
-            <BarChart3 size={16} className="mr-2" /> Categoria do gasto
-          </Button>
           <CategorySpendingDialog
             open={spendingDialogOpen}
             onOpenChange={setSpendingDialogOpen}
@@ -424,6 +421,9 @@ const SpreadsheetsPage = () => {
             <MonthlyOverview transactions={txForCharts} />
             <CategoryBreakdown transactions={txForCharts} />
           </div>
+          <Button onClick={() => setSpendingDialogOpen(true)} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
+            <BarChart3 size={16} className="mr-2" /> Gráficos das categorias
+          </Button>
         </TabsContent>
 
         <TabsContent value="budget" className="space-y-4">
