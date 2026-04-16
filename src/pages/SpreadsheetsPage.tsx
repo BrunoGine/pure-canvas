@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
