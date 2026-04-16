@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -222,6 +222,9 @@ const SpreadsheetsPage = () => {
             <TabsTrigger value="dashboard" className="gap-1 data-[state=active]:shadow-glow">
               <BarChart3 size={14} /> Dashboard
             </TabsTrigger>
+            <TabsTrigger value="budget" className="gap-1 data-[state=active]:shadow-glow">
+              <Wallet size={14} /> Orçamento
+            </TabsTrigger>
           </TabsList>
           <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30">
             <Download size={14} className="mr-1" /> CSV
@@ -417,16 +420,19 @@ const SpreadsheetsPage = () => {
             transactions={txForCharts}
             categories={categories}
           />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <MonthlyOverview transactions={txForCharts} />
+            <CategoryBreakdown transactions={txForCharts} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="budget" className="space-y-4">
           <CategoryBudget
             transactions={txForCharts}
             categories={categories.filter(c => c !== "Outros")}
             budgets={budgets}
             onUpdateBudgets={updateBudgets}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <MonthlyOverview transactions={txForCharts} />
-            <CategoryBreakdown transactions={txForCharts} />
-          </div>
         </TabsContent>
       </Tabs>
     </div>
