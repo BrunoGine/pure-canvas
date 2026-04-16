@@ -1,23 +1,18 @@
 
 
-## Plano: Mover "Orçamento por Categoria" para uma aba
+## Plano: Ajustes no "Gastos por categoria"
 
-### Objetivo
-Adicionar uma terceira aba "Orçamento" ao lado de "Transações" e "Dashboard" na página de planilhas, movendo o componente `CategoryBudget` para dentro dela.
+### Investigação
+Preciso ler `src/components/spreadsheets/CategoryBreakdown.tsx` para entender a estrutura atual (título, filtro com "Todos", e gráficos exibidos ao clicar numa categoria).
 
-### Investigação necessária
-Preciso confirmar a estrutura atual de tabs em `SpreadsheetsPage.tsx` e onde o `CategoryBudget` está renderizado hoje.
+### Alterações em `CategoryBreakdown.tsx`
 
-### Alterações
-
-**`src/pages/SpreadsheetsPage.tsx`**
-- Adicionar uma nova `TabsTrigger` "Orçamento" no `TabsList` (que passará de 2 para 3 colunas — `grid-cols-3`)
-- Criar uma nova `TabsContent value="budget"` contendo o componente `CategoryBudget`
-- Remover o `CategoryBudget` da localização atual (provavelmente dentro da aba Dashboard ou fora das tabs)
-- Manter as props existentes: `transactions`, `categories`, `budgets`, `onUpdateBudgets`
+1. **Título**: trocar "Gastos por categoria" → "Gráfico de Categorias"
+2. **Filtro de tipo**: remover a opção "Todos", deixando apenas "Entradas" e "Saídas". Definir o valor inicial como "Saídas" (ou o que estiver fazendo mais sentido) já que não haverá mais "Todos".
+3. **Remover gráficos ao clicar numa categoria**: remover o drill-down/gráficos secundários que aparecem ao selecionar uma categoria. Manter apenas o gráfico principal de categorias.
 
 ### Detalhes técnicos
-- Usar ícone do `lucide-react` (ex: `Wallet` ou `Target`) no trigger para consistência visual com as outras abas
-- Garantir que o estado de `budgets` continue sendo gerenciado no `SpreadsheetsPage` e passado por props
-- Nenhuma mudança na lógica do `CategoryBudget.tsx` em si
+- Garantir que ao remover "Todos", o estado padrão do filtro seja válido
+- Remover handlers de clique e estado relacionado aos sub-gráficos
+- Não alterar lógica de cálculo, apenas UI/interação
 
