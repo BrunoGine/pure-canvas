@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
@@ -41,6 +41,22 @@ interface Props {
 
 const CategoryBreakdown = ({ transactions }: Props) => {
   const [filterType, setFilterType] = useState<"income" | "expense">("expense");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  useEffect(() => {
+    setSelectedCategory(null);
+  }, [filterType]);
+
+  useEffect(() => {
+    if (selectedCategory && itemRefs.current[selectedCategory]) {
+      itemRefs.current[selectedCategory]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedCategory]);
+
+  const toggleCategory = (name: string) => {
+    setSelectedCategory(prev => (prev === name ? null : name));
+  };
 
   const data = useMemo(() => {
     const filtered = transactions.filter(t => t.type === filterType);
@@ -117,10 +133,22 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                     animationBegin={0}
                     animationDuration={800}
                     animationEasing="ease-out"
+                    onClick={(d: any) => d?.name && toggleCategory(d.name)}
+                    className="cursor-pointer"
                   >
-                    {data.map((entry, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
+                    {data.map((entry, i) => {
+                      const isSelected = selectedCategory === entry.name;
+                      const dimmed = selectedCategory && !isSelected;
+                      return (
+                        <Cell
+                          key={i}
+                          fill={COLORS[i % COLORS.length]}
+                          fillOpacity={dimmed ? 0.35 : 1}
+                          stroke={isSelected ? "hsl(var(--foreground))" : "none"}
+                          strokeWidth={isSelected ? 2 : 0}
+                        />
+                      );
+                    })}
                   </Pie>
                   <Tooltip content={<GlassTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
@@ -130,21 +158,31 @@ const CategoryBreakdown = ({ transactions }: Props) => {
 
             {/* Category list */}
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {data.map((item, i) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between text-sm w-full p-1.5 rounded-lg hover:bg-secondary/50"
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="truncate">{item.name}</span>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <span className="font-semibold">R$ {item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-                    <span className="text-xs text-muted-foreground ml-1">({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
-                  </div>
-                </div>
-              ))}
+              {data.map((item, i) => {
+                const isSelected = selectedCategory === item.name;
+                const dimmed = selectedCategory && !isSelected;
+                return (
+                  <button
+                    key={item.name}
+                    ref={(el) => (itemRefs.current[item.name] = el)}
+                    onClick={() => toggleCategory(item.name)}
+                    className={`flex items-center justify-between text-sm w-full p-1.5 rounded-lg transition-all text-left ${
+                      isSelected
+                        ? "bg-secondary ring-1 ring-primary/40"
+                        : "hover:bg-secondary/50"
+                    } ${dimmed ? "opacity-50" : "opacity-100"}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                      <span className="truncate">{item.name}</span>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <span className="font-semibold">R$ {item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      <span className="text-xs text-muted-foreground ml-1">({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </>
         ) : (
