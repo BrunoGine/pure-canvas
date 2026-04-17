@@ -207,9 +207,46 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_cards: {
+        Row: {
+          bank: string
+          brand: string
+          closing_day: number
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank?: string
+          brand?: string
+          closing_day?: number
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank?: string
+          brand?: string
+          closing_day?: number
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       manual_transactions: {
         Row: {
           amount: number
+          card_id: string | null
           category: string
           created_at: string
           date: string
@@ -221,6 +258,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          card_id?: string | null
           category?: string
           created_at?: string
           date?: string
@@ -232,6 +270,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          card_id?: string | null
           category?: string
           created_at?: string
           date?: string
