@@ -1,6 +1,7 @@
 import { Trash2, StickyNote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { paymentMethodLabel } from "@/lib/paymentMethods";
 
 interface ManualTransaction {
   id: string;
@@ -10,6 +11,7 @@ interface ManualTransaction {
   category: string;
   date: string;
   notes?: string | null;
+  payment_method?: string | null;
 }
 
 interface TransactionTableProps {
@@ -45,7 +47,9 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual }: Transacti
               <tr key={tx.id} className="animate-fade-in">
                 <td className="px-4 py-3">
                   <p className="font-medium">{tx.description}</p>
-                  <p className="text-xs text-muted-foreground">{tx.date}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {tx.date}{tx.payment_method ? ` · ${paymentMethodLabel(tx.payment_method)}` : ""}
+                  </p>
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">{tx.category}</td>
                 <td className={`px-4 py-3 text-right font-semibold ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>

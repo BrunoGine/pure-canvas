@@ -12,6 +12,7 @@ export interface Transaction {
   date: string;
   notes?: string | null;
   card_id?: string | null;
+  payment_method?: string | null;
 }
 
 export function useTransactions() {
@@ -24,7 +25,7 @@ export function useTransactions() {
     setLoading(true);
     const { data, error } = await supabase
       .from("manual_transactions")
-      .select("id, description, amount, type, category, date, notes, card_id")
+      .select("id, description, amount, type, category, date, notes, card_id, payment_method")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -60,8 +61,9 @@ export function useTransactions() {
           date: tx.date,
           notes: tx.notes || null,
           card_id: tx.card_id || null,
+          payment_method: tx.payment_method || "pix",
         })
-        .select("id, description, amount, type, category, date, notes, card_id")
+        .select("id, description, amount, type, category, date, notes, card_id, payment_method")
         .single();
 
       if (error) {
