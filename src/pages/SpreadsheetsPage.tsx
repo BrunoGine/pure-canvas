@@ -231,6 +231,9 @@ const SpreadsheetsPage = () => {
             <TabsTrigger value="budget" className="gap-1 data-[state=active]:shadow-glow">
               <Wallet size={14} /> Orçamento
             </TabsTrigger>
+            <TabsTrigger value="cards" className="gap-1 data-[state=active]:shadow-glow">
+              <CreditCard size={14} /> Cartões
+            </TabsTrigger>
           </TabsList>
           <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30">
             <Download size={14} className="mr-1" /> CSV
@@ -316,6 +319,19 @@ const SpreadsheetsPage = () => {
               </Dialog>
             </div>
             <Input placeholder="Anotação (opcional)" value={notes} onChange={e => setNotes(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
+            {type === "expense" && cards.length > 0 && (
+              <Select value={cardId} onValueChange={setCardId}>
+                <SelectTrigger className="bg-secondary/30 border-border/50">
+                  <SelectValue placeholder="Cartão (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem cartão</SelectItem>
+                  {cards.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
               <Plus size={16} className="mr-1" /> Adicionar
             </Button>
@@ -439,6 +455,10 @@ const SpreadsheetsPage = () => {
             budgets={budgets}
             onUpdateBudgets={updateBudgets}
           />
+        </TabsContent>
+
+        <TabsContent value="cards" className="space-y-4">
+          <CardsTab transactions={transactions} onRemoveTransaction={remove} />
         </TabsContent>
       </Tabs>
     </div>
