@@ -1,4 +1,5 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,12 +49,40 @@ Para QUALQUER pergunta que NÃO esteja relacionada aos temas acima, você DEVE r
 - Use citações (>) para dicas e avisos importantes
 - Mantenha as respostas concisas mas completas`;
 
+const MAX_MESSAGES = 50;
+const MAX_CONTENT_LENGTH = 4000;
+const ALLOWED_ROLES = new Set(["user", "assistant"]);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: authError } = await supabase.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { messages } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
@@ -61,6 +90,30 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Messages array is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Input validation
+    if (messages.length === 0 || messages.length > MAX_MESSAGES) {
+      return new Response(
+        JSON.stringify({ error: `Messages count must be between 1 and ${MAX_MESSAGES}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    for (const m of messages) {
+      if (
+        !m ||
+        typeof m.role !== "string" ||
+        !ALLOWED_ROLES.has(m.role) ||
+        typeof m.content !== "string" ||
+        m.content.length === 0 ||
+        m.content.length > MAX_CONTENT_LENGTH
+      ) {
+        return new Response(
+          JSON.stringify({ error: "Invalid message format or length" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const apiMessages = [

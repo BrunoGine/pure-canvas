@@ -49,11 +49,17 @@ const AuthPage = () => {
         });
       }
     } catch (error: any) {
+      const errorMessages: Record<string, string> = {
+        "Invalid login credentials": "E-mail ou senha incorretos",
+        "Email not confirmed": "Confirme seu e-mail antes de entrar",
+        "User already registered": "Este e-mail já está cadastrado",
+        "Password should be at least 6 characters": "A senha deve ter no mínimo 6 caracteres",
+        "Signup requires a valid password": "Por favor, insira uma senha válida",
+        "Unable to validate email address: invalid format": "Formato de e-mail inválido",
+      };
       toast({
         title: "Erro",
-        description: error.message === "Invalid login credentials"
-          ? "E-mail ou senha incorretos"
-          : error.message,
+        description: errorMessages[error?.message] ?? "Ocorreu um erro. Tente novamente.",
         variant: "destructive",
       });
     } finally {
