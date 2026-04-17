@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,12 +21,15 @@ import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards
 import CategorySpendingDialog from "@/components/spreadsheets/CategorySpendingDialog";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import CardsTab from "@/components/cards/CardsTab";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
   const { transactions, loading, addTransaction: addTx, removeTransaction: removeTx } = useTransactions();
   const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring } = useRecurringTransactions();
+  const { cards } = useCreditCards();
 
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
@@ -34,6 +37,7 @@ const SpreadsheetsPage = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState("Outros");
   const [notes, setNotes] = useState("");
+  const [cardId, setCardId] = useState<string>("none");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     const saved = localStorage.getItem("finapp-custom-categories");
@@ -108,11 +112,13 @@ const SpreadsheetsPage = () => {
       category,
       date: format(date, "yyyy-MM-dd"),
       notes: notes.trim() || null,
+      card_id: type === "expense" && cardId !== "none" ? cardId : null,
     });
     setDesc("");
     setAmount("");
     setDate(new Date());
     setNotes("");
+    setCardId("none");
   };
 
   const remove = (id: string) => removeTx(id);
@@ -225,6 +231,9 @@ const SpreadsheetsPage = () => {
             <TabsTrigger value="budget" className="gap-1 data-[state=active]:shadow-glow">
               <Wallet size={14} /> Orçamento
             </TabsTrigger>
+            <TabsTrigger value="cards" className="gap-1 data-[state=active]:shadow-glow">
+              <CreditCard size={14} /> Cartões
+            </TabsTrigger>
           </TabsList>
           <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30">
             <Download size={14} className="mr-1" /> CSV
@@ -310,6 +319,19 @@ const SpreadsheetsPage = () => {
               </Dialog>
             </div>
             <Input placeholder="Anotação (opcional)" value={notes} onChange={e => setNotes(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
+            {type === "expense" && cards.length > 0 && (
+              <Select value={cardId} onValueChange={setCardId}>
+                <SelectTrigger className="bg-secondary/30 border-border/50">
+                  <SelectValue placeholder="Cartão (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem cartão</SelectItem>
+                  {cards.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button onClick={addTransaction} className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all">
               <Plus size={16} className="mr-1" /> Adicionar
             </Button>
@@ -433,6 +455,10 @@ const SpreadsheetsPage = () => {
             budgets={budgets}
             onUpdateBudgets={updateBudgets}
           />
+        </TabsContent>
+
+        <TabsContent value="cards" className="space-y-4">
+          <CardsTab transactions={transactions} onRemoveTransaction={remove} />
         </TabsContent>
       </Tabs>
     </div>
