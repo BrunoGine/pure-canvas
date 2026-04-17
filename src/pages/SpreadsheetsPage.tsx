@@ -23,6 +23,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import CardsTab from "@/components/cards/CardsTab";
+import { paymentMethods } from "@/lib/paymentMethods";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
@@ -38,6 +39,7 @@ const SpreadsheetsPage = () => {
   const [category, setCategory] = useState("Outros");
   const [notes, setNotes] = useState("");
   const [cardId, setCardId] = useState<string>("none");
+  const [paymentMethod, setPaymentMethod] = useState<string>("pix");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     const saved = localStorage.getItem("finapp-custom-categories");
@@ -62,6 +64,7 @@ const SpreadsheetsPage = () => {
   const [recCategory, setRecCategory] = useState("Outros");
   const [recDay, setRecDay] = useState("1");
   const [recNotes, setRecNotes] = useState("");
+  const [recPaymentMethod, setRecPaymentMethod] = useState<string>("pix");
 
   const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
 
@@ -113,12 +116,14 @@ const SpreadsheetsPage = () => {
       date: format(date, "yyyy-MM-dd"),
       notes: notes.trim() || null,
       card_id: type === "expense" && cardId !== "none" ? cardId : null,
+      payment_method: paymentMethod,
     });
     setDesc("");
     setAmount("");
     setDate(new Date());
     setNotes("");
     setCardId("none");
+    setPaymentMethod("pix");
   };
 
   const remove = (id: string) => removeTx(id);
@@ -319,6 +324,16 @@ const SpreadsheetsPage = () => {
               </Dialog>
             </div>
             <Input placeholder="Anotação (opcional)" value={notes} onChange={e => setNotes(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger className="bg-secondary/30 border-border/50">
+                <SelectValue placeholder="Método de pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map(p => (
+                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {type === "expense" && cards.length > 0 && (
               <Select value={cardId} onValueChange={setCardId}>
                 <SelectTrigger className="bg-secondary/30 border-border/50">
@@ -403,6 +418,16 @@ const SpreadsheetsPage = () => {
                   />
                 </div>
                 <Input placeholder="Anotação (opcional)" value={recNotes} onChange={e => setRecNotes(e.target.value)} className="bg-secondary/30 border-border/50" />
+                <Select value={recPaymentMethod} onValueChange={setRecPaymentMethod}>
+                  <SelectTrigger className="bg-secondary/30 border-border/50">
+                    <SelectValue placeholder="Método de pagamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paymentMethods.map(p => (
+                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Button
                   onClick={() => {
                     if (!recDesc || !recAmount || !recDay) return;
@@ -414,11 +439,13 @@ const SpreadsheetsPage = () => {
                       category: recCategory,
                       notes: recNotes.trim() || null,
                       day_of_month: day,
+                      payment_method: recPaymentMethod,
                     });
                     setRecDesc("");
                     setRecAmount("");
                     setRecDay("1");
                     setRecNotes("");
+                    setRecPaymentMethod("pix");
                     setRecurringDialogOpen(false);
                   }}
                   className="w-full gradient-primary border-0 text-white"
