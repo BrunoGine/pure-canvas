@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,12 +21,15 @@ import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards
 import CategorySpendingDialog from "@/components/spreadsheets/CategorySpendingDialog";
 import { useTransactions } from "@/hooks/useTransactions";
 import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import CardsTab from "@/components/cards/CardsTab";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
   const { transactions, loading, addTransaction: addTx, removeTransaction: removeTx } = useTransactions();
   const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring } = useRecurringTransactions();
+  const { cards } = useCreditCards();
 
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
@@ -34,6 +37,7 @@ const SpreadsheetsPage = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [category, setCategory] = useState("Outros");
   const [notes, setNotes] = useState("");
+  const [cardId, setCardId] = useState<string>("none");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<string[]>(() => {
     const saved = localStorage.getItem("finapp-custom-categories");
@@ -108,11 +112,13 @@ const SpreadsheetsPage = () => {
       category,
       date: format(date, "yyyy-MM-dd"),
       notes: notes.trim() || null,
+      card_id: type === "expense" && cardId !== "none" ? cardId : null,
     });
     setDesc("");
     setAmount("");
     setDate(new Date());
     setNotes("");
+    setCardId("none");
   };
 
   const remove = (id: string) => removeTx(id);
