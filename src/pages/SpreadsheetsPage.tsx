@@ -367,7 +367,7 @@ const SpreadsheetsPage = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{rec.description}</p>
                       <p className="text-xs text-muted-foreground">
-                        R$ {rec.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Dia {rec.day_of_month} · {rec.type === "income" ? "Entrada" : "Saída"} · {rec.category}
+                        R$ {rec.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} · Dia {rec.day_of_month} · {rec.type === "income" ? "Entrada" : "Saída"} · {rec.category}{rec.payment_method ? ` · ${paymentMethods.find(p => p.value === rec.payment_method)?.label ?? rec.payment_method}` : ""}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
