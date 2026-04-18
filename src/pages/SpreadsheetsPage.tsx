@@ -328,7 +328,10 @@ const SpreadsheetsPage = () => {
               </Dialog>
             </div>
             <Input placeholder="Anotação (opcional)" value={notes} onChange={e => setNotes(e.target.value)} className="bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all" />
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+            <Select value={paymentMethod} onValueChange={(v) => {
+              setPaymentMethod(v);
+              if (v !== "credito" && v !== "debito") setCardId("none");
+            }}>
               <SelectTrigger className="bg-secondary/30 border-border/50">
                 <SelectValue placeholder="Método de pagamento" />
               </SelectTrigger>
@@ -338,7 +341,7 @@ const SpreadsheetsPage = () => {
                 ))}
               </SelectContent>
             </Select>
-            {type === "expense" && cards.length > 0 && (
+            {(paymentMethod === "credito" || paymentMethod === "debito") && cards.length > 0 && (
               <Select value={cardId} onValueChange={setCardId}>
                 <SelectTrigger className="bg-secondary/30 border-border/50">
                   <SelectValue placeholder="Cartão (opcional)" />
