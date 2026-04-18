@@ -227,20 +227,23 @@ const SpreadsheetsPage = () => {
 
       {/* Main Tabs */}
       <Tabs defaultValue="transactions" className="w-full">
-        <div className="flex items-center justify-between mb-2">
-          <TabsList className="glass border border-border/30">
-            <TabsTrigger value="transactions" className="data-[state=active]:shadow-glow">Transações</TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-1 data-[state=active]:shadow-glow">
-              <BarChart3 size={14} /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="budget" className="gap-1 data-[state=active]:shadow-glow">
-              <Wallet size={14} /> Orçamento
-            </TabsTrigger>
-            <TabsTrigger value="cards" className="gap-1 data-[state=active]:shadow-glow">
-              <CreditCard size={14} /> Cartões
-            </TabsTrigger>
-          </TabsList>
-          <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+          <ScrollArea className="w-full sm:w-auto whitespace-nowrap">
+            <TabsList className="glass border border-border/30 inline-flex w-max">
+              <TabsTrigger value="transactions" className="flex-shrink-0 data-[state=active]:shadow-glow">Transações</TabsTrigger>
+              <TabsTrigger value="dashboard" className="flex-shrink-0 gap-1 data-[state=active]:shadow-glow">
+                <BarChart3 size={14} /> <span className="hidden xs:inline">Dashboard</span><span className="xs:hidden">Dash</span>
+              </TabsTrigger>
+              <TabsTrigger value="budget" className="flex-shrink-0 gap-1 data-[state=active]:shadow-glow">
+                <Wallet size={14} /> Orçamento
+              </TabsTrigger>
+              <TabsTrigger value="cards" className="flex-shrink-0 gap-1 data-[state=active]:shadow-glow">
+                <CreditCard size={14} /> Cartões
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+          <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30 self-end sm:self-auto flex-shrink-0">
             <Download size={14} className="mr-1" /> CSV
           </Button>
         </div>
