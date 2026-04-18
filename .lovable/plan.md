@@ -1,44 +1,43 @@
 
 
-## Plano: Aba "Cartões"
+## Plano: Corrigir layout mobile
 
-### Objetivo
-Adicionar uma 4ª aba "Cartões" em `SpreadsheetsPage` para cadastrar cartões de crédito (nome, banco, bandeira, dia de fechamento da fatura) com visual de cartão ilustrado, lista de transações vinculadas e gráficos de gastos.
+### Problemas identificados
 
-### Backend — nova tabela `credit_cards`
-Migração:
-- `id uuid pk`, `user_id uuid not null`, `name text`, `bank text` (slug ex: nubank, itau, bradesco, santander, inter, c6, bb, caixa), `brand text` (visa, mastercard, elo, amex, hipercard), `closing_day int 1–31`, `color text` (cor de fundo do cartão), `created_at`, `updated_at`
-- RLS: 4 policies (select/insert/update/delete) com `auth.uid() = user_id`
+1. **Abas (`TabsList`) estouram no mobile** — em `SpreadsheetsPage`, há 4 abas (Transações, Dashboard, Orçamento, Cartões) lado a lado com ícone + texto + botão CSV ao lado. No mobile (~360-390px) isso não cabe e empurra/corta conteúdo.
 
-### Vincular transações ao cartão
-Adicionar coluna opcional `card_id uuid` em `manual_transactions` (nullable — não quebra dados existentes).
-- Atualizar `useTransactions` para carregar/salvar `card_id`
-- No formulário "Nova Transação" (apenas quando `type = expense`), aparece um Select opcional "Cartão" listando os cartões cadastrados
+2. **`overflow-hidden` no container raiz** (`src/pages/Index.tsx` linha 11) — corta sombras, popovers e conteúdo que sai do limite. Deve ser `overflow-x-hidden` apenas.
 
-### Frontend
+3. **Tabela de transações** — `TransactionTable` usa `<table>` com várias colunas. Em mobile fica espremida ou exige scroll horizontal sem indicação visual clara.
 
-**Novos arquivos:**
-- `src/hooks/useCreditCards.ts` — CRUD (fetch/add/remove/update) idêntico ao padrão de `useTransactions`
-- `src/components/cards/CardVisual.tsx` — desenho do cartão (gradiente da cor do banco, logo do banco no canto superior esquerdo, logo da bandeira no canto inferior direito, nome do titular, "Fecha dia XX"). Logos serão SVGs inline simples/estilizados (não usar marcas reais com risco — usar representações simplificadas: círculos sobrepostos para Mastercard, monograma "VISA" estilizado para Visa, etc.)
-- `src/components/cards/CardForm.tsx` — Dialog com campos: Nome, Banco (Select com opções pré-definidas), Bandeira (Select), Dia de fechamento (1–31), Cor (paleta de 6 cores)
-- `src/components/cards/CardsTab.tsx` — orquestra: grid/lista de `CardVisual`, botão "Adicionar cartão", e ao clicar num cartão abre um detalhe (drawer ou seção expandida) com:
-  - Lista de transações filtradas por `card_id` (reusa `TransactionTable`)
-  - Mini-dashboard: total gasto no mês, gráfico de pizza por categoria daquele cartão (reusa lógica do Recharts já em uso)
+4. **Cartões em grid** — `CardsTab` usa `grid-cols-1 sm:grid-cols-2`. OK, mas o detalhe do cartão tem 2 cards de resumo que ficam apertados em telas muito pequenas.
 
-**Bancos suportados (estilo + cor padrão):**
-Nubank (roxo #8A05BE), Itaú (laranja #EC7000), Bradesco (vermelho #CC092F), Santander (vermelho #EC0000), Inter (laranja #FF7A00), C6 (preto #000000), Banco do Brasil (amarelo #FAE128), Caixa (azul #005CA9), Outro (cinza)
+5. **Filtro de categorias** — já usa `ScrollArea` horizontal, OK.
 
-**Bandeiras suportadas:** Visa, Mastercard, Elo, Amex, Hipercard
+6. **Diálogos** (`Nova Categoria`, `Recorrente`, etc.) — sem `max-h` + `overflow-y-auto`, podem cortar conteúdo em telas baixas.
 
-### Alterações em `SpreadsheetsPage.tsx`
-- `TabsList` passa de 3 → 4 colunas, novo trigger "Cartões" com ícone `CreditCard`
-- Nova `TabsContent value="cards"` renderizando `<CardsTab />`
-- Passar `cards` para o formulário de Nova Transação para permitir vincular `card_id`
+### Mudanças propostas
+
+**1. `src/pages/Index.tsx`**
+- Trocar `overflow-hidden` por `overflow-x-hidden` no container raiz para não cortar verticalmente.
+
+**2. `src/pages/SpreadsheetsPage.tsx`**
+- Reorganizar a barra de abas: colocar `TabsList` e botão CSV em layout `flex-col sm:flex-row` com `gap-2` para empilhar no mobile.
+- Tornar `TabsList` rolável horizontalmente (`overflow-x-auto`) com `w-full` e os triggers com `flex-shrink-0`. Esconder o texto em telas muito pequenas (`<span className="hidden xs:inline">`) deixando só o ícone, ou reduzir padding.
+- Garantir que o título da página e descrição não vazem.
+
+**3. `src/components/spreadsheets/TransactionTable.tsx`**
+- Adicionar wrapper com indicação de scroll (`overflow-x-auto` já existe, ok). Reduzir padding horizontal (`px-2 sm:px-4`) e tornar a coluna de Categoria escondida no mobile (`hidden sm:table-cell`), exibindo a categoria abaixo da descrição em vez disso.
+
+**4. `src/components/cards/CardsTab.tsx`**
+- Garantir `min-w-0` nos cards de resumo (Gasto/Transações) para o texto não estourar. Já estão em `grid-cols-2`, ok.
+
+**5. Diálogos** (em `SpreadsheetsPage`)
+- Adicionar `max-h-[90vh] overflow-y-auto` no `DialogContent` do diálogo de Recorrência (que tem muitos campos).
 
 ### Detalhes técnicos
-- Sem uso de imagens externas — todos os logos como componentes SVG locais para evitar dependências e problemas de licença
-- Cor do cartão segue o banco escolhido por padrão, mas usuário pode trocar
-- Cálculo "fatura aberta" simples: soma das transações com `card_id = X` no ciclo atual (entre fechamento anterior e próximo) — exibido no detalhe do cartão
-- Gráfico de gastos do cartão: pizza por categoria (Recharts, já no projeto)
-- Mobile-first: grid de 1 coluna em mobile, 2 em telas maiores
+- Sem novos componentes nem dependências
+- Sem mudanças de lógica — apenas classes Tailwind responsivas
+- Breakpoints usados: `sm` (≥640px) padrão do Tailwind
+- Mobile-first: começa pelo layout pequeno e expande
 
