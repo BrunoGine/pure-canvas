@@ -316,6 +316,7 @@ export type Database = {
         Row: {
           active: boolean
           amount: number
+          card_id: string | null
           category: string
           created_at: string
           day_of_month: number
@@ -331,6 +332,7 @@ export type Database = {
         Insert: {
           active?: boolean
           amount: number
+          card_id?: string | null
           category?: string
           created_at?: string
           day_of_month?: number
@@ -346,6 +348,7 @@ export type Database = {
         Update: {
           active?: boolean
           amount?: number
+          card_id?: string | null
           category?: string
           created_at?: string
           day_of_month?: number

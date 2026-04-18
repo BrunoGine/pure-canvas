@@ -1,0 +1,1 @@
+ALTER TABLE public.recurring_transactions ADD COLUMN card_id uuid;
