@@ -1,43 +1,32 @@
 
 
-## Plano: Corrigir layout mobile
+## Plano
 
-### Problemas identificados
+### 1. Sincronizar categorias entre "Nova Transação" e "Transação Recorrente"
+As categorias customizadas já são compartilhadas (mesma fonte `customCategories`/`removedDefaults` no `SpreadsheetsPage`), mas o `Select` do diálogo de recorrência **não tem** as opções "Criar categoria" e "Remover categoria". 
+- Em `src/pages/SpreadsheetsPage.tsx`, no `Select` do `recCategory` (linhas 403–410), adicionar os mesmos itens `__create__` e `__remove__` que disparam os mesmos diálogos já existentes (`setCategoryDialogOpen` / `setRemoveCategoryDialogOpen`).
+- Resultado: criar categoria em qualquer lugar aparece imediatamente nos dois selects.
 
-1. **Abas (`TabsList`) estouram no mobile** — em `SpreadsheetsPage`, há 4 abas (Transações, Dashboard, Orçamento, Cartões) lado a lado com ícone + texto + botão CSV ao lado. No mobile (~360-390px) isso não cabe e empurra/corta conteúdo.
+### 2. Adicionar opção de cartão na Transação Recorrente
+- Adicionar estado `recCardId` (default `"none"`) no `SpreadsheetsPage`.
+- No diálogo de recorrência, adicionar `Select` de cartão (mesmo padrão do form de Nova Transação) — só aparece quando o método for `credito` ou `debito` (ver item 3).
+- Estender `RecurringTransaction` em `src/hooks/useRecurringTransactions.ts` com `card_id?: string | null`, incluir nos `select(...)` e no `insert(...)`.
+- **Migração DB**: adicionar coluna `card_id uuid` (nullable) em `recurring_transactions`.
+- Atualizar `supabase/functions/process-recurring-transactions/index.ts` para copiar `card_id` e `payment_method` ao inserir em `manual_transactions` (atualmente o edge function não copia esses campos — bug existente).
 
-2. **`overflow-hidden` no container raiz** (`src/pages/Index.tsx` linha 11) — corta sombras, popovers e conteúdo que sai do limite. Deve ser `overflow-x-hidden` apenas.
+### 3. Mostrar campo de cartão apenas para Crédito/Débito
+- Em **Nova Transação** (linha 340): trocar a condição `type === "expense" && cards.length > 0` por `(paymentMethod === "credito" || paymentMethod === "debito") && cards.length > 0`. Quando o método mudar para outro valor, resetar `cardId` para `"none"`.
+- Em **Transação Recorrente**: aplicar a mesma regra com `recPaymentMethod`.
+- No `addTransaction` (linha 118), simplificar para `card_id: cardId !== "none" ? cardId : null` (a condicional do método já controla a visibilidade).
 
-3. **Tabela de transações** — `TransactionTable` usa `<table>` com várias colunas. Em mobile fica espremida ou exige scroll horizontal sem indicação visual clara.
+### Arquivos afetados
+- `src/pages/SpreadsheetsPage.tsx` — UI condicional + select de cartão no recorrente + sync de categorias
+- `src/hooks/useRecurringTransactions.ts` — incluir `card_id`
+- `supabase/functions/process-recurring-transactions/index.ts` — propagar `card_id` e `payment_method`
+- Migração DB: `ALTER TABLE recurring_transactions ADD COLUMN card_id uuid;`
 
-4. **Cartões em grid** — `CardsTab` usa `grid-cols-1 sm:grid-cols-2`. OK, mas o detalhe do cartão tem 2 cards de resumo que ficam apertados em telas muito pequenas.
-
-5. **Filtro de categorias** — já usa `ScrollArea` horizontal, OK.
-
-6. **Diálogos** (`Nova Categoria`, `Recorrente`, etc.) — sem `max-h` + `overflow-y-auto`, podem cortar conteúdo em telas baixas.
-
-### Mudanças propostas
-
-**1. `src/pages/Index.tsx`**
-- Trocar `overflow-hidden` por `overflow-x-hidden` no container raiz para não cortar verticalmente.
-
-**2. `src/pages/SpreadsheetsPage.tsx`**
-- Reorganizar a barra de abas: colocar `TabsList` e botão CSV em layout `flex-col sm:flex-row` com `gap-2` para empilhar no mobile.
-- Tornar `TabsList` rolável horizontalmente (`overflow-x-auto`) com `w-full` e os triggers com `flex-shrink-0`. Esconder o texto em telas muito pequenas (`<span className="hidden xs:inline">`) deixando só o ícone, ou reduzir padding.
-- Garantir que o título da página e descrição não vazem.
-
-**3. `src/components/spreadsheets/TransactionTable.tsx`**
-- Adicionar wrapper com indicação de scroll (`overflow-x-auto` já existe, ok). Reduzir padding horizontal (`px-2 sm:px-4`) e tornar a coluna de Categoria escondida no mobile (`hidden sm:table-cell`), exibindo a categoria abaixo da descrição em vez disso.
-
-**4. `src/components/cards/CardsTab.tsx`**
-- Garantir `min-w-0` nos cards de resumo (Gasto/Transações) para o texto não estourar. Já estão em `grid-cols-2`, ok.
-
-**5. Diálogos** (em `SpreadsheetsPage`)
-- Adicionar `max-h-[90vh] overflow-y-auto` no `DialogContent` do diálogo de Recorrência (que tem muitos campos).
-
-### Detalhes técnicos
-- Sem novos componentes nem dependências
-- Sem mudanças de lógica — apenas classes Tailwind responsivas
-- Breakpoints usados: `sm` (≥640px) padrão do Tailwind
-- Mobile-first: começa pelo layout pequeno e expande
+### Observações
+- Sem mudanças visuais além do select de cartão aparecer/sumir conforme método.
+- Sem novas dependências.
+- Categorias permanecem em `localStorage` (fora do escopo migrar para DB agora).
 
