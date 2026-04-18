@@ -85,14 +85,14 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="glass-card rounded-xl p-4 text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Gasto no mês</p>
-            <p className="text-lg font-bold text-destructive mt-1 tabular-nums">
+          <div className="glass-card rounded-xl p-4 text-center min-w-0">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">Gasto no mês</p>
+            <p className="text-lg font-bold text-destructive mt-1 tabular-nums truncate">
               R$ {monthTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="glass-card rounded-xl p-4 text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider">Transações</p>
+          <div className="glass-card rounded-xl p-4 text-center min-w-0">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">Transações</p>
             <p className="text-lg font-bold text-primary mt-1 tabular-nums">{cardTxs.length}</p>
           </div>
         </div>
