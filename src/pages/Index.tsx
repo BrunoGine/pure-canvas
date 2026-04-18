@@ -8,7 +8,7 @@ import ProfilePage from "./ProfilePage";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center ambient-glow overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col items-center ambient-glow overflow-x-hidden">
       <main className="w-full max-w-lg px-4 pt-6 relative z-10">
         <Routes>
           <Route index element={<HomePage />} />
