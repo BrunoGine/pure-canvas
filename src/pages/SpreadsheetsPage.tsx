@@ -308,7 +308,7 @@ const SpreadsheetsPage = () => {
               </Dialog>
 
               <Dialog open={removeCategoryDialogOpen} onOpenChange={setRemoveCategoryDialogOpen}>
-                <DialogContent className="glass-card border-border/30">
+                <DialogContent className="glass-card border-border/30 max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>Remover Categoria</DialogTitle></DialogHeader>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto">
                     {categories.filter(c => c !== "Outros").map(c => (
