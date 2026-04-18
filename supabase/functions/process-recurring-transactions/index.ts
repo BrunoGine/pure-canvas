@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   // Get active recurring transactions for today's day
   const { data: recurrings, error: fetchError } = await supabase
     .from("recurring_transactions")
-    .select("*")
+    .select("id, user_id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id, last_executed_at")
     .eq("day_of_month", dayOfMonth)
     .eq("active", true);
 
