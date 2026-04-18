@@ -298,7 +298,7 @@ const SpreadsheetsPage = () => {
               </Select>
 
               <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-                <DialogContent className="glass-card border-border/30">
+                <DialogContent className="glass-card border-border/30 max-h-[90vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>Nova Categoria</DialogTitle></DialogHeader>
                   <div className="space-y-3">
                     <Input placeholder="Nome da categoria" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} onKeyDown={e => e.key === "Enter" && addCategory()} className="bg-secondary/30 border-border/50" />
