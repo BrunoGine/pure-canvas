@@ -116,7 +116,7 @@ const SpreadsheetsPage = () => {
       category,
       date: format(date, "yyyy-MM-dd"),
       notes: notes.trim() || null,
-      card_id: type === "expense" && cardId !== "none" ? cardId : null,
+      card_id: cardId !== "none" ? cardId : null,
       payment_method: paymentMethod,
     });
     setDesc("");
