@@ -50,6 +50,8 @@ Deno.serve(async (req) => {
         category: rec.category,
         date: today.toISOString().split("T")[0],
         notes: rec.notes,
+        payment_method: rec.payment_method || "pix",
+        card_id: rec.card_id || null,
       });
 
     if (!insertError) {
