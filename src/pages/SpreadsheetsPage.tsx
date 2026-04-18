@@ -404,12 +404,22 @@ const SpreadsheetsPage = () => {
                       <SelectItem value="expense">Saída</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={recCategory} onValueChange={setRecCategory}>
+                  <Select value={recCategory} onValueChange={(v) => {
+                    if (v === "__create__") setCategoryDialogOpen(true);
+                    else if (v === "__remove__") setRemoveCategoryDialogOpen(true);
+                    else setRecCategory(v);
+                  }}>
                     <SelectTrigger className="bg-secondary/30 border-border/50"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {categories.map(c => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
+                      <SelectItem value="__create__" className="text-primary font-medium">
+                        <span className="flex items-center gap-1"><Plus size={14} /> Criar categoria</span>
+                      </SelectItem>
+                      <SelectItem value="__remove__" className="text-destructive font-medium">
+                        <span className="flex items-center gap-1"><Trash2 size={14} /> Remover categoria</span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -425,7 +435,10 @@ const SpreadsheetsPage = () => {
                   />
                 </div>
                 <Input placeholder="Anotação (opcional)" value={recNotes} onChange={e => setRecNotes(e.target.value)} className="bg-secondary/30 border-border/50" />
-                <Select value={recPaymentMethod} onValueChange={setRecPaymentMethod}>
+                <Select value={recPaymentMethod} onValueChange={(v) => {
+                  setRecPaymentMethod(v);
+                  if (v !== "credito" && v !== "debito") setRecCardId("none");
+                }}>
                   <SelectTrigger className="bg-secondary/30 border-border/50">
                     <SelectValue placeholder="Método de pagamento" />
                   </SelectTrigger>
@@ -435,6 +448,19 @@ const SpreadsheetsPage = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {(recPaymentMethod === "credito" || recPaymentMethod === "debito") && cards.length > 0 && (
+                  <Select value={recCardId} onValueChange={setRecCardId}>
+                    <SelectTrigger className="bg-secondary/30 border-border/50">
+                      <SelectValue placeholder="Cartão (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sem cartão</SelectItem>
+                      {cards.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 <Button
                   onClick={() => {
                     if (!recDesc || !recAmount || !recDay) return;
@@ -447,12 +473,14 @@ const SpreadsheetsPage = () => {
                       notes: recNotes.trim() || null,
                       day_of_month: day,
                       payment_method: recPaymentMethod,
+                      card_id: recCardId !== "none" ? recCardId : null,
                     });
                     setRecDesc("");
                     setRecAmount("");
                     setRecDay("1");
                     setRecNotes("");
                     setRecPaymentMethod("pix");
+                    setRecCardId("none");
                     setRecurringDialogOpen(false);
                   }}
                   className="w-full gradient-primary border-0 text-white"
