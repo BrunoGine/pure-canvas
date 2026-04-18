@@ -387,7 +387,7 @@ const SpreadsheetsPage = () => {
 
           {/* Recurring Transaction Dialog */}
           <Dialog open={recurringDialogOpen} onOpenChange={setRecurringDialogOpen}>
-            <DialogContent className="glass-card border-border/30">
+            <DialogContent className="glass-card border-border/30 max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Nova Transação Recorrente</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <Input placeholder="Descrição" value={recDesc} onChange={e => setRecDesc(e.target.value)} className="bg-secondary/30 border-border/50" />
