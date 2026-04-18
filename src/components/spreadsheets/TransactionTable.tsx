@@ -36,32 +36,33 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual }: Transacti
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Descrição</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Categoria</th>
-              <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Valor</th>
-              <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground w-20"></th>
+              <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Descrição</th>
+              <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Categoria</th>
+              <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Valor</th>
+              <th className="px-2 sm:px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground w-16 sm:w-20"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {manualTransactions.map(tx => (
               <tr key={tx.id} className="animate-fade-in">
-                <td className="px-4 py-3">
-                  <p className="font-medium">{tx.description}</p>
+                <td className="px-3 sm:px-4 py-3 min-w-0">
+                  <p className="font-medium break-words">{tx.description}</p>
                   <p className="text-xs text-muted-foreground">
                     {tx.date}{tx.payment_method ? ` · ${paymentMethodLabel(tx.payment_method)}` : ""}
                   </p>
+                  <p className="text-xs text-muted-foreground sm:hidden mt-0.5">{tx.category}</p>
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{tx.category}</td>
-                <td className={`px-4 py-3 text-right font-semibold ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
+                <td className="hidden sm:table-cell px-4 py-3 text-xs text-muted-foreground">{tx.category}</td>
+                <td className={`px-3 sm:px-4 py-3 text-right font-semibold whitespace-nowrap ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
                   {tx.type === "income" ? "+" : "-"}R$ {tx.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-2">
+                <td className="px-2 sm:px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-1 sm:gap-2">
                     {tx.notes && (
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
-                            <StickyNote size={18} />
+                          <button className="p-1.5 sm:p-2 text-muted-foreground hover:text-primary transition-colors">
+                            <StickyNote size={16} />
                           </button>
                         </PopoverTrigger>
                         <PopoverContent side="top" className="max-w-[220px] p-3">
@@ -70,8 +71,8 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual }: Transacti
                       </Popover>
                     )}
                     {onRemoveManual ? (
-                      <button onClick={() => onRemoveManual(tx.id)} className="p-2 text-muted-foreground hover:text-destructive transition-colors">
-                        <Trash2 size={18} />
+                      <button onClick={() => onRemoveManual(tx.id)} className="p-1.5 sm:p-2 text-muted-foreground hover:text-destructive transition-colors">
+                        <Trash2 size={16} />
                       </button>
                     ) : null}
                   </div>
