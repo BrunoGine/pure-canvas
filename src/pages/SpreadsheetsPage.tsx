@@ -65,6 +65,7 @@ const SpreadsheetsPage = () => {
   const [recDay, setRecDay] = useState("1");
   const [recNotes, setRecNotes] = useState("");
   const [recPaymentMethod, setRecPaymentMethod] = useState<string>("pix");
+  const [recCardId, setRecCardId] = useState<string>("none");
 
   const categories = [...defaultCategories.filter(c => c !== "Outros" && !removedDefaults.includes(c)), ...customCategories, "Outros"];
 
