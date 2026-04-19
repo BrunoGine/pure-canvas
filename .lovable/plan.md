@@ -2,31 +2,40 @@
 
 ## Plano
 
-### 1. Sincronizar categorias entre "Nova Transação" e "Transação Recorrente"
-As categorias customizadas já são compartilhadas (mesma fonte `customCategories`/`removedDefaults` no `SpreadsheetsPage`), mas o `Select` do diálogo de recorrência **não tem** as opções "Criar categoria" e "Remover categoria". 
-- Em `src/pages/SpreadsheetsPage.tsx`, no `Select` do `recCategory` (linhas 403–410), adicionar os mesmos itens `__create__` e `__remove__` que disparam os mesmos diálogos já existentes (`setCategoryDialogOpen` / `setRemoveCategoryDialogOpen`).
-- Resultado: criar categoria em qualquer lugar aparece imediatamente nos dois selects.
+### 1. Filtro de método (Crédito / Débito / Ambos) nos gráficos
+No `CategoryBreakdown` (gráfico de pizza por categorias) tem um Select que filtra entrada/saída. Vou adicionar **um segundo Select** ao lado, com as opções: **Ambos** (default), **Crédito**, **Débito**.
 
-### 2. Adicionar opção de cartão na Transação Recorrente
-- Adicionar estado `recCardId` (default `"none"`) no `SpreadsheetsPage`.
-- No diálogo de recorrência, adicionar `Select` de cartão (mesmo padrão do form de Nova Transação) — só aparece quando o método for `credito` ou `debito` (ver item 3).
-- Estender `RecurringTransaction` em `src/hooks/useRecurringTransactions.ts` com `card_id?: string | null`, incluir nos `select(...)` e no `insert(...)`.
-- **Migração DB**: adicionar coluna `card_id uuid` (nullable) em `recurring_transactions`.
-- Atualizar `supabase/functions/process-recurring-transactions/index.ts` para copiar `card_id` e `payment_method` ao inserir em `manual_transactions` (atualmente o edge function não copia esses campos — bug existente).
+- Filtra `transactions` por `payment_method` antes de agrupar:
+  - `Ambos` → todas as transações (comportamento atual)
+  - `Crédito` → apenas `payment_method === "credito"`
+  - `Débito` → apenas `payment_method === "debito"`
+- Aplicar o **mesmo filtro também no `MonthlyOverview`** (gráfico de barras mensal) para consistência — mesmo Select de método no header do card.
+- Para que o filtro funcione, preciso passar `payment_method` no objeto `txForCharts` (em `SpreadsheetsPage.tsx` linha 149-151) que hoje só inclui `id, description, amount, date, category, type`. Vou adicionar `payment_method` ao mapeamento e aos types `Transaction` dos dois componentes.
 
-### 3. Mostrar campo de cartão apenas para Crédito/Débito
-- Em **Nova Transação** (linha 340): trocar a condição `type === "expense" && cards.length > 0` por `(paymentMethod === "credito" || paymentMethod === "debito") && cards.length > 0`. Quando o método mudar para outro valor, resetar `cardId` para `"none"`.
-- Em **Transação Recorrente**: aplicar a mesma regra com `recPaymentMethod`.
-- No `addTransaction` (linha 118), simplificar para `card_id: cardId !== "none" ? cardId : null` (a condicional do método já controla a visibilidade).
+### 2. Mostrar valor da fatura do cartão
+Adicionar um card de **"Fatura atual"** dentro da view de detalhe de cartão em `CardsTab.tsx` (quando o usuário clica num cartão).
+
+**Cálculo da fatura** (baseado no `closing_day` do cartão):
+- Fatura atual = soma de transações de **crédito** (`payment_method === "credito"`) vinculadas ao cartão (`card_id`) entre **(closing_day do mês anterior + 1)** e **closing_day do mês atual**.
+- Próxima fatura = soma das transações entre o último fechamento e hoje, projetando até o próximo fechamento (gastos já lançados que cairão na próxima fatura).
+
+**UI proposta** (substitui/expande o grid atual de "Gasto no mês" e "Transações"):
+- Grid 2 colunas:
+  - **Fatura atual** (ciclo fechado mais recente) — destaque grande
+  - **Próxima fatura** (ciclo em aberto)
+- Mantém abaixo: "Gasto no mês" e "Transações" como já está, ou unifica.
+
+Também adicionar pequeno indicador no `CardVisual` (lista de cartões) com "Fatura: R$ X" abaixo de "Fecha dia N", para o usuário ver de relance sem entrar no cartão.
 
 ### Arquivos afetados
-- `src/pages/SpreadsheetsPage.tsx` — UI condicional + select de cartão no recorrente + sync de categorias
-- `src/hooks/useRecurringTransactions.ts` — incluir `card_id`
-- `supabase/functions/process-recurring-transactions/index.ts` — propagar `card_id` e `payment_method`
-- Migração DB: `ALTER TABLE recurring_transactions ADD COLUMN card_id uuid;`
+- `src/components/spreadsheets/CategoryBreakdown.tsx` — adicionar Select de método + filtro
+- `src/components/spreadsheets/MonthlyOverview.tsx` — adicionar Select de método + filtro
+- `src/pages/SpreadsheetsPage.tsx` — incluir `payment_method` em `txForCharts`
+- `src/components/cards/CardsTab.tsx` — calcular e exibir fatura atual + próxima fatura
+- `src/components/cards/CardVisual.tsx` — adicionar prop opcional `invoiceAmount` e renderizar no rodapé
 
 ### Observações
-- Sem mudanças visuais além do select de cartão aparecer/sumir conforme método.
-- Sem novas dependências.
-- Categorias permanecem em `localStorage` (fora do escopo migrar para DB agora).
+- Sem novas dependências, sem migração de DB.
+- O filtro "Ambos" inclui também transações sem `payment_method` definido (legacy) ou de outros métodos (Pix, dinheiro etc.) — comportamento atual preservado como default.
+- Fatura considera apenas `payment_method = 'credito'` (débito desconta na hora, não vira fatura).
 
