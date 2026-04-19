@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 interface Transaction {
@@ -9,11 +10,14 @@ interface Transaction {
   date: string;
   category: string | null;
   type: string;
+  payment_method?: string | null;
 }
 
 interface Props {
   transactions: Transaction[];
 }
+
+type MethodFilter = "all" | "credito" | "debito";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -36,10 +40,17 @@ const GlassTooltip = ({ active, payload, label }: any) => {
 };
 
 const MonthlyOverview = ({ transactions }: Props) => {
+  const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
+
   const data = useMemo(() => {
     const grouped: Record<string, { income: number; expense: number }> = {};
 
-    transactions.forEach(t => {
+    const filtered = transactions.filter(t => {
+      if (methodFilter === "all") return true;
+      return t.payment_method === methodFilter;
+    });
+
+    filtered.forEach(t => {
       const d = new Date(t.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       if (!grouped[key]) grouped[key] = { income: 0, expense: 0 };
@@ -60,7 +71,7 @@ const MonthlyOverview = ({ transactions }: Props) => {
           Saldo: Math.round((val.income - val.expense) * 100) / 100,
         };
       });
-  }, [transactions]);
+  }, [transactions, methodFilter]);
 
   if (transactions.length === 0) {
     return (
@@ -75,7 +86,19 @@ const MonthlyOverview = ({ transactions }: Props) => {
   return (
     <Card className="shadow-card">
       <CardContent className="p-4 space-y-4">
-        <h3 className="text-sm font-semibold">Resumo Mensal</h3>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold">Resumo Mensal</h3>
+          <Select value={methodFilter} onValueChange={(v: MethodFilter) => setMethodFilter(v)}>
+            <SelectTrigger className="w-[110px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Ambos</SelectItem>
+              <SelectItem value="credito">Crédito</SelectItem>
+              <SelectItem value="debito">Débito</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">

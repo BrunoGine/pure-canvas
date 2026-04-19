@@ -33,20 +33,24 @@ interface Transaction {
   date: string;
   category: string | null;
   type: string;
+  payment_method?: string | null;
 }
 
 interface Props {
   transactions: Transaction[];
 }
 
+type MethodFilter = "all" | "credito" | "debito";
+
 const CategoryBreakdown = ({ transactions }: Props) => {
   const [filterType, setFilterType] = useState<"income" | "expense">("expense");
+  const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     setSelectedCategory(null);
-  }, [filterType]);
+  }, [filterType, methodFilter]);
 
   useEffect(() => {
     if (selectedCategory && itemRefs.current[selectedCategory]) {
@@ -59,7 +63,11 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   };
 
   const data = useMemo(() => {
-    const filtered = transactions.filter(t => t.type === filterType);
+    const filtered = transactions.filter(t => {
+      if (t.type !== filterType) return false;
+      if (methodFilter === "all") return true;
+      return t.payment_method === methodFilter;
+    });
 
     const grouped: Record<string, number> = {};
     filtered.forEach(t => {
@@ -70,7 +78,7 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     return Object.entries(grouped)
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .sort((a, b) => b.value - a.value);
-  }, [transactions, filterType]);
+  }, [transactions, filterType, methodFilter]);
 
   const total = data.reduce((s, d) => s + d.value, 0);
 
@@ -100,17 +108,29 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   return (
     <Card className="shadow-card">
       <CardContent className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">Gráfico de Categorias</h3>
-          <Select value={filterType} onValueChange={(v: "income" | "expense") => setFilterType(v)}>
-            <SelectTrigger className="w-[130px] h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="expense">Saídas</SelectItem>
-              <SelectItem value="income">Entradas</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select value={methodFilter} onValueChange={(v: MethodFilter) => setMethodFilter(v)}>
+              <SelectTrigger className="w-[110px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Ambos</SelectItem>
+                <SelectItem value="credito">Crédito</SelectItem>
+                <SelectItem value="debito">Débito</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterType} onValueChange={(v: "income" | "expense") => setFilterType(v)}>
+              <SelectTrigger className="w-[110px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="expense">Saídas</SelectItem>
+                <SelectItem value="income">Entradas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {data.length > 0 ? (
