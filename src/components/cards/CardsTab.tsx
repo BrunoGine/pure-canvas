@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, ArrowLeft, Trash2, CreditCard } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CreditCard, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
@@ -9,6 +9,7 @@ import { Transaction } from "@/hooks/useTransactions";
 import CardVisual from "./CardVisual";
 import CardForm from "./CardForm";
 import TransactionTable from "@/components/spreadsheets/TransactionTable";
+import { computeCardInvoices, formatBRL, formatDateShort } from "@/lib/invoice";
 
 interface Props {
   transactions: Transaction[];
@@ -51,6 +52,11 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .sort((a, b) => b.value - a.value);
   }, [cardTxs]);
+
+  const invoices = useMemo(
+    () => (selected ? computeCardInvoices(transactions, selected.id, selected.closing_day) : null),
+    [transactions, selected]
+  );
 
   if (selected) {
     return (
