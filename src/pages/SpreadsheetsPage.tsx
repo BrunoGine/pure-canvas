@@ -148,6 +148,7 @@ const SpreadsheetsPage = () => {
 
   const txForCharts = transactions.map(t => ({
     id: t.id, description: t.description, amount: t.amount, date: t.date, category: t.category, type: t.type,
+    payment_method: t.payment_method ?? null,
   }));
 
   return (

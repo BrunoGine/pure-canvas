@@ -11,9 +11,10 @@ interface Props {
   color: string;
   onClick?: () => void;
   selected?: boolean;
+  invoiceAmount?: number;
 }
 
-const CardVisual = ({ name, bank, brand, closingDay, color, onClick, selected }: Props) => {
+const CardVisual = ({ name, bank, brand, closingDay, color, onClick, selected, invoiceAmount }: Props) => {
   const bankInfo = getBank(bank);
   const textColor = bankInfo.textColor;
 
@@ -65,6 +66,11 @@ const CardVisual = ({ name, bank, brand, closingDay, color, onClick, selected }:
             <p className="text-[10px] opacity-80 mt-0.5" style={{ color: textColor }}>
               Fecha dia {closingDay}
             </p>
+            {typeof invoiceAmount === "number" && (
+              <p className="text-[10px] font-semibold mt-0.5" style={{ color: textColor }}>
+                Fatura: R$ {invoiceAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </p>
+            )}
           </div>
           <BrandLogo brand={brand} textColor={textColor} />
         </div>

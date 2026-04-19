@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Plus, ArrowLeft, Trash2, CreditCard } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CreditCard, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
@@ -9,6 +9,7 @@ import { Transaction } from "@/hooks/useTransactions";
 import CardVisual from "./CardVisual";
 import CardForm from "./CardForm";
 import TransactionTable from "@/components/spreadsheets/TransactionTable";
+import { computeCardInvoices, formatBRL, formatDateShort } from "@/lib/invoice";
 
 interface Props {
   transactions: Transaction[];
@@ -52,6 +53,11 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
       .sort((a, b) => b.value - a.value);
   }, [cardTxs]);
 
+  const invoices = useMemo(
+    () => (selected ? computeCardInvoices(transactions, selected.id, selected.closing_day) : null),
+    [transactions, selected]
+  );
+
   if (selected) {
     return (
       <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
@@ -83,6 +89,41 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
             color={selected.color}
           />
         </div>
+
+        {invoices && (
+          <Card className="shadow-card border-primary/20">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Receipt size={16} className="text-primary" />
+                <h3 className="text-sm font-semibold">Faturas do cartão</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl p-3 bg-primary/10 border border-primary/20 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                    Fatura atual
+                  </p>
+                  <p className="text-xl font-bold text-primary mt-1 tabular-nums truncate">
+                    {formatBRL(invoices.current)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                    {formatDateShort(invoices.cycles.currentCycleStart)} – {formatDateShort(invoices.cycles.currentCycleEnd)}
+                  </p>
+                </div>
+                <div className="rounded-xl p-3 bg-secondary/40 border border-border/40 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                    Próxima fatura
+                  </p>
+                  <p className="text-xl font-bold text-foreground mt-1 tabular-nums truncate">
+                    {formatBRL(invoices.next)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1 truncate">
+                    Fecha em {formatDateShort(invoices.cycles.nextCycleEnd)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="glass-card rounded-xl p-4 text-center min-w-0">
@@ -157,17 +198,21 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {cards.map((c) => (
-            <CardVisual
-              key={c.id}
-              name={c.name}
-              bank={c.bank}
-              brand={c.brand}
-              closingDay={c.closing_day}
-              color={c.color}
-              onClick={() => setSelectedId(c.id)}
-            />
-          ))}
+          {cards.map((c) => {
+            const inv = computeCardInvoices(transactions, c.id, c.closing_day);
+            return (
+              <CardVisual
+                key={c.id}
+                name={c.name}
+                bank={c.bank}
+                brand={c.brand}
+                closingDay={c.closing_day}
+                color={c.color}
+                invoiceAmount={inv.current}
+                onClick={() => setSelectedId(c.id)}
+              />
+            );
+          })}
         </div>
       )}
 
