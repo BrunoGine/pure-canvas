@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, TrendingUp, TrendingDown, Receipt } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
@@ -11,6 +12,7 @@ interface Transaction {
   type: string;
   category: string;
   date: string;
+  payment_method?: string | null;
 }
 
 interface Props {
@@ -19,6 +21,8 @@ interface Props {
   transactions: Transaction[];
   categories: string[];
 }
+
+type MethodFilter = "all" | "credito" | "debito";
 
 const GlassTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -40,10 +44,20 @@ const GlassTooltip = ({ active, payload, label }: any) => {
 
 const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }: Props) => {
   const [selected, setSelected] = useState<string | null>(null);
+  const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
+
+  const methodFiltered = useMemo(
+    () =>
+      transactions.filter(t => {
+        if (methodFilter === "all") return true;
+        return t.payment_method === methodFilter;
+      }),
+    [transactions, methodFilter]
+  );
 
   const categoryData = useMemo(() => {
     if (!selected) return null;
-    const filtered = transactions.filter(t => t.category === selected);
+    const filtered = methodFiltered.filter(t => t.category === selected);
     const totalIncome = filtered.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const totalExpense = filtered.filter(t => t.type === "expense").reduce((s, t) => s + Math.abs(t.amount), 0);
 
@@ -70,7 +84,7 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
     const top = [...filtered].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)).slice(0, 5);
 
     return { totalIncome, totalExpense, chartData, top };
-  }, [selected, transactions]);
+  }, [selected, methodFiltered]);
 
   const handleClose = (v: boolean) => {
     if (!v) setSelected(null);
@@ -91,10 +105,23 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex items-center justify-end pb-2">
+          <Select value={methodFilter} onValueChange={(v: MethodFilter) => setMethodFilter(v)}>
+            <SelectTrigger className="w-[120px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Ambos</SelectItem>
+              <SelectItem value="credito">Crédito</SelectItem>
+              <SelectItem value="debito">Débito</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {!selected ? (
           <div className="grid grid-cols-2 gap-2">
             {categories.map(cat => {
-              const count = transactions.filter(t => t.category === cat).length;
+              const count = methodFiltered.filter(t => t.category === cat).length;
               return (
                 <button
                   key={cat}
