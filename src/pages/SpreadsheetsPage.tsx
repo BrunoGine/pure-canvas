@@ -245,9 +245,6 @@ const SpreadsheetsPage = () => {
             </TabsList>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
-          <Button variant="outline" size="sm" onClick={exportCSV} className="border-border/50 bg-secondary/30 self-end sm:self-auto flex-shrink-0">
-            <Download size={14} className="mr-1" /> CSV
-          </Button>
         </div>
 
         <TabsContent value="transactions" className="space-y-4">
