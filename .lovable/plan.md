@@ -3,36 +3,25 @@
 ## Plano
 
 ### Mudança
-Substituir o filtro atual (Ambos / Crédito / Débito) nos gráficos por um filtro completo com **todas as formas de pagamento** disponíveis ao criar uma transação, e renomear "Ambos" para **"Todos"**.
+Adicionar um filtro de método de pagamento (**Ambos** / **Crédito** / **Débito**) no gráfico "Gastos por categoria" que aparece dentro da view de detalhe do cartão (`CardsTab.tsx`), quando o usuário clica em um cartão.
 
-### Opções do filtro (na ordem)
-1. **Todos** (default) — não filtra
-2. **Pix**
-3. **Crédito**
-4. **Débito**
-5. **Dinheiro (à vista)**
-6. **Boleto**
-7. **Transferência**
+### Comportamento
+- **Ambos** (default) — todas as transações do cartão (comportamento atual)
+- **Crédito** — apenas `payment_method === "credito"`
+- **Débito** — apenas `payment_method === "debito"`
 
-(Mesma lista de `src/lib/paymentMethods.ts`.)
+O filtro afeta apenas o gráfico de pizza "Gastos por categoria". Os outros indicadores (Fatura atual, Próxima fatura, Gasto no mês, Transações, tabela) permanecem inalterados.
 
-### Arquivos afetados
+### Arquivo afetado
 
-**1. `src/components/spreadsheets/MonthlyOverview.tsx`**
-- Trocar o tipo `MethodFilter = "all" | "credito" | "debito"` por `string` (qualquer valor de `paymentMethods` ou `"all"`).
-- Importar `paymentMethods` de `@/lib/paymentMethods`.
-- Substituir os 3 `<SelectItem>` fixos por `.map` sobre `paymentMethods`, mantendo `"all"` (rótulo "Todos") no topo.
-- Ajustar largura do `SelectTrigger` de `w-[110px]` para `w-[140px]` para caber rótulos como "Transferência" e "Dinheiro (à vista)".
-- Lógica de filtro: `methodFilter === "all"` → todas; senão `t.payment_method === methodFilter`.
-
-**2. `src/components/spreadsheets/CategoryBreakdown.tsx`**
-- Mesmas mudanças (tipo, import, map, largura do trigger).
-
-**3. `src/components/spreadsheets/CategorySpendingDialog.tsx`**
-- Aplicar a mesma substituição para manter consistência (também tem o filtro Ambos/Crédito/Débito).
+**`src/components/cards/CardsTab.tsx`**
+- Adicionar estado `categoryMethodFilter` (`"all" | "credito" | "debito"`).
+- Trocar o `useMemo` `categoryData` para filtrar `cardTxs` por `payment_method` antes de agrupar por categoria.
+- Adicionar um `Select` compacto no header do card "Gastos por categoria" (ao lado do título), com opções: Ambos / Crédito / Débito.
+- Importar `Select`, `SelectContent`, `SelectItem`, `SelectTrigger`, `SelectValue` de `@/components/ui/select`.
 
 ### Observações
-- Sem mudança de dados nem de DB — `payment_method` já é salvo como o `value` do `paymentMethods`.
-- "Todos" continua incluindo transações sem `payment_method` definido (legado).
-- Sem novas dependências.
+- Apenas 3 opções (Ambos/Crédito/Débito) — não toda a lista de `paymentMethods`, pois cartão só usa esses dois métodos na prática.
+- Sem mudanças de DB, sem novas dependências.
+- Mantém o padrão visual dos outros filtros do app (mesmo `Select` compacto).
 
