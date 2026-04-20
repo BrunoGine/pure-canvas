@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Target, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useTransactions } from "@/hooks/useTransactions";
 
 const HomePage = () => {
   const { user } = useAuth();
+  const { transactions } = useTransactions();
   const [userName, setUserName] = useState("Usuário");
 
   useEffect(() => {
@@ -23,13 +27,29 @@ const HomePage = () => {
       });
   }, [user]);
 
-  const balance = 0;
-  const income = 0;
-  const expenses = 0;
+  const { income, expenses, balance } = useMemo(() => {
+    const inc = transactions
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    const exp = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    return { income: inc, expenses: exp, balance: inc - exp };
+  }, [transactions]);
 
   const goals: { name: string; current: number; target: number }[] = [];
 
-  const recentTransactions: { name: string; amount: number; type: "income" | "expense"; date: string; notes?: string | null }[] = [];
+  const recentTransactions = useMemo(
+    () =>
+      transactions.slice(0, 6).map((t) => ({
+        name: t.description,
+        amount: t.amount,
+        type: t.type,
+        date: format(parseISO(t.date), "dd 'de' MMM", { locale: ptBR }),
+        notes: t.notes,
+      })),
+    [transactions]
+  );
 
   return (
     <div className="space-y-6 pb-24">
@@ -136,46 +156,52 @@ const HomePage = () => {
         </h2>
         <div className="glass-card rounded-xl overflow-hidden">
           <div className="divide-y divide-border/50">
-            {recentTransactions.map((tx, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.35 + i * 0.05 }}
-                className="flex items-center justify-between px-4 py-3.5 hover:bg-primary/5 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`rounded-xl p-2 ${tx.type === "income" ? "bg-primary/10 border border-primary/20" : "bg-destructive/10 border border-destructive/20"}`}>
-                    {tx.type === "income" ? (
-                      <ArrowUpRight size={14} className="text-primary" />
-                    ) : (
-                      <ArrowDownLeft size={14} className="text-destructive" />
+            {recentTransactions.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Nenhuma transação ainda. Adicione na aba Planilhas.
+              </div>
+            ) : (
+              recentTransactions.map((tx, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.35 + i * 0.05 }}
+                  className="flex items-center justify-between px-4 py-3.5 hover:bg-primary/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-xl p-2 ${tx.type === "income" ? "bg-primary/10 border border-primary/20" : "bg-destructive/10 border border-destructive/20"}`}>
+                      {tx.type === "income" ? (
+                        <ArrowUpRight size={14} className="text-primary" />
+                      ) : (
+                        <ArrowDownLeft size={14} className="text-destructive" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{tx.name}</p>
+                      <p className="text-xs text-muted-foreground">{tx.date}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {tx.notes && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
+                            <StickyNote size={18} />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent side="top" className="max-w-[220px] p-3">
+                          <p className="text-xs">{tx.notes}</p>
+                        </PopoverContent>
+                      </Popover>
                     )}
+                    <span className={`text-sm font-bold tabular-nums ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
+                      {tx.type === "income" ? "+" : "-"}R$ {Math.abs(tx.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{tx.name}</p>
-                    <p className="text-xs text-muted-foreground">{tx.date}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {tx.notes && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="p-2 text-muted-foreground hover:text-primary transition-colors">
-                          <StickyNote size={18} />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent side="top" className="max-w-[220px] p-3">
-                        <p className="text-xs">{tx.notes}</p>
-                      </PopoverContent>
-                    </Popover>
-                  )}
-                  <span className={`text-sm font-bold tabular-nums ${tx.type === "income" ? "text-primary" : "text-destructive"}`}>
-                    {tx.type === "income" ? "+" : ""}R$ {Math.abs(tx.amount).toLocaleString("pt-BR")}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </motion.section>
