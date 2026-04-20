@@ -1,13 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Target, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useTransactions } from "@/hooks/useTransactions";
 
 const HomePage = () => {
   const { user } = useAuth();
+  const { transactions } = useTransactions();
   const [userName, setUserName] = useState("Usuário");
 
   useEffect(() => {
@@ -23,13 +27,29 @@ const HomePage = () => {
       });
   }, [user]);
 
-  const balance = 0;
-  const income = 0;
-  const expenses = 0;
+  const { income, expenses, balance } = useMemo(() => {
+    const inc = transactions
+      .filter((t) => t.type === "income")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    const exp = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((s, t) => s + Math.abs(t.amount), 0);
+    return { income: inc, expenses: exp, balance: inc - exp };
+  }, [transactions]);
 
   const goals: { name: string; current: number; target: number }[] = [];
 
-  const recentTransactions: { name: string; amount: number; type: "income" | "expense"; date: string; notes?: string | null }[] = [];
+  const recentTransactions = useMemo(
+    () =>
+      transactions.slice(0, 6).map((t) => ({
+        name: t.description,
+        amount: t.amount,
+        type: t.type,
+        date: format(parseISO(t.date), "dd 'de' MMM", { locale: ptBR }),
+        notes: t.notes,
+      })),
+    [transactions]
+  );
 
   return (
     <div className="space-y-6 pb-24">
