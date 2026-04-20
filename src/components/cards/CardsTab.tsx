@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Plus, ArrowLeft, Trash2, CreditCard, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { Transaction } from "@/hooks/useTransactions";
@@ -22,6 +23,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
   const { cards, addCard, removeCard } = useCreditCards();
   const [formOpen, setFormOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
 
   const selected = cards.find((c) => c.id === selectedId);
 
@@ -44,6 +46,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
     const grouped: Record<string, number> = {};
     cardTxs
       .filter((t) => t.type === "expense")
+      .filter((t) => categoryMethodFilter === "all" || (t as any).payment_method === categoryMethodFilter)
       .forEach((t) => {
         const cat = t.category || "Sem categoria";
         grouped[cat] = (grouped[cat] || 0) + Math.abs(t.amount);
@@ -51,7 +54,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
     return Object.entries(grouped)
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .sort((a, b) => b.value - a.value);
-  }, [cardTxs]);
+  }, [cardTxs, categoryMethodFilter]);
 
   const invoices = useMemo(
     () => (selected ? computeCardInvoices(transactions, selected.id, selected.closing_day) : null),
@@ -141,7 +144,19 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
         {categoryData.length > 0 && (
           <Card className="shadow-card">
             <CardContent className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Gastos por categoria</h3>
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <h3 className="text-sm font-semibold">Gastos por categoria</h3>
+                <Select value={categoryMethodFilter} onValueChange={(v) => setCategoryMethodFilter(v as "all" | "credito" | "debito")}>
+                  <SelectTrigger className="h-8 w-[110px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Ambos</SelectItem>
+                    <SelectItem value="credito">Crédito</SelectItem>
+                    <SelectItem value="debito">Débito</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
