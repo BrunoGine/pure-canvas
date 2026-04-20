@@ -144,7 +144,19 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
         {categoryData.length > 0 && (
           <Card className="shadow-card">
             <CardContent className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Gastos por categoria</h3>
+              <div className="flex items-center justify-between mb-3 gap-2">
+                <h3 className="text-sm font-semibold">Gastos por categoria</h3>
+                <Select value={categoryMethodFilter} onValueChange={(v) => setCategoryMethodFilter(v as "all" | "credito" | "debito")}>
+                  <SelectTrigger className="h-8 w-[110px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Ambos</SelectItem>
+                    <SelectItem value="credito">Crédito</SelectItem>
+                    <SelectItem value="debito">Débito</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
