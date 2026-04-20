@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, TrendingUp, TrendingDown, Receipt } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { paymentMethods } from "@/lib/paymentMethods";
 
 interface Transaction {
   id: string;
@@ -22,7 +23,7 @@ interface Props {
   categories: string[];
 }
 
-type MethodFilter = "all" | "credito" | "debito";
+type MethodFilter = "all" | string;
 
 const GlassTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -107,13 +108,14 @@ const CategorySpendingDialog = ({ open, onOpenChange, transactions, categories }
 
         <div className="flex items-center justify-end pb-2">
           <Select value={methodFilter} onValueChange={(v: MethodFilter) => setMethodFilter(v)}>
-            <SelectTrigger className="w-[120px] h-8 text-xs">
+            <SelectTrigger className="w-[160px] h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ambos</SelectItem>
-              <SelectItem value="credito">Crédito</SelectItem>
-              <SelectItem value="debito">Débito</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+              {paymentMethods.map(pm => (
+                <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
