@@ -23,6 +23,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
   const { cards, addCard, removeCard } = useCreditCards();
   const [formOpen, setFormOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
 
   const selected = cards.find((c) => c.id === selectedId);
 
