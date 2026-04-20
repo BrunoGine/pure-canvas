@@ -46,6 +46,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
     const grouped: Record<string, number> = {};
     cardTxs
       .filter((t) => t.type === "expense")
+      .filter((t) => categoryMethodFilter === "all" || (t as any).payment_method === categoryMethodFilter)
       .forEach((t) => {
         const cat = t.category || "Sem categoria";
         grouped[cat] = (grouped[cat] || 0) + Math.abs(t.amount);
@@ -53,7 +54,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
     return Object.entries(grouped)
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .sort((a, b) => b.value - a.value);
-  }, [cardTxs]);
+  }, [cardTxs, categoryMethodFilter]);
 
   const invoices = useMemo(
     () => (selected ? computeCardInvoices(transactions, selected.id, selected.closing_day) : null),
