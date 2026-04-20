@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { paymentMethods } from "@/lib/paymentMethods";
 
 interface Transaction {
   id: string;
@@ -17,7 +18,7 @@ interface Props {
   transactions: Transaction[];
 }
 
-type MethodFilter = "all" | "credito" | "debito";
+type MethodFilter = "all" | string;
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -89,13 +90,14 @@ const MonthlyOverview = ({ transactions }: Props) => {
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">Resumo Mensal</h3>
           <Select value={methodFilter} onValueChange={(v: MethodFilter) => setMethodFilter(v)}>
-            <SelectTrigger className="w-[110px] h-8 text-xs">
+            <SelectTrigger className="w-[160px] h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ambos</SelectItem>
-              <SelectItem value="credito">Crédito</SelectItem>
-              <SelectItem value="debito">Débito</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+              {paymentMethods.map(pm => (
+                <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

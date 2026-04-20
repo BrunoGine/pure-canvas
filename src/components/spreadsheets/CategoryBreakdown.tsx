@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { paymentMethods } from "@/lib/paymentMethods";
 
 const COLORS = [
   "#6366F1", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6",
@@ -40,7 +41,7 @@ interface Props {
   transactions: Transaction[];
 }
 
-type MethodFilter = "all" | "credito" | "debito";
+type MethodFilter = "all" | string;
 
 const CategoryBreakdown = ({ transactions }: Props) => {
   const [filterType, setFilterType] = useState<"income" | "expense">("expense");
@@ -112,13 +113,14 @@ const CategoryBreakdown = ({ transactions }: Props) => {
           <h3 className="text-sm font-semibold">Gráfico de Categorias</h3>
           <div className="flex items-center gap-2">
             <Select value={methodFilter} onValueChange={(v: MethodFilter) => setMethodFilter(v)}>
-              <SelectTrigger className="w-[110px] h-8 text-xs">
+              <SelectTrigger className="w-[160px] h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Ambos</SelectItem>
-                <SelectItem value="credito">Crédito</SelectItem>
-                <SelectItem value="debito">Débito</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
+                {paymentMethods.map(pm => (
+                  <SelectItem key={pm.value} value={pm.value}>{pm.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={(v: "income" | "expense") => setFilterType(v)}>
