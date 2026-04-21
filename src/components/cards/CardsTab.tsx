@@ -167,16 +167,18 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
                       innerRadius={50}
                       outerRadius={80}
                       dataKey="value"
-                      paddingAngle={4}
+                      paddingAngle={2}
+                      isAnimationActive={false}
                     >
-                      {categoryData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      {categoryData.map((entry, i) => (
+                        <Cell key={entry.name} fill={COLORS[i % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip
+                      isAnimationActive={false}
                       formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
                     />
-                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} onClick={() => {}} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
