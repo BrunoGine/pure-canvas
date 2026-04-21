@@ -128,7 +128,7 @@ const MonthlyOverview = ({ transactions }: Props) => {
                 axisLine={false}
                 tickLine={false}
               />
-              <Tooltip content={<GlassTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.2)" }} />
+              <Tooltip content={<GlassTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.2)" }} isAnimationActive={false} />
               <Legend
                 wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                 iconType="circle"

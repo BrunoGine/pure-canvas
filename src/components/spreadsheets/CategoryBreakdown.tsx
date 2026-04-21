@@ -55,7 +55,7 @@ const CategoryBreakdown = ({ transactions }: Props) => {
 
   useEffect(() => {
     if (selectedCategory && itemRefs.current[selectedCategory]) {
-      itemRefs.current[selectedCategory]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      itemRefs.current[selectedCategory]?.scrollIntoView({ block: "nearest", behavior: "auto" });
     }
   }, [selectedCategory]);
 
@@ -94,8 +94,26 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   }
 
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    if (percent < 0.05) return null;
+    if (percent < 0.01) return null;
     const RADIAN = Math.PI / 180;
+    if (percent < 0.03) {
+      const radius = outerRadius + 12;
+      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+      return (
+        <text
+          x={x}
+          y={y}
+          fill="hsl(var(--foreground))"
+          textAnchor={x > cx ? "start" : "end"}
+          dominantBaseline="central"
+          fontSize={10}
+          fontWeight={600}
+        >
+          {`${(percent * 100).toFixed(0)}%`}
+        </text>
+      );
+    }
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -148,14 +166,11 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                     innerRadius={50}
                     outerRadius={80}
                     dataKey="value"
-                    paddingAngle={4}
+                    paddingAngle={2}
                     strokeWidth={0}
                     labelLine={false}
                     label={renderCustomLabel}
-                    animationBegin={0}
-                    animationDuration={800}
-                    animationEasing="ease-out"
-                    onClick={(d: any) => d?.name && toggleCategory(d.name)}
+                    isAnimationActive={false}
                     className="cursor-pointer"
                   >
                     {data.map((entry, i) => {
@@ -163,17 +178,26 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                       const dimmed = selectedCategory && !isSelected;
                       return (
                         <Cell
-                          key={i}
+                          key={entry.name}
                           fill={COLORS[i % COLORS.length]}
                           fillOpacity={dimmed ? 0.35 : 1}
                           stroke={isSelected ? "hsl(var(--foreground))" : "none"}
                           strokeWidth={isSelected ? 2 : 0}
+                          onClick={(e: any) => {
+                            e?.stopPropagation?.();
+                            toggleCategory(entry.name);
+                          }}
                         />
                       );
                     })}
                   </Pie>
-                  <Tooltip content={<GlassTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} />
+                  <Tooltip content={<GlassTooltip />} isAnimationActive={false} />
+                  <Legend
+                    wrapperStyle={{ fontSize: 11 }}
+                    iconType="circle"
+                    iconSize={8}
+                    onClick={() => {}}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -187,7 +211,10 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                   <button
                     key={item.name}
                     ref={(el) => (itemRefs.current[item.name] = el)}
-                    onClick={() => toggleCategory(item.name)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleCategory(item.name);
+                    }}
                     className={`flex items-center justify-between text-sm w-full p-1.5 rounded-lg transition-all text-left ${
                       isSelected
                         ? "bg-secondary ring-1 ring-primary/40"
