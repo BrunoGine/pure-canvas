@@ -82,6 +82,7 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   }, [transactions, filterType, methodFilter]);
 
   const total = data.reduce((s, d) => s + d.value, 0);
+  const selectedIndex = selectedCategory ? data.findIndex(d => d.name === selectedCategory) : -1;
 
   if (transactions.length === 0) {
     return (
