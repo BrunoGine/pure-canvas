@@ -1,46 +1,45 @@
 
 
-## Plano — Corrigir bugs dos gráficos
+## Plano — Corrigir seleção do gráfico de categorias
 
-### Bugs identificados
+### Bugs reportados
+1. **Linha branca em volta do gráfico** — ao clicar numa fatia, aparece um contorno (outline) em volta do `<svg>` ou da fatia.
+2. **Não troca de seleção** — ao clicar numa fatia diferente, a seleção não muda.
+3. **Não des-seleciona ao clicar fora** — clicar fora do gráfico/lista não limpa o `selectedCategory`.
 
-1. **% some em fatias pequenas** (`CategoryBreakdown`) — o label só renderiza se `percent >= 5%`, fatias menores ficam sem rótulo.
-2. **Clique seleciona tudo / comportamento errado** — clicar na Legend do recharts dispara o comportamento padrão de "esconder série", o que esvazia o gráfico. Além disso, o `onClick` do `<Pie>` do recharts dispara o evento mesmo em zonas vazias, podendo resetar a seleção.
-3. **Travamentos / re-animação** — toda mudança de filtro ou de seleção remonta as `<Cell>` com novas props (`fillOpacity`, `stroke`), reiniciando a animação de 800 ms. Combinado com `scrollIntoView({ behavior: "smooth" })` a cada toggle, gera lag perceptível em listas grandes.
-4. **Tooltip pisca** (visto no session replay) — `Tooltip` sem `isAnimationActive={false}` re-renderiza no formato animado a cada hover; com fatias pequenas adjacentes alterna rápido demais.
+### Causa
+- A "linha branca" é o **focus outline padrão do navegador** no `<path>` SVG após o clique (recharts adiciona `tabIndex` por padrão nos elementos do gráfico). Também o `stroke="hsl(var(--foreground))" strokeWidth={2}` desenha um contorno branco no tema escuro na fatia selecionada — quando o usuário "vê linha branca em volta" pode ser esse stroke aplicado de forma errada.
+- O `onClick` no `<Cell>` do recharts às vezes **não dispara corretamente** em re-renders quando o `key` muda; o handler captura `entry.name` no closure no momento do render e o evento bubbles diferente. Resultado: clicar numa nova fatia não atualiza para o novo nome.
+- **Não há listener para "clicar fora"** — qualquer clique fora dos botões/fatias é ignorado.
 
-### Correções
+### Correções em `src/components/spreadsheets/CategoryBreakdown.tsx`
 
-**`src/components/spreadsheets/CategoryBreakdown.tsx`**
+1. **Remover focus outline e stroke branco**:
+   - Adicionar `outline-none focus:outline-none [&_path]:outline-none [&_path:focus]:outline-none` no wrapper do `ResponsiveContainer`.
+   - Trocar o destaque da fatia selecionada: em vez de `stroke="hsl(var(--foreground))"` (branco no dark), usar **aumento sutil do raio + fillOpacity 1**, e manter as outras fatias com `fillOpacity 0.35`. Sem stroke nenhum.
 
-- **Label sempre visível em fatias ≥ 3%**, e para fatias < 3% renderizar o % **fora** da fatia (com linha guia curta) em vez de sumir. Exemplo:
-  ```ts
-  if (percent < 0.03) {
-    // posicionar fora: radius = outerRadius + 12, fill = foreground
-    return <text ... fill="hsl(var(--foreground))">{(percent*100).toFixed(0)}%</text>;
-  }
-  ```
-- **Desabilitar clique/toggle da Legend** passando `onClick={undefined}` e usando `<Legend ... formatter={...} />` apenas para exibição; ou trocar por uma legenda customizada simples (mais leve).
-- **Estabilizar animação**:
-  - Adicionar `isAnimationActive={false}` no `<Pie>` (ou `animationDuration={300}` com `animationBegin={0}` e remover re-trigger usando `key` estável).
-  - Adicionar `isAnimationActive={false}` no `<Tooltip>` para parar o piscar.
-- **Clique mais robusto**:
-  - Usar `onClick` em cada `<Cell>` (com `data.name` capturado) em vez de no `<Pie>`, evitando que o handler receba o objeto errado quando o usuário clica nas bordas.
-  - Adicionar `event.stopPropagation()` no handler do `<button>` da lista para não conflitar.
-- **Remover `scrollIntoView` smooth** — trocar por `behavior: "auto"` ou remover totalmente (a lista é curta, max-h 200px com scroll já basta).
+2. **Clique robusto na fatia**:
+   - Trocar handler do `<Cell>` por `onClick` no `<Pie>` usando o callback `(data) => toggleCategory(data.name)` — recharts passa o data point clicado de forma confiável.
+   - Garantir que `toggleCategory` use `prev` (já usa) e que o `useEffect` de scroll não interfira.
 
-**`src/components/cards/CardsTab.tsx`** (gráfico de pizza dentro do cartão)
+3. **Clicar fora des-seleciona**:
+   - Envolver o conteúdo do `Card` numa `div` com `ref` e usar um `useEffect` que escuta `mousedown` no `document`: se o alvo não estiver dentro da `ref`, limpar `selectedCategory`.
+   - Alternativamente (mais simples): adicionar `onClick` no `<Card>` que limpa a seleção, e nos botões/`<Pie>` chamar `e.stopPropagation()` para não propagar.
 
-- Adicionar `isAnimationActive={false}` no `<Pie>` e `<Tooltip>` para evitar piscar/lag ao trocar filtro Crédito/Débito.
-- Usar `paddingAngle={2}` (em vez de 4) para fatias pequenas não desaparecerem visualmente.
+4. **Pequeno ajuste visual**: pode-se aumentar `outerRadius` da fatia selecionada (via `activeIndex` + `activeShape` do recharts) para feedback claro sem usar stroke. Implementação:
+   ```tsx
+   <Pie
+     activeIndex={selectedIndex}
+     activeShape={(props) => <Sector {...props} outerRadius={props.outerRadius + 6} />}
+     onClick={(d) => toggleCategory(d.name)}
+     ...
+   />
+   ```
+   Importar `Sector` do recharts.
 
-**`src/components/spreadsheets/MonthlyOverview.tsx`** e **`CategorySpendingDialog.tsx`** (BarCharts)
-
-- Adicionar `isAnimationActive={false}` no `<Tooltip>` apenas (gráfico de barras já é estável; só o tooltip pisca).
-
-### Observações
-
+### Resultado
+- Sem linha branca ao clicar.
+- Clicar em outra fatia troca a seleção.
+- Clicar fora do card (ou em área vazia dentro dele) limpa a seleção.
 - Sem mudanças de dados, sem novas dependências.
-- As animações de entrada permanecem ativas no `MonthlyOverview` (BarChart) — só o que pisca em hover é desativado.
-- O comportamento de clique na lista de categorias (abaixo do gráfico) continua funcionando normalmente e fica como forma "primária" de selecionar; o clique no gráfico vira complementar e mais robusto.
 
