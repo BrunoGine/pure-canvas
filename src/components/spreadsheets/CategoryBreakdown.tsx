@@ -126,8 +126,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   };
 
   return (
-    <Card className="shadow-card">
-      <CardContent className="p-4 space-y-4">
+    <Card className="shadow-card" onClick={() => setSelectedCategory(null)}>
+      <CardContent className="p-4 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">Gráfico de Categorias</h3>
           <div className="flex items-center gap-2">
@@ -157,7 +157,10 @@ const CategoryBreakdown = ({ transactions }: Props) => {
         {data.length > 0 ? (
           <>
             {/* Overview pie */}
-            <div className="h-[220px]">
+            <div
+              className="h-[220px] outline-none [&_*]:outline-none [&_path]:outline-none [&_path:focus]:outline-none"
+              onClick={(e) => e.stopPropagation()}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -172,22 +175,24 @@ const CategoryBreakdown = ({ transactions }: Props) => {
                     labelLine={false}
                     label={renderCustomLabel}
                     isAnimationActive={false}
-                    className="cursor-pointer"
+                    className="cursor-pointer focus:outline-none"
+                    activeIndex={selectedIndex >= 0 ? selectedIndex : undefined}
+                    activeShape={(props: any) => (
+                      <Sector {...props} outerRadius={props.outerRadius + 6} stroke="none" />
+                    )}
+                    onClick={(d: any) => {
+                      if (d?.name) toggleCategory(d.name);
+                    }}
                   >
                     {data.map((entry, i) => {
-                      const isSelected = selectedCategory === entry.name;
-                      const dimmed = selectedCategory && !isSelected;
+                      const dimmed = selectedCategory && selectedCategory !== entry.name;
                       return (
                         <Cell
                           key={entry.name}
                           fill={COLORS[i % COLORS.length]}
                           fillOpacity={dimmed ? 0.35 : 1}
-                          stroke={isSelected ? "hsl(var(--foreground))" : "none"}
-                          strokeWidth={isSelected ? 2 : 0}
-                          onClick={(e: any) => {
-                            e?.stopPropagation?.();
-                            toggleCategory(entry.name);
-                          }}
+                          stroke="none"
+                          style={{ outline: "none" }}
                         />
                       );
                     })}
