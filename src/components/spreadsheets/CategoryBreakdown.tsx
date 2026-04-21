@@ -63,6 +63,10 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     setSelectedCategory(prev => (prev === name ? null : name));
   };
 
+  const selectedIndex = selectedCategory
+    ? data.findIndex(d => d.name === selectedCategory)
+    : -1;
+
   const data = useMemo(() => {
     const filtered = transactions.filter(t => {
       if (t.type !== filterType) return false;
