@@ -155,8 +155,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   };
 
   return (
-    <Card className="shadow-card" onClick={() => setSelectedCategory(null)}>
-      <CardContent className="p-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+    <Card ref={cardRef} className="shadow-card">
+      <CardContent className="p-4 space-y-4">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">Gráfico de Categorias</h3>
           <div className="flex items-center gap-2">
