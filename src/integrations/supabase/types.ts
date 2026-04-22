@@ -207,6 +207,42 @@ export type Database = {
         }
         Relationships: []
       }
+      courses: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          level: string
+          order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          level?: string
+          order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          level?: string
+          order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_cards: {
         Row: {
           bank: string
@@ -242,6 +278,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      lessons: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          order: number
+          questions: Json | null
+          subtitle: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          xp_reward: number
+          youtube_url: string
+          youtube_video_id: string | null
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          order?: number
+          questions?: Json | null
+          subtitle?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          xp_reward?: number
+          youtube_url: string
+          youtube_video_id?: string | null
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          order?: number
+          questions?: Json | null
+          subtitle?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          xp_reward?: number
+          youtube_url?: string
+          youtube_video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       manual_transactions: {
         Row: {
@@ -363,15 +452,163 @@ export type Database = {
         }
         Relationships: []
       }
+      user_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          lesson_id: string
+          questions_passed: boolean
+          score: number
+          summary_read: boolean
+          updated_at: string
+          user_id: string
+          video_watched: boolean
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id: string
+          questions_passed?: boolean
+          score?: number
+          summary_read?: boolean
+          updated_at?: string
+          user_id: string
+          video_watched?: boolean
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          questions_passed?: boolean
+          score?: number
+          summary_read?: boolean
+          updated_at?: string
+          user_id?: string
+          video_watched?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_stats: {
+        Row: {
+          last_activity_date: string | null
+          level: number
+          streak: number
+          streak_protection: number
+          streak_protection_reset_at: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          last_activity_date?: string | null
+          level?: number
+          streak?: number
+          streak_protection?: number
+          streak_protection_reset_at?: string
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          last_activity_date?: string | null
+          level?: number
+          streak?: number
+          streak_protection?: number
+          streak_protection_reset_at?: string
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      award_xp: {
+        Args: { _amount: number; _user_id: string }
+        Returns: {
+          last_activity_date: string | null
+          level: number
+          streak: number
+          streak_protection: number
+          streak_protection_reset_at: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_stats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      update_streak: {
+        Args: { _user_id: string }
+        Returns: {
+          last_activity_date: string | null
+          level: number
+          streak: number
+          streak_protection: number
+          streak_protection_reset_at: string
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_stats"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -498,6 +735,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
