@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { messages } = await req.json();
+    const { messages, lessonContext } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -116,8 +116,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    const apiMessages = [
+    const systemMessages: { role: string; content: string }[] = [
       { role: "system", content: SYSTEM_PROMPT },
+    ];
+    if (lessonContext && typeof lessonContext === "object") {
+      const ctx = `Contexto: o usuário acabou de assistir à aula "${lessonContext.lesson_title ?? ""}" (vídeo: ${lessonContext.youtube_url ?? ""}). Aprofunde o tema e responda dúvidas relacionadas a essa aula.`;
+      systemMessages.push({ role: "system", content: ctx });
+    }
+
+    const apiMessages = [
+      ...systemMessages,
       ...messages.map((msg: { role: string; content: string }) => ({
         role: msg.role,
         content: msg.content,
