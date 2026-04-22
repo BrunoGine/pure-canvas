@@ -48,10 +48,22 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setSelectedCategory(null);
   }, [filterType, methodFilter]);
+
+  useEffect(() => {
+    const handleDocMouseDown = (e: MouseEvent) => {
+      if (!cardRef.current) return;
+      if (!cardRef.current.contains(e.target as Node)) {
+        setSelectedCategory(null);
+      }
+    };
+    document.addEventListener("mousedown", handleDocMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  }, []);
 
   useEffect(() => {
     if (selectedCategory && itemRefs.current[selectedCategory]) {
@@ -94,8 +106,13 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     );
   }
 
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, payload }: any) => {
     if (percent < 0.01) return null;
+    const sliceName = name || payload?.name;
+    const handleLabelClick = (e: any) => {
+      e.stopPropagation?.();
+      if (sliceName) toggleCategory(sliceName);
+    };
     const RADIAN = Math.PI / 180;
     if (percent < 0.03) {
       const radius = outerRadius + 12;
@@ -110,6 +127,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
           dominantBaseline="central"
           fontSize={10}
           fontWeight={600}
+          onClick={handleLabelClick}
+          style={{ cursor: "pointer", pointerEvents: "all" }}
         >
           {`${(percent * 100).toFixed(0)}%`}
         </text>
@@ -119,15 +138,25 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={11}
+        fontWeight={600}
+        onClick={handleLabelClick}
+        style={{ cursor: "pointer", pointerEvents: "all" }}
+      >
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
   };
 
   return (
-    <Card className="shadow-card" onClick={() => setSelectedCategory(null)}>
-      <CardContent className="p-4 space-y-4" onClick={(e) => e.stopPropagation()}>
+    <Card ref={cardRef} className="shadow-card">
+      <CardContent className="p-4 space-y-4">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <h3 className="text-sm font-semibold">Gráfico de Categorias</h3>
           <div className="flex items-center gap-2">
