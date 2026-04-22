@@ -106,8 +106,13 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     );
   }
 
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, payload }: any) => {
     if (percent < 0.01) return null;
+    const sliceName = name || payload?.name;
+    const handleLabelClick = (e: any) => {
+      e.stopPropagation?.();
+      if (sliceName) toggleCategory(sliceName);
+    };
     const RADIAN = Math.PI / 180;
     if (percent < 0.03) {
       const radius = outerRadius + 12;
@@ -122,6 +127,8 @@ const CategoryBreakdown = ({ transactions }: Props) => {
           dominantBaseline="central"
           fontSize={10}
           fontWeight={600}
+          onClick={handleLabelClick}
+          style={{ cursor: "pointer", pointerEvents: "all" }}
         >
           {`${(percent * 100).toFixed(0)}%`}
         </text>
@@ -131,7 +138,17 @@ const CategoryBreakdown = ({ transactions }: Props) => {
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
     return (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={600}>
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={11}
+        fontWeight={600}
+        onClick={handleLabelClick}
+        style={{ cursor: "pointer", pointerEvents: "all" }}
+      >
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
