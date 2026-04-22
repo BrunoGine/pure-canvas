@@ -24,6 +24,27 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const categoryCardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setSelectedCategory(null);
+  }, [categoryMethodFilter, selectedId]);
+
+  useEffect(() => {
+    const handleDocMouseDown = (e: MouseEvent) => {
+      if (!categoryCardRef.current) return;
+      if (!categoryCardRef.current.contains(e.target as Node)) {
+        setSelectedCategory(null);
+      }
+    };
+    document.addEventListener("mousedown", handleDocMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  }, []);
+
+  const toggleCategory = (name: string) => {
+    setSelectedCategory(prev => (prev === name ? null : name));
+  };
 
   const selected = cards.find((c) => c.id === selectedId);
 
