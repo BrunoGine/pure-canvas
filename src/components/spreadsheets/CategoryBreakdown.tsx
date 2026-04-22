@@ -48,10 +48,22 @@ const CategoryBreakdown = ({ transactions }: Props) => {
   const [methodFilter, setMethodFilter] = useState<MethodFilter>("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setSelectedCategory(null);
   }, [filterType, methodFilter]);
+
+  useEffect(() => {
+    const handleDocMouseDown = (e: MouseEvent) => {
+      if (!cardRef.current) return;
+      if (!cardRef.current.contains(e.target as Node)) {
+        setSelectedCategory(null);
+      }
+    };
+    document.addEventListener("mousedown", handleDocMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  }, []);
 
   useEffect(() => {
     if (selectedCategory && itemRefs.current[selectedCategory]) {
