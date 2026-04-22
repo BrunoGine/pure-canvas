@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Bot, User, Sparkles, Plus, History, ChevronLeft, Trash2 } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,10 +37,26 @@ const ChatPage = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const lessonContext = (location.state as any)?.lessonContext as
+    | { lesson_id: string; lesson_title: string; youtube_url: string }
+    | undefined;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // When arriving with lesson context, start a new chat with auto-prompt
+  useEffect(() => {
+    if (lessonContext && messages.length === 0) {
+      const autoMsg = `Vamos aprofundar a aula "${lessonContext.lesson_title}". Pode me explicar os pontos principais?`;
+      send(autoMsg);
+      // clear state so it doesn't re-fire
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadConversations = useCallback(async () => {
     if (!user) return;
@@ -115,7 +132,7 @@ const ChatPage = () => {
       });
 
       const { data, error } = await supabase.functions.invoke("harp-ia-chat", {
-        body: { messages: updatedMessages },
+        body: { messages: updatedMessages, lessonContext },
       });
 
       if (error) throw error;
