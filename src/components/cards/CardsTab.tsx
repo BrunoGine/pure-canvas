@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, ArrowLeft, Trash2, CreditCard, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Sector } from "recharts";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { Transaction } from "@/hooks/useTransactions";
 import CardVisual from "./CardVisual";
@@ -24,6 +24,27 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
   const [formOpen, setFormOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const categoryCardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setSelectedCategory(null);
+  }, [categoryMethodFilter, selectedId]);
+
+  useEffect(() => {
+    const handleDocMouseDown = (e: MouseEvent) => {
+      if (!categoryCardRef.current) return;
+      if (!categoryCardRef.current.contains(e.target as Node)) {
+        setSelectedCategory(null);
+      }
+    };
+    document.addEventListener("mousedown", handleDocMouseDown);
+    return () => document.removeEventListener("mousedown", handleDocMouseDown);
+  }, []);
+
+  const toggleCategory = (name: string) => {
+    setSelectedCategory(prev => (prev === name ? null : name));
+  };
 
   const selected = cards.find((c) => c.id === selectedId);
 
@@ -141,50 +162,151 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
           </div>
         </div>
 
-        {categoryData.length > 0 && (
-          <Card className="shadow-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3 gap-2">
-                <h3 className="text-sm font-semibold">Gastos por categoria</h3>
-                <Select value={categoryMethodFilter} onValueChange={(v) => setCategoryMethodFilter(v as "all" | "credito" | "debito")}>
-                  <SelectTrigger className="h-8 w-[110px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Ambos</SelectItem>
-                    <SelectItem value="credito">Crédito</SelectItem>
-                    <SelectItem value="debito">Débito</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="h-[220px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      dataKey="value"
-                      paddingAngle={2}
-                      isAnimationActive={false}
-                    >
-                      {categoryData.map((entry, i) => (
-                        <Cell key={entry.name} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      isAnimationActive={false}
-                      formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} onClick={() => {}} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {categoryData.length > 0 && (() => {
+          const total = categoryData.reduce((s, d) => s + d.value, 0);
+          const selectedIndex = selectedCategory ? categoryData.findIndex(d => d.name === selectedCategory) : -1;
+
+          const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, payload }: any) => {
+            if (percent < 0.01) return null;
+            const sliceName = name || payload?.name;
+            const handleLabelClick = (e: any) => {
+              e.stopPropagation?.();
+              if (sliceName) toggleCategory(sliceName);
+            };
+            const RADIAN = Math.PI / 180;
+            if (percent < 0.03) {
+              const radius = outerRadius + 12;
+              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+              return (
+                <text
+                  x={x}
+                  y={y}
+                  fill="hsl(var(--foreground))"
+                  textAnchor={x > cx ? "start" : "end"}
+                  dominantBaseline="central"
+                  fontSize={10}
+                  fontWeight={600}
+                  onClick={handleLabelClick}
+                  style={{ cursor: "pointer", pointerEvents: "all" }}
+                >
+                  {`${(percent * 100).toFixed(0)}%`}
+                </text>
+              );
+            }
+            const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+            const x = cx + radius * Math.cos(-midAngle * RADIAN);
+            const y = cy + radius * Math.sin(-midAngle * RADIAN);
+            return (
+              <text
+                x={x}
+                y={y}
+                fill="white"
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={11}
+                fontWeight={600}
+                onClick={handleLabelClick}
+                style={{ cursor: "pointer", pointerEvents: "all" }}
+              >
+                {`${(percent * 100).toFixed(0)}%`}
+              </text>
+            );
+          };
+
+          return (
+            <Card ref={categoryCardRef} className="shadow-card">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold">Gastos por categoria</h3>
+                  <Select value={categoryMethodFilter} onValueChange={(v) => setCategoryMethodFilter(v as "all" | "credito" | "debito")}>
+                    <SelectTrigger className="h-8 w-[110px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Ambos</SelectItem>
+                      <SelectItem value="credito">Crédito</SelectItem>
+                      <SelectItem value="debito">Débito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="h-[220px] outline-none [&_*]:outline-none [&_path]:outline-none [&_path:focus]:outline-none">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        dataKey="value"
+                        paddingAngle={2}
+                        strokeWidth={0}
+                        labelLine={false}
+                        label={renderCustomLabel}
+                        isAnimationActive={false}
+                        className="cursor-pointer focus:outline-none"
+                        activeIndex={selectedIndex >= 0 ? selectedIndex : undefined}
+                        activeShape={(props: any) => (
+                          <Sector {...props} outerRadius={props.outerRadius + 6} stroke="none" />
+                        )}
+                        onClick={(d: any) => {
+                          if (d?.name) toggleCategory(d.name);
+                        }}
+                      >
+                        {categoryData.map((entry, i) => {
+                          const dimmed = selectedCategory && selectedCategory !== entry.name;
+                          return (
+                            <Cell
+                              key={entry.name}
+                              fill={COLORS[i % COLORS.length]}
+                              fillOpacity={dimmed ? 0.35 : 1}
+                              stroke="none"
+                              style={{ outline: "none" }}
+                            />
+                          );
+                        })}
+                      </Pie>
+                      <Tooltip
+                        isAnimationActive={false}
+                        formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" iconSize={8} onClick={() => {}} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {categoryData.map((item, i) => {
+                    const isSelected = selectedCategory === item.name;
+                    const dimmed = selectedCategory && !isSelected;
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCategory(item.name);
+                        }}
+                        className={`flex items-center justify-between text-sm w-full p-1.5 rounded-lg transition-all text-left ${
+                          isSelected ? "bg-secondary ring-1 ring-primary/40" : "hover:bg-secondary/50"
+                        } ${dimmed ? "opacity-50" : "opacity-100"}`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                          <span className="truncate">{item.name}</span>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-2">
+                          <span className="font-semibold">R$ {item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                          <span className="text-xs text-muted-foreground ml-1">({total > 0 ? ((item.value / total) * 100).toFixed(1) : 0}%)</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         <div>
           <h3 className="text-sm font-semibold mb-2">Transações deste cartão</h3>
