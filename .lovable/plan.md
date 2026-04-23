@@ -1,112 +1,58 @@
 
 
-# Plano — Refinamento UI + Funcionalidades dos Cursos
+# Plano — Correção da Trilha + Redesign dos Mundos
 
-Foco: visual estilo Duolingo profissional, reassistir/refazer aulas, edição manual completa pelo admin (sem IA) e créditos do vídeo.
+## 1. Correção da trilha (`LessonPath.tsx`) — bug de sobreposição
 
-## 1. Banco de dados
+Problema atual: nós com `translateX` e cards laterais saem do alinhamento; o SVG conector (200px de largura, posicionado em `-top-12`) sobrepõe títulos das aulas vizinhas.
 
-**Migração** (uma só, aditiva, sem perda de dados):
+**Solução escolhida — Timeline lateral vertical** (máxima legibilidade, zero sobreposição):
 
-- `lessons.video_credit text NULL` — texto livre do crédito (ex: "Canal Me Poupe").
-- Garantir índice em `lessons(course_id, "order")` para reordenação eficiente.
+- Layout em duas colunas:
+  - **Coluna esquerda fixa (56px)**: trilha vertical decorativa com nós circulares.
+  - **Coluna direita (flex-1)**: conteúdo da aula (título, subtítulo, XP, badges).
+- Linha conectora vertical contínua atrás dos nós (1 elemento absolute com `bg-border`, `w-0.5`, centralizado na coluna esquerda, `z-0`).
+- Trecho da linha entre nós concluídos fica verde (segmentos absolutos por par concluído).
+- Nós circulares (56px) com `z-10` para ficar acima da linha.
+- Conteúdo em card à direita, com gap horizontal mínimo de 16px do nó. **Nunca** sobreposto pela linha.
+- Estados visuais mantidos: ✓ verde, ▶ cor do mundo + ring pulsante para "atual", 🔒 cinza opaco.
+- Remove `NODE_OFFSETS` e `translateX` (causa raiz da sobreposição).
 
-Nada mais muda no schema. `user_progress` continua intacto — re-fazer aula nunca apaga dados.
-
-## 2. Trilha de aprendizado (`LessonPath.tsx`) — visual Duolingo
-
-Reescrever o layout dos nós:
-
-- Caminho central com nós em zigue-zague usando `translateX` (não `margin-left`) para curva suave.
-- Linhas conectoras tracejadas SVG entre nós (cor neutra; verde quando trecho concluído).
-- Estados visuais aprimorados:
-  - **Concluído**: gradiente verde, ✓ branco, halo verde sutil.
-  - **Disponível (atual)**: gradiente do mundo, ▶ branco, anel pulsante (1 animação `pulse` simples — sem `ping` pesado), badge "Atual".
-  - **Bloqueado**: cinza chapado, 🔒, opacidade 0.5.
-- Cantos arredondados (`rounded-2xl/full`), sombras suaves (`shadow-lg`), tipografia consistente.
-- Card lateral por aula com título, subtítulo, XP e badge de status.
-- Reduzir animações: usar `transform` apenas, sem `framer-motion` por nó (apenas fade do container).
-
-## 3. Header de stats (`StatsHeader.tsx`)
-
-Reorganizar em 3 blocos horizontais alinhados:
-
+Layout:
 ```text
-┌──────────────┬───────────────────┬──────────────┐
-│  Nv 5        │  🔥 7 dias        │  🛡 🛡 🛡    │
-│  ███░░ 230XP │  ofensiva ativa   │  2/3 escudos │
-└──────────────┴───────────────────┴──────────────┘
+●───── [Aula 1: Título ........... +20 XP]  ✓
+│
+●───── [Aula 2: Título ........... +20 XP]  Atual
+│
+○───── [Aula 3: Título (bloqueada)]         🔒
 ```
 
-- Bloco 1 (Nível): badge grande, barra XP horizontal abaixo, "X XP até nv N+1".
-- Bloco 2 (Streak): chama-laranja com fundo quente sutil (`bg-orange-500/10`), número grande, label.
-- Bloco 3 (Proteções): renderizar 3 escudos (preenchidos para disponíveis, vazios/opacos para usados).
-- Responsivo: em telas estreitas (< 480px), empilha verticalmente.
+## 2. Redesign dos Mundos (`WorldMap.tsx`)
 
-## 4. Reassistir / Refazer aula (`LessonPlayer.tsx`)
+Substituir cards horizontais pequenos por **blocos grandes imersivos**:
 
-Quando `progress.completed === true`, ao entrar na aula:
+- Cada card ocupa **100% da largura**, altura mínima de **160px**, padding `p-6`.
+- Estrutura interna:
+  - Topo: ícone grande (48px) em badge arredondada + label do nível (Iniciante/Intermediário/Avançado) como pill.
+  - Título grande (`text-2xl font-bold`) + subtítulo (`text-sm text-muted-foreground`).
+  - Rodapé: barra de progresso espessa (`h-2 rounded-full`) + texto "X de Y aulas • NN%".
+- **Background com gradiente diagonal** baseado em `c.color`:
+  - `linear-gradient(135deg, {color}22 0%, {color}08 60%, transparent 100%)` (sutil, não exagerado).
+  - Borda colorida sutil: `border border-{color}/20`.
+  - Elemento decorativo: círculo grande `blur-2xl` da cor do mundo no canto superior direito (com `opacity-20`, `pointer-events-none`).
+- Cantos: `rounded-3xl`. Sombra: `shadow-lg hover:shadow-xl`.
+- Hover: `hover:-translate-y-0.5 transition` (leve, sem animação pesada).
+- Diferenciação: cada mundo já tem `c.color` próprio no banco; o gradiente + borda + glow herdam dessa cor → cada bloco tem identidade visual única mantendo consistência estrutural.
 
-- Não pular automaticamente para `step 3`. Mostrar **tela de revisão** com:
-  - Status "✓ Concluída — score X%"
-  - Botão **"Reassistir vídeo"** → vai para step 0 em **modo revisão** (`reviewMode = true`).
-  - Botão **"Refazer exercícios"** → vai direto para step 2 em modo revisão.
-  - Botão "Voltar à trilha".
-- Em **modo revisão**:
-  - Não chama `upsert` de `video_watched`/`summary_read` (já estão `true`).
-  - Ao concluir o quiz: atualiza `score` apenas se for melhor que o anterior (`Math.max`).
-  - XP reduzido para evitar farm: **+5 XP fixo** ao reassistir vídeo (1x/dia por aula via flag em `localStorage`); **+10 XP** ao refazer quiz com aprovação (sem bônus completo).
-  - Não chama `updateStreak` em modo revisão (streak já contou no primeiro complete).
-- Toast claro: "Modo revisão — XP reduzido".
+## 3. Responsividade
 
-## 5. Créditos do vídeo
+- Trilha: layout em 2 colunas funciona em qualquer largura (coluna esquerda fixa 56px, conteúdo flexível). Em telas <380px o card lateral usa `text-sm` e quebra em 2 linhas.
+- Mundos: largura 100% por padrão; em telas ≥768px (`md:`) mantém 100% (single column intencional para impacto visual).
 
-- Em `LessonPlayer.tsx` step 0: abaixo do `<iframe>`, se `lesson.video_credit` existir, renderizar:
-  ```text
-  Créditos: <video_credit>
-  ```
-  Texto pequeno (`text-xs text-muted-foreground`), com ícone `Youtube` ou `User` à esquerda.
-- Se vazio/null: não renderizar nada.
+## 4. Arquivos alterados
 
-## 6. Painel Admin (`AdminPanel.tsx`) — edição completa
+- `src/components/courses/LessonPath.tsx` — reescrita do bloco da trilha (header e StatsHeader inalterados).
+- `src/components/courses/WorldMap.tsx` — reescrita dos cards de mundo.
 
-Reformular para gestão CRUD sem IA:
-
-### Aba "Mundos"
-- Lista de mundos existentes com botão editar/excluir.
-- Form criar/editar (modal/inline): título, descrição, nível, ordem, cor, ícone.
-
-### Aba "Aulas"
-- Seletor de mundo → lista de aulas desse mundo ordenadas por `order`.
-- Cada aula: card com botões ↑ ↓ (reordenar), Editar, Excluir.
-- Reordenação por **botões ↑/↓** (simples, sem nova dependência) que fazem swap do campo `order` entre duas aulas via update batch.
-- Form editar aula (modal) com **todos** os campos:
-  - Título, subtítulo, nível
-  - URL do YouTube (re-extrai `youtube_video_id`)
-  - **Crédito do vídeo** (`video_credit`, opcional)
-  - Ordem (numérica), XP reward
-  - **Resumo** — `<textarea>` grande, edita `lessons.summary` diretamente (sobrescreve cache IA)
-  - **Perguntas** — editor estruturado: lista de perguntas com tipo (múltipla escolha / aberta), enunciado, opções, índice correto, keywords. Salva em `lessons.questions` (jsonb).
-  - Botão "Gerar com IA" (opcional, único uso) ao lado de Resumo/Perguntas — chama `generate-lesson-content` para preencher os campos, mas o admin ainda precisa clicar "Salvar".
-- **Não apaga progresso de usuários** — apenas faz `update` na linha de `lessons`.
-
-### Permissão de edição
-- Adicionar política RLS em `lessons`: admins podem `UPDATE/DELETE` (já contemplada pela policy "Admins can manage lessons" — verificar e manter).
-
-## 7. Otimizações e estabilidade
-
-- Todas as edições do admin são `update` direto (sem IA).
-- IA (`generate-lesson-content`) continua opcional e cacheada — nunca chamada automaticamente em edição.
-- React Query: invalidar `["course_lessons", courseId]` e `["lesson", lessonId]` após edits do admin.
-- Reordenação: update otimista local antes de persistir.
-- Garantir que `useLessonProgress` nunca dispara `delete` — apenas `upsert` aditivo.
-
-## 8. Resumo técnico
-
-- **Migração**: 1 ALTER TABLE (`lessons add column video_credit text`) + index.
-- **Componentes alterados**: `LessonPath.tsx`, `StatsHeader.tsx`, `LessonPlayer.tsx`, `AdminPanel.tsx` (reescrita parcial maior).
-- **Componentes novos**: `admin/LessonEditor.tsx` (modal de edição), `admin/QuestionsEditor.tsx`, `admin/CourseEditor.tsx`, `courses/ReviewMode.tsx` (tela de revisão).
-- **Hooks novos**: `useAdminMutations.ts` (create/update/delete/reorder de cursos e aulas com invalidações).
-- **Sem novas dependências**: drag-and-drop substituído por botões ↑/↓.
-- **Nenhuma mudança em** `user_progress`, `user_stats`, edge functions ou auth — progresso dos usuários preservado integralmente.
+Nenhuma mudança em hooks, dados, edge functions ou progresso do usuário.
 
