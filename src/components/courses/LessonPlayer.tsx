@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Play, FileText, HelpCircle, Trophy, Sparkles, Loader2 } from "lucide-react";
+import { ChevronLeft, Play, FileText, HelpCircle, Trophy, Sparkles, Loader2, RotateCcw, Youtube } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useLessonProgress } from "@/hooks/useLessonProgress";
@@ -24,7 +24,8 @@ const LessonPlayer = () => {
   const qc = useQueryClient();
   const { upsert, data: progress } = useLessonProgress(lessonId);
   const { awardXp, updateStreak } = useUserStats();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<number>(-1); // -1 = unset, 4 = review menu
+  const [reviewMode, setReviewMode] = useState(false);
 
   const { data: lesson, isLoading: lessonLoading } = useQuery({
     queryKey: ["lesson", lessonId],
@@ -49,20 +50,40 @@ const LessonPlayer = () => {
     staleTime: Infinity,
   });
 
-  // resume on existing progress
+  // Initial step based on progress
   useEffect(() => {
-    if (!progress || step !== 0) return;
-    if (progress.completed) setStep(3);
-    else if (progress.questions_passed) setStep(3);
-    else if (progress.summary_read) setStep(2);
-    else if (progress.video_watched) setStep(1);
-  }, [progress]);
+    if (step !== -1) return;
+    if (!progress) {
+      setStep(0);
+      return;
+    }
+    if (progress.completed) {
+      setStep(4); // review menu
+    } else if (progress.summary_read) {
+      setStep(2);
+    } else if (progress.video_watched) {
+      setStep(1);
+    } else {
+      setStep(0);
+    }
+  }, [progress, step]);
 
   useEffect(() => {
-    if (step === 1 && !aiContent && !aiLoading) refetchAi();
+    if ((step === 1 || step === 2) && !aiContent && !aiLoading) refetchAi();
   }, [step]);
 
   const handleVideoDone = async () => {
+    if (reviewMode) {
+      // +5 XP once per day per lesson
+      const key = `review_video_xp_${lessonId}_${new Date().toISOString().slice(0, 10)}`;
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, "1");
+        await awardXp.mutateAsync(5);
+        toast({ title: "+5 XP ⚡", description: "Modo revisão — XP reduzido" });
+      }
+      setStep(1);
+      return;
+    }
     if (!progress?.video_watched) {
       await upsert.mutateAsync({ video_watched: true });
       await awardXp.mutateAsync(10);
@@ -72,6 +93,10 @@ const LessonPlayer = () => {
   };
 
   const handleSummaryDone = async () => {
+    if (reviewMode) {
+      setStep(2);
+      return;
+    }
     if (!progress?.summary_read) {
       await upsert.mutateAsync({ summary_read: true });
       await awardXp.mutateAsync(10);
@@ -81,6 +106,22 @@ const LessonPlayer = () => {
   };
 
   const finishLesson = async (score: number, passed: boolean) => {
+    if (reviewMode) {
+      // Apenas atualiza score se for melhor; não mexe em streak nem completed
+      const bestScore = Math.max(progress?.score ?? 0, score);
+      if (bestScore !== (progress?.score ?? 0)) {
+        await upsert.mutateAsync({ score: bestScore });
+      }
+      if (passed) {
+        await awardXp.mutateAsync(10);
+        toast({ title: "+10 XP ⚡", description: "Modo revisão — XP reduzido" });
+      } else {
+        toast({ title: "Continue praticando!", description: `Score: ${score}%` });
+      }
+      qc.invalidateQueries({ queryKey: ["course_lessons"] });
+      setStep(3);
+      return;
+    }
     const xpReward = lesson?.xp_reward ?? 50;
     const bonus = passed ? xpReward : Math.floor(xpReward / 2);
     await upsert.mutateAsync({
@@ -97,7 +138,13 @@ const LessonPlayer = () => {
     setStep(3);
   };
 
-  if (lessonLoading || !lesson) {
+  const startReview = (mode: "video" | "quiz") => {
+    setReviewMode(true);
+    setStep(mode === "video" ? 0 : 2);
+    if (mode === "quiz" && !aiContent && !aiLoading) refetchAi();
+  };
+
+  if (lessonLoading || !lesson || step === -1) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="animate-spin text-primary" />
@@ -111,34 +158,51 @@ const LessonPlayer = () => {
         <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-secondary transition-colors">
           <ChevronLeft size={20} />
         </button>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="font-display text-lg font-bold truncate">{lesson.title}</h1>
           {lesson.subtitle && <p className="text-xs text-muted-foreground truncate">{lesson.subtitle}</p>}
         </div>
+        {reviewMode && (
+          <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/15 text-amber-500 font-semibold shrink-0">
+            Revisão
+          </span>
+        )}
       </motion.div>
 
-      {/* Stepper */}
-      <div className="flex items-center gap-1.5">
-        {[
-          { i: 0, icon: Play, label: "Vídeo" },
-          { i: 1, icon: FileText, label: "Resumo" },
-          { i: 2, icon: HelpCircle, label: "Quiz" },
-          { i: 3, icon: Trophy, label: "Fim" },
-        ].map(({ i, icon: Icon, label }) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                step >= i ? "gradient-primary text-white shadow-glow" : "bg-secondary text-muted-foreground"
-              }`}
-            >
-              <Icon size={14} />
+      {/* Stepper (only when not in review menu) */}
+      {step !== 4 && (
+        <div className="flex items-center gap-1.5">
+          {[
+            { i: 0, icon: Play, label: "Vídeo" },
+            { i: 1, icon: FileText, label: "Resumo" },
+            { i: 2, icon: HelpCircle, label: "Quiz" },
+            { i: 3, icon: Trophy, label: "Fim" },
+          ].map(({ i, icon: Icon, label }) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                  step >= i ? "gradient-primary text-white shadow-glow" : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                <Icon size={14} />
+              </div>
+              <span className={`text-[9px] ${step >= i ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
             </div>
-            <span className={`text-[9px] ${step >= i ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
+        {step === 4 && (
+          <ReviewMenu
+            key="review"
+            score={progress?.score ?? 0}
+            onWatch={() => startReview("video")}
+            onQuiz={() => startReview("quiz")}
+            onBack={() => navigate(`/cursos/${lesson.course_id}`)}
+          />
+        )}
+
         {step === 0 && (
           <motion.div key="video" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
             <div className="aspect-video rounded-xl overflow-hidden border border-border/50">
@@ -151,11 +215,17 @@ const LessonPlayer = () => {
                 className="w-full h-full"
               />
             </div>
+            {lesson.video_credit && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
+                <Youtube size={12} className="text-red-500" />
+                Créditos: <span className="text-foreground/80">{lesson.video_credit}</span>
+              </p>
+            )}
             <button
               onClick={handleVideoDone}
               className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow hover:shadow-elevated transition-all"
             >
-              Já assisti — Continuar
+              {reviewMode ? "Continuar" : "Já assisti — Continuar"}
             </button>
           </motion.div>
         )}
@@ -167,9 +237,9 @@ const LessonPlayer = () => {
                 <div className="flex items-center justify-center py-12 gap-2 text-sm text-muted-foreground">
                   <Loader2 className="animate-spin" size={16} /> Gerando resumo...
                 </div>
-              ) : aiContent.summary ? (
+              ) : aiContent.summary || lesson.summary ? (
                 <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:text-sm [&_li]:text-sm">
-                  <ReactMarkdown>{aiContent.summary}</ReactMarkdown>
+                  <ReactMarkdown>{aiContent.summary || lesson.summary}</ReactMarkdown>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-8">
@@ -188,16 +258,75 @@ const LessonPlayer = () => {
         )}
 
         {step === 2 && (
-          <QuestionsStep questions={aiContent?.questions ?? []} onDone={finishLesson} loading={aiLoading} />
+          <QuestionsStep
+            questions={(aiContent?.questions ?? lesson.questions ?? []) as Question[]}
+            onDone={finishLesson}
+            loading={aiLoading}
+          />
         )}
 
         {step === 3 && (
-          <CompletionStep lesson={lesson} score={progress?.score ?? 0} navigate={navigate} />
+          <CompletionStep
+            lesson={lesson}
+            score={progress?.score ?? 0}
+            navigate={navigate}
+            reviewMode={reviewMode}
+          />
         )}
       </AnimatePresence>
     </div>
   );
 };
+
+const ReviewMenu = ({
+  score,
+  onWatch,
+  onQuiz,
+  onBack,
+}: {
+  score: number;
+  onWatch: () => void;
+  onQuiz: () => void;
+  onBack: () => void;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.96 }}
+    animate={{ opacity: 1, scale: 1 }}
+    exit={{ opacity: 0 }}
+    className="glass-card rounded-2xl p-6 space-y-4 shadow-lg"
+  >
+    <div className="flex items-center justify-center gap-2 text-green-500">
+      <Trophy size={28} />
+      <span className="font-display text-lg font-bold">Aula concluída</span>
+    </div>
+    <p className="text-center text-sm text-muted-foreground">
+      Score atual: <span className="text-foreground font-semibold">{score}%</span>
+    </p>
+    <div className="space-y-2 pt-2">
+      <button
+        onClick={onWatch}
+        className="w-full py-3 rounded-xl bg-secondary hover:bg-secondary/80 font-medium text-sm flex items-center justify-center gap-2 transition-all"
+      >
+        <Play size={16} /> Reassistir vídeo
+      </button>
+      <button
+        onClick={onQuiz}
+        className="w-full py-3 rounded-xl bg-secondary hover:bg-secondary/80 font-medium text-sm flex items-center justify-center gap-2 transition-all"
+      >
+        <RotateCcw size={16} /> Refazer exercícios
+      </button>
+      <button
+        onClick={onBack}
+        className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow transition-all"
+      >
+        Voltar à trilha
+      </button>
+    </div>
+    <p className="text-[11px] text-center text-muted-foreground pt-1">
+      Refazer dá XP reduzido e não afeta sua ofensiva.
+    </p>
+  </motion.div>
+);
 
 const QuestionsStep = ({
   questions,
@@ -295,7 +424,7 @@ const QuestionsStep = ({
   );
 };
 
-const CompletionStep = ({ lesson, score, navigate }: any) => {
+const CompletionStep = ({ lesson, score, navigate, reviewMode }: any) => {
   return (
     <motion.div
       key="done"
@@ -303,7 +432,6 @@ const CompletionStep = ({ lesson, score, navigate }: any) => {
       animate={{ opacity: 1, scale: 1 }}
       className="glass-card rounded-2xl p-6 text-center space-y-4"
     >
-      {/* Confetti */}
       <div className="relative h-24">
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
@@ -314,7 +442,7 @@ const CompletionStep = ({ lesson, score, navigate }: any) => {
             <Trophy size={40} className="text-white" />
           </motion.div>
         </div>
-        {[...Array(12)].map((_, i) => (
+        {!reviewMode && [...Array(12)].map((_, i) => (
           <motion.span
             key={i}
             initial={{ y: 0, x: 0, opacity: 1 }}
@@ -325,17 +453,22 @@ const CompletionStep = ({ lesson, score, navigate }: any) => {
           />
         ))}
       </div>
-      <h2 className="font-display text-xl font-bold">Aula concluída!</h2>
+      <h2 className="font-display text-xl font-bold">
+        {reviewMode ? "Revisão concluída!" : "Aula concluída!"}
+      </h2>
       <p className="text-sm text-muted-foreground">
-        Você ganhou <span className="text-primary font-semibold">+{lesson.xp_reward} XP</span>
-        {score > 0 && <> com {score}% de acertos</>}.
+        {reviewMode ? (
+          <>Score: <span className="text-primary font-semibold">{score}%</span></>
+        ) : (
+          <>Você ganhou <span className="text-primary font-semibold">+{lesson.xp_reward} XP</span>{score > 0 && <> com {score}% de acertos</>}.</>
+        )}
       </p>
       <div className="flex gap-2">
         <button
           onClick={() => navigate(`/cursos/${lesson.course_id}`)}
           className="flex-1 py-3 rounded-xl bg-secondary font-medium text-sm hover:bg-secondary/80 transition-all"
         >
-          Próxima aula
+          Voltar à trilha
         </button>
         <button
           onClick={() =>

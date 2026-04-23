@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Flame, Shield, Zap } from "lucide-react";
 import { useUserStats, xpForLevel, xpForNextLevel } from "@/hooks/useUserStats";
 
+const MAX_PROTECTION = 3;
+
 const StatsHeader = () => {
   const { data: stats } = useUserStats();
   const level = stats?.level ?? 1;
@@ -17,38 +19,72 @@ const StatsHeader = () => {
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-card rounded-2xl p-4 flex items-center gap-4"
+      className="grid grid-cols-1 sm:grid-cols-3 gap-2"
     >
-      <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl gradient-primary shadow-glow shrink-0">
-        <span className="text-[10px] uppercase text-white/70 leading-none">Nível</span>
-        <span className="text-white font-display font-bold text-xl leading-none mt-0.5">{level}</span>
+      {/* Bloco 1 — Nível + XP */}
+      <div className="glass-card rounded-2xl p-3 flex items-center gap-3 shadow-lg">
+        <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl gradient-primary shadow-glow shrink-0">
+          <span className="text-[9px] uppercase text-white/70 leading-none tracking-wide">Nv</span>
+          <span className="text-white font-display font-bold text-lg leading-none mt-0.5">{level}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between text-[11px] mb-1">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Zap size={11} className="text-primary" /> {xp} XP
+            </span>
+            <span className="text-muted-foreground">{Math.max(0, next - xp)} p/ nv {level + 1}</span>
+          </div>
+          <div className="h-1.5 bg-secondary/60 rounded-full overflow-hidden">
+            <div
+              className="h-full gradient-primary transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between text-xs mb-1.5">
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Zap size={12} className="text-primary" /> {xp} XP
-          </span>
-          <span className="text-muted-foreground">{next - xp} XP p/ nv {level + 1}</span>
+
+      {/* Bloco 2 — Streak */}
+      <div className="glass-card rounded-2xl p-3 flex items-center gap-3 shadow-lg bg-orange-500/[0.04]">
+        <div
+          className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+            streak > 0 ? "bg-gradient-to-br from-orange-400 to-orange-600 shadow-[0_4px_20px_-4px_hsl(25_95%_55%/0.5)]" : "bg-secondary/60"
+          }`}
+        >
+          <Flame size={22} className={streak > 0 ? "text-white" : "text-muted-foreground"} fill={streak > 0 ? "white" : "none"} />
         </div>
-        <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="h-full gradient-primary"
-          />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1">
+            <span className="font-display font-bold text-xl leading-none">{streak}</span>
+            <span className="text-[11px] text-muted-foreground">{streak === 1 ? "dia" : "dias"}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {streak > 0 ? "ofensiva ativa" : "comece sua ofensiva"}
+          </p>
         </div>
-        <div className="flex items-center gap-3 mt-2">
-          <span className="flex items-center gap-1 text-xs">
-            <Flame size={14} className={streak > 0 ? "text-orange-500" : "text-muted-foreground"} />
-            <span className="font-semibold">{streak}</span>
-            <span className="text-muted-foreground">ofensiva</span>
-          </span>
-          <span className="flex items-center gap-1 text-xs">
-            <Shield size={14} className="text-blue-400" />
-            <span className="font-semibold">{protection}</span>
-            <span className="text-muted-foreground">proteções</span>
-          </span>
+      </div>
+
+      {/* Bloco 3 — Proteções */}
+      <div className="glass-card rounded-2xl p-3 flex items-center gap-3 shadow-lg">
+        <div className="flex items-center gap-1 shrink-0">
+          {Array.from({ length: MAX_PROTECTION }).map((_, i) => {
+            const active = i < protection;
+            return (
+              <Shield
+                key={i}
+                size={20}
+                className={active ? "text-blue-400" : "text-muted-foreground/30"}
+                fill={active ? "currentColor" : "none"}
+                strokeWidth={active ? 1.5 : 2}
+              />
+            );
+          })}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-1">
+            <span className="font-display font-bold text-xl leading-none">{protection}</span>
+            <span className="text-[11px] text-muted-foreground">/ {MAX_PROTECTION}</span>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-0.5">escudos restantes</p>
         </div>
       </div>
     </motion.div>

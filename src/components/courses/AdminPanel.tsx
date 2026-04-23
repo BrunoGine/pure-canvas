@@ -1,29 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ChevronLeft, Plus, Loader2, Pencil, Trash2, ChevronUp, ChevronDown, Globe, BookOpen } from "lucide-react";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useCourses } from "@/hooks/useCourses";
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
-
-const extractVideoId = (url: string): string | null => {
-  const m = url.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ ]{11})/);
-  return m ? m[1] : null;
-};
+import { useCourseLessons } from "@/hooks/useCourseLessons";
+import { useAdminMutations, type CourseInput, type LessonInput } from "@/hooks/useAdminMutations";
+import CourseEditor from "./admin/CourseEditor";
+import LessonEditor from "./admin/LessonEditor";
+import { Button } from "@/components/ui/button";
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const qc = useQueryClient();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
   const { data: courses } = useCourses();
+  const [tab, setTab] = useState<"worlds" | "lessons">("worlds");
+  const [selectedCourseId, setSelectedCourseId] = useState<string>("");
 
-  const [courseForm, setCourseForm] = useState({ title: "", description: "", level: "iniciante", order: 1, color: "#8A05BE", icon: "BookOpen" });
-  const [lessonForm, setLessonForm] = useState({ course_id: "", title: "", subtitle: "", youtube_url: "", order: 1, xp_reward: 50 });
-  const [saving, setSaving] = useState(false);
+  const [courseEditorOpen, setCourseEditorOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<CourseInput | null>(null);
+  const [lessonEditorOpen, setLessonEditorOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<LessonInput | null>(null);
+
+  const { data: lessonsData } = useCourseLessons(tab === "lessons" ? selectedCourseId : undefined);
+  const { deleteCourse, deleteLesson, swapLessonOrder } = useAdminMutations();
 
   if (adminLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" /></div>;
@@ -43,83 +43,173 @@ const AdminPanel = () => {
     );
   }
 
-  const createCourse = async () => {
-    if (!courseForm.title) return;
-    setSaving(true);
-    const { error } = await (supabase as any).from("courses").insert(courseForm);
-    setSaving(false);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Mundo criado" });
-    setCourseForm({ title: "", description: "", level: "iniciante", order: 1, color: "#8A05BE", icon: "BookOpen" });
-    qc.invalidateQueries({ queryKey: ["courses"] });
+  const lessons = lessonsData?.lessons ?? [];
+
+  const openNewCourse = () => { setEditingCourse(null); setCourseEditorOpen(true); };
+  const openEditCourse = (c: any) => {
+    setEditingCourse({
+      id: c.id, title: c.title, description: c.description ?? "",
+      level: c.level, order: c.order, color: c.color, icon: c.icon,
+    });
+    setCourseEditorOpen(true);
+  };
+  const openNewLesson = () => {
+    if (!selectedCourseId) return;
+    setEditingLesson(null);
+    setLessonEditorOpen(true);
+  };
+  const openEditLesson = (l: any) => {
+    setEditingLesson({
+      id: l.id, course_id: l.course_id, title: l.title, subtitle: l.subtitle ?? "",
+      youtube_url: l.youtube_url, video_credit: l.video_credit ?? "",
+      order: l.order, xp_reward: l.xp_reward,
+      summary: l.summary ?? "", questions: l.questions ?? [],
+    });
+    setLessonEditorOpen(true);
   };
 
-  const createLesson = async () => {
-    if (!lessonForm.course_id || !lessonForm.title || !lessonForm.youtube_url) return;
-    const vid = extractVideoId(lessonForm.youtube_url);
-    if (!vid) {
-      toast({ title: "URL inválida", description: "Use uma URL do YouTube válida.", variant: "destructive" });
-      return;
-    }
-    setSaving(true);
-    const { error } = await (supabase as any).from("lessons").insert({ ...lessonForm, youtube_video_id: vid });
-    setSaving(false);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Aula criada" });
-    setLessonForm({ course_id: "", title: "", subtitle: "", youtube_url: "", order: 1, xp_reward: 50 });
-    qc.invalidateQueries({ queryKey: ["courses"] });
-    qc.invalidateQueries({ queryKey: ["course_lessons"] });
+  const moveLesson = async (i: number, dir: -1 | 1) => {
+    const a = lessons[i];
+    const b = lessons[i + dir];
+    if (!a || !b) return;
+    await swapLessonOrder.mutateAsync({
+      a: { id: a.id, order: a.order },
+      b: { id: b.id, order: b.order },
+      course_id: selectedCourseId,
+    });
   };
 
   return (
     <div className="space-y-5 pb-24">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2">
         <button onClick={() => navigate("/cursos")} className="p-1.5 rounded-full hover:bg-secondary"><ChevronLeft size={20} /></button>
-        <h1 className="font-display text-xl font-bold">Painel Admin</h1>
+        <h1 className="font-display text-xl font-bold flex-1">Painel Admin</h1>
       </motion.div>
 
-      <div className="glass-card rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold">Novo Mundo</h2>
-        <Input placeholder="Título" value={courseForm.title} onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })} />
-        <Input placeholder="Descrição" value={courseForm.description} onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })} />
-        <div className="grid grid-cols-2 gap-2">
-          <select className="rounded-md bg-secondary/30 border border-border/50 p-2 text-sm" value={courseForm.level} onChange={(e) => setCourseForm({ ...courseForm, level: e.target.value })}>
-            <option value="iniciante">Iniciante</option>
-            <option value="intermediario">Intermediário</option>
-            <option value="avancado">Avançado</option>
-          </select>
-          <Input type="number" placeholder="Ordem" value={courseForm.order} onChange={(e) => setCourseForm({ ...courseForm, order: parseInt(e.target.value) || 1 })} />
-        </div>
-        <Input placeholder="Ícone (Lucide name)" value={courseForm.icon} onChange={(e) => setCourseForm({ ...courseForm, icon: e.target.value })} />
-        <Input placeholder="Cor (hex)" value={courseForm.color} onChange={(e) => setCourseForm({ ...courseForm, color: e.target.value })} />
-        <button onClick={createCourse} disabled={saving} className="w-full py-2 rounded-lg gradient-primary text-white text-sm font-medium flex items-center justify-center gap-1">
-          <Plus size={14} /> Criar mundo
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border/50">
+        <button
+          onClick={() => setTab("worlds")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${
+            tab === "worlds" ? "border-primary text-primary" : "border-transparent text-muted-foreground"
+          }`}
+        >
+          <Globe size={14} /> Mundos
+        </button>
+        <button
+          onClick={() => setTab("lessons")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors flex items-center gap-1.5 ${
+            tab === "lessons" ? "border-primary text-primary" : "border-transparent text-muted-foreground"
+          }`}
+        >
+          <BookOpen size={14} /> Aulas
         </button>
       </div>
 
-      <div className="glass-card rounded-xl p-4 space-y-3">
-        <h2 className="text-sm font-semibold">Nova Aula</h2>
-        <select className="w-full rounded-md bg-secondary/30 border border-border/50 p-2 text-sm" value={lessonForm.course_id} onChange={(e) => setLessonForm({ ...lessonForm, course_id: e.target.value })}>
-          <option value="">Selecione um mundo</option>
-          {courses?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
-        </select>
-        <Input placeholder="Título" value={lessonForm.title} onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })} />
-        <Input placeholder="Subtítulo" value={lessonForm.subtitle} onChange={(e) => setLessonForm({ ...lessonForm, subtitle: e.target.value })} />
-        <Input placeholder="URL do YouTube" value={lessonForm.youtube_url} onChange={(e) => setLessonForm({ ...lessonForm, youtube_url: e.target.value })} />
-        <div className="grid grid-cols-2 gap-2">
-          <Input type="number" placeholder="Ordem" value={lessonForm.order} onChange={(e) => setLessonForm({ ...lessonForm, order: parseInt(e.target.value) || 1 })} />
-          <Input type="number" placeholder="XP" value={lessonForm.xp_reward} onChange={(e) => setLessonForm({ ...lessonForm, xp_reward: parseInt(e.target.value) || 50 })} />
+      {tab === "worlds" && (
+        <div className="space-y-3">
+          <Button onClick={openNewCourse} className="w-full"><Plus size={14} className="mr-1" /> Novo mundo</Button>
+          {(courses ?? []).map((c) => (
+            <div key={c.id} className="glass-card rounded-xl p-3 flex items-center gap-3 shadow-sm">
+              <div className="w-10 h-10 rounded-lg shrink-0" style={{ background: c.color }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{c.title}</p>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  {c.level} · ordem {c.order} · {c.completed_lessons}/{c.total_lessons} aulas
+                </p>
+              </div>
+              <button onClick={() => openEditCourse(c)} className="p-2 rounded-md hover:bg-secondary" aria-label="Editar mundo">
+                <Pencil size={14} />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Excluir mundo "${c.title}"? As aulas associadas também serão excluídas.`)) {
+                    deleteCourse.mutate(c.id);
+                  }
+                }}
+                className="p-2 rounded-md hover:bg-destructive/10 text-destructive"
+                aria-label="Excluir mundo"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
         </div>
-        <button onClick={createLesson} disabled={saving} className="w-full py-2 rounded-lg gradient-primary text-white text-sm font-medium flex items-center justify-center gap-1">
-          <Plus size={14} /> Criar aula
-        </button>
-      </div>
+      )}
+
+      {tab === "lessons" && (
+        <div className="space-y-3">
+          <select
+            value={selectedCourseId}
+            onChange={(e) => setSelectedCourseId(e.target.value)}
+            className="w-full rounded-md bg-secondary/30 border border-border/50 p-2 text-sm"
+          >
+            <option value="">Selecione um mundo</option>
+            {courses?.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+
+          {selectedCourseId && (
+            <>
+              <Button onClick={openNewLesson} className="w-full"><Plus size={14} className="mr-1" /> Nova aula</Button>
+              {lessons.length === 0 && (
+                <p className="text-xs text-center text-muted-foreground py-4">Nenhuma aula neste mundo.</p>
+              )}
+              {lessons.map((l, i) => (
+                <div key={l.id} className="glass-card rounded-xl p-3 flex items-center gap-2 shadow-sm">
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button
+                      onClick={() => moveLesson(i, -1)}
+                      disabled={i === 0 || swapLessonOrder.isPending}
+                      className="p-1 rounded hover:bg-secondary disabled:opacity-30"
+                      aria-label="Mover para cima"
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      onClick={() => moveLesson(i, 1)}
+                      disabled={i === lessons.length - 1 || swapLessonOrder.isPending}
+                      className="p-1 rounded hover:bg-secondary disabled:opacity-30"
+                      aria-label="Mover para baixo"
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate">{i + 1}. {l.title}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {l.xp_reward} XP{l.summary ? " · resumo ✓" : ""}{Array.isArray(l.questions) && l.questions.length ? ` · ${l.questions.length} perguntas` : ""}
+                    </p>
+                  </div>
+                  <button onClick={() => openEditLesson(l)} className="p-2 rounded-md hover:bg-secondary" aria-label="Editar aula">
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm(`Excluir aula "${l.title}"?`)) {
+                        deleteLesson.mutate({ id: l.id, course_id: selectedCourseId });
+                      }
+                    }}
+                    className="p-2 rounded-md hover:bg-destructive/10 text-destructive"
+                    aria-label="Excluir aula"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      <CourseEditor open={courseEditorOpen} onOpenChange={setCourseEditorOpen} initial={editingCourse} />
+      {selectedCourseId && (
+        <LessonEditor
+          open={lessonEditorOpen}
+          onOpenChange={setLessonEditorOpen}
+          initial={editingLesson}
+          courseId={selectedCourseId}
+        />
+      )}
     </div>
   );
 };
