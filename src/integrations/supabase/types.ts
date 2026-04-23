@@ -290,6 +290,7 @@ export type Database = {
           summary: string | null
           title: string
           updated_at: string
+          video_credit: string | null
           xp_reward: number
           youtube_url: string
           youtube_video_id: string | null
@@ -304,6 +305,7 @@ export type Database = {
           summary?: string | null
           title: string
           updated_at?: string
+          video_credit?: string | null
           xp_reward?: number
           youtube_url: string
           youtube_video_id?: string | null
@@ -318,6 +320,7 @@ export type Database = {
           summary?: string | null
           title?: string
           updated_at?: string
+          video_credit?: string | null
           xp_reward?: number
           youtube_url?: string
           youtube_video_id?: string | null
