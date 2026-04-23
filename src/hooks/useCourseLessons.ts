@@ -13,6 +13,7 @@ export interface Lesson {
   xp_reward: number;
   summary: string | null;
   questions: any | null;
+  video_credit: string | null;
 }
 
 export interface LessonWithProgress extends Lesson {
