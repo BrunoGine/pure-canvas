@@ -1,13 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Play, FileText, HelpCircle, Trophy, Sparkles, Loader2, RotateCcw, Youtube } from "lucide-react";
+import {
+  ChevronLeft,
+  Play,
+  FileText,
+  HelpCircle,
+  Trophy,
+  Sparkles,
+  Loader2,
+  RotateCcw,
+  Youtube,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  ArrowRight,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useLessonProgress } from "@/hooks/useLessonProgress";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCourseLessons } from "@/hooks/useCourseLessons";
 
 interface Question {
   type: "multiple_choice" | "open";
@@ -15,6 +30,17 @@ interface Question {
   options?: string[];
   correct_index?: number;
   expected_keywords?: string[];
+  explanation?: string;
+}
+
+interface QuestionResult {
+  question: string;
+  type: "multiple_choice" | "open";
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  explanation?: string;
+  expectedKeywords?: string[];
 }
 
 const LessonPlayer = () => {
@@ -24,8 +50,12 @@ const LessonPlayer = () => {
   const qc = useQueryClient();
   const { upsert, data: progress } = useLessonProgress(lessonId);
   const { awardXp, updateStreak } = useUserStats();
-  const [step, setStep] = useState<number>(-1); // -1 = unset, 4 = review menu
+  const [step, setStep] = useState<number>(-1); // -1=unset, 0=video, 1=summary, 2=quiz, 3=completion (deprecated path), 4=review menu, 5=quiz results
   const [reviewMode, setReviewMode] = useState(false);
+  const [lastResults, setLastResults] = useState<QuestionResult[]>([]);
+  const [lastScore, setLastScore] = useState(0);
+  const [lastPassed, setLastPassed] = useState(false);
+  const [quizResetKey, setQuizResetKey] = useState(0);
 
   const { data: lesson, isLoading: lessonLoading } = useQuery({
     queryKey: ["lesson", lessonId],
@@ -49,6 +79,16 @@ const LessonPlayer = () => {
     enabled: false,
     staleTime: Infinity,
   });
+
+  const { data: courseData } = useCourseLessons(lesson?.course_id);
+
+  const nextLesson = useMemo(() => {
+    if (!courseData || !lesson) return null;
+    const list = courseData.lessons;
+    const idx = list.findIndex((l) => l.id === lesson.id);
+    if (idx === -1 || idx === list.length - 1) return null;
+    return list[idx + 1];
+  }, [courseData, lesson]);
 
   // Initial step based on progress
   useEffect(() => {
@@ -74,7 +114,6 @@ const LessonPlayer = () => {
 
   const handleVideoDone = async () => {
     if (reviewMode) {
-      // +5 XP once per day per lesson
       const key = `review_video_xp_${lessonId}_${new Date().toISOString().slice(0, 10)}`;
       if (!localStorage.getItem(key)) {
         localStorage.setItem(key, "1");
@@ -105,9 +144,25 @@ const LessonPlayer = () => {
     setStep(2);
   };
 
-  const finishLesson = async (score: number, passed: boolean) => {
+  const finishQuiz = async (score: number, passed: boolean, results: QuestionResult[]) => {
+    setLastResults(results);
+    setLastScore(score);
+    setLastPassed(passed);
+
+    // Persistir tentativas localmente (sem mudança de schema)
+    try {
+      const key = `lesson_attempts_${lessonId}`;
+      const prev = JSON.parse(localStorage.getItem(key) || "{}");
+      const attempts = (prev.attempts ?? 0) + 1;
+      localStorage.setItem(
+        key,
+        JSON.stringify({ attempts, lastScore: score, lastPassed: passed, lastResults, at: Date.now() }),
+      );
+    } catch {
+      // ignore
+    }
+
     if (reviewMode) {
-      // Apenas atualiza score se for melhor; não mexe em streak nem completed
       const bestScore = Math.max(progress?.score ?? 0, score);
       if (bestScore !== (progress?.score ?? 0)) {
         await upsert.mutateAsync({ score: bestScore });
@@ -115,33 +170,60 @@ const LessonPlayer = () => {
       if (passed) {
         await awardXp.mutateAsync(10);
         toast({ title: "+10 XP ⚡", description: "Modo revisão — XP reduzido" });
-      } else {
-        toast({ title: "Continue praticando!", description: `Score: ${score}%` });
       }
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
-      setStep(3);
+      setStep(5);
       return;
     }
-    const xpReward = lesson?.xp_reward ?? 50;
-    const bonus = passed ? xpReward : Math.floor(xpReward / 2);
-    await upsert.mutateAsync({
-      questions_passed: passed,
-      score,
-      completed: true,
-      completed_at: new Date().toISOString(),
-    });
-    await awardXp.mutateAsync(bonus);
-    await updateStreak.mutateAsync();
-    qc.invalidateQueries({ queryKey: ["course_lessons"] });
-    qc.invalidateQueries({ queryKey: ["courses"] });
-    toast({ title: `+${bonus} XP ⚡`, description: passed ? "Aula concluída!" : "Boa! Continue praticando." });
-    setStep(3);
+
+    if (passed) {
+      const xpReward = lesson?.xp_reward ?? 50;
+      await upsert.mutateAsync({
+        questions_passed: true,
+        score,
+        completed: true,
+        completed_at: new Date().toISOString(),
+      });
+      await awardXp.mutateAsync(xpReward);
+      await updateStreak.mutateAsync();
+      qc.invalidateQueries({ queryKey: ["course_lessons"] });
+      qc.invalidateQueries({ queryKey: ["courses"] });
+      toast({ title: `+${xpReward} XP ⚡`, description: "Aula concluída!" });
+    } else {
+      // Reforço: salva apenas score e marca questions_passed=false. Não conclui.
+      await upsert.mutateAsync({
+        questions_passed: false,
+        score,
+      });
+    }
+    setStep(5);
   };
 
   const startReview = (mode: "video" | "quiz") => {
     setReviewMode(true);
+    setQuizResetKey((k) => k + 1);
     setStep(mode === "video" ? 0 : 2);
     if (mode === "quiz" && !aiContent && !aiLoading) refetchAi();
+  };
+
+  const goToNextLesson = () => {
+    if (nextLesson) {
+      navigate(`/aula/${nextLesson.id}`);
+    } else {
+      navigate(`/cursos/${lesson.course_id}`);
+    }
+  };
+
+  const reinforceWatch = () => {
+    setReviewMode(true);
+    setQuizResetKey((k) => k + 1);
+    setStep(0);
+  };
+
+  const retryQuiz = () => {
+    setReviewMode(true);
+    setQuizResetKey((k) => k + 1);
+    setStep(2);
   };
 
   if (lessonLoading || !lesson || step === -1) {
@@ -169,8 +251,8 @@ const LessonPlayer = () => {
         )}
       </motion.div>
 
-      {/* Stepper (only when not in review menu) */}
-      {step !== 4 && (
+      {/* Stepper */}
+      {step !== 4 && step !== 5 && (
         <div className="flex items-center gap-1.5">
           {[
             { i: 0, icon: Play, label: "Vídeo" },
@@ -259,18 +341,26 @@ const LessonPlayer = () => {
 
         {step === 2 && (
           <QuestionsStep
+            key={`quiz-${quizResetKey}`}
             questions={(aiContent?.questions ?? lesson.questions ?? []) as Question[]}
-            onDone={finishLesson}
+            onDone={finishQuiz}
             loading={aiLoading}
           />
         )}
 
-        {step === 3 && (
-          <CompletionStep
-            lesson={lesson}
-            score={progress?.score ?? 0}
-            navigate={navigate}
+        {step === 5 && (
+          <QuizResultsStep
+            key="results"
+            results={lastResults}
+            score={lastScore}
+            passed={lastPassed}
+            xpReward={lesson.xp_reward ?? 50}
             reviewMode={reviewMode}
+            hasNext={!!nextLesson}
+            onNext={goToNextLesson}
+            onRetry={retryQuiz}
+            onRewatch={reinforceWatch}
+            onBack={() => navigate(`/cursos/${lesson.course_id}`)}
           />
         )}
       </AnimatePresence>
@@ -334,7 +424,7 @@ const QuestionsStep = ({
   loading,
 }: {
   questions: Question[];
-  onDone: (score: number, passed: boolean) => void;
+  onDone: (score: number, passed: boolean, results: QuestionResult[]) => void;
   loading: boolean;
 }) => {
   const [answers, setAnswers] = useState<Record<number, string | number>>({});
@@ -354,7 +444,7 @@ const QuestionsStep = ({
           Perguntas indisponíveis. Marque a aula como concluída para seguir.
         </div>
         <button
-          onClick={() => onDone(0, true)}
+          onClick={() => onDone(100, true, [])}
           className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow"
         >
           Concluir aula
@@ -364,18 +454,41 @@ const QuestionsStep = ({
   }
 
   const submit = () => {
-    let correct = 0;
-    questions.forEach((q, i) => {
+    const results: QuestionResult[] = questions.map((q, i) => {
       const ans = answers[i];
-      if (q.type === "multiple_choice" && typeof ans === "number" && ans === q.correct_index) correct++;
-      if (q.type === "open" && typeof ans === "string" && ans.trim().length > 5) {
-        const lower = ans.toLowerCase();
-        const hit = (q.expected_keywords ?? []).some((k) => lower.includes(k.toLowerCase()));
-        if (hit || ans.trim().length > 30) correct++;
+      let isCorrect = false;
+      let userAnswer = "";
+      let correctAnswer = "";
+
+      if (q.type === "multiple_choice") {
+        const userIdx = typeof ans === "number" ? ans : -1;
+        userAnswer = userIdx >= 0 ? q.options?.[userIdx] ?? "" : "(sem resposta)";
+        correctAnswer = q.correct_index !== undefined ? q.options?.[q.correct_index] ?? "" : "";
+        isCorrect = userIdx === q.correct_index;
+      } else {
+        userAnswer = (typeof ans === "string" ? ans : "").trim() || "(sem resposta)";
+        correctAnswer = (q.expected_keywords ?? []).join(", ");
+        if (typeof ans === "string" && ans.trim().length > 5) {
+          const lower = ans.toLowerCase();
+          const hit = (q.expected_keywords ?? []).some((k) => lower.includes(k.toLowerCase()));
+          isCorrect = hit || ans.trim().length > 30;
+        }
       }
+
+      return {
+        question: q.question,
+        type: q.type,
+        userAnswer,
+        correctAnswer,
+        isCorrect,
+        explanation: q.explanation,
+        expectedKeywords: q.expected_keywords,
+      };
     });
+
+    const correct = results.filter((r) => r.isCorrect).length;
     const score = Math.round((correct / questions.length) * 100);
-    onDone(score, score >= 60);
+    onDone(score, score >= 60, results);
   };
 
   const allAnswered = questions.every((_, i) => answers[i] !== undefined && answers[i] !== "");
@@ -424,68 +537,249 @@ const QuestionsStep = ({
   );
 };
 
-const CompletionStep = ({ lesson, score, navigate, reviewMode }: any) => {
+const QuizResultsStep = ({
+  results,
+  score,
+  passed,
+  xpReward,
+  reviewMode,
+  hasNext,
+  onNext,
+  onRetry,
+  onRewatch,
+  onBack,
+}: {
+  results: QuestionResult[];
+  score: number;
+  passed: boolean;
+  xpReward: number;
+  reviewMode: boolean;
+  hasNext: boolean;
+  onNext: () => void;
+  onRetry: () => void;
+  onRewatch: () => void;
+  onBack: () => void;
+}) => {
+  const total = results.length;
+  const correct = results.filter((r) => r.isCorrect).length;
+  const wrong = total - correct;
+
   return (
     <motion.div
-      key="done"
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="glass-card rounded-2xl p-6 text-center space-y-4"
+      key="quiz-results"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="space-y-4"
     >
-      <div className="relative h-24">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            className="w-20 h-20 rounded-full gradient-primary flex items-center justify-center shadow-glow"
-          >
-            <Trophy size={40} className="text-white" />
-          </motion.div>
-        </div>
-        {!reviewMode && [...Array(12)].map((_, i) => (
-          <motion.span
-            key={i}
-            initial={{ y: 0, x: 0, opacity: 1 }}
-            animate={{ y: -50 - Math.random() * 30, x: (Math.random() - 0.5) * 200, opacity: 0 }}
-            transition={{ duration: 1.6, delay: i * 0.05, repeat: Infinity, repeatDelay: 1 }}
-            className="absolute left-1/2 top-1/2 w-2 h-2 rounded-full"
-            style={{ background: ["#F59E0B", "#10B981", "#3B82F6", "#EC4899"][i % 4] }}
-          />
-        ))}
-      </div>
-      <h2 className="font-display text-xl font-bold">
-        {reviewMode ? "Revisão concluída!" : "Aula concluída!"}
-      </h2>
-      <p className="text-sm text-muted-foreground">
-        {reviewMode ? (
-          <>Score: <span className="text-primary font-semibold">{score}%</span></>
-        ) : (
-          <>Você ganhou <span className="text-primary font-semibold">+{lesson.xp_reward} XP</span>{score > 0 && <> com {score}% de acertos</>}.</>
+      {/* Header conquista / reforço */}
+      <div
+        className={`relative overflow-hidden rounded-2xl p-6 text-center space-y-3 border ${
+          passed
+            ? "border-green-500/30 bg-gradient-to-br from-green-500/15 via-emerald-500/5 to-transparent"
+            : "border-amber-500/30 bg-gradient-to-br from-amber-500/15 via-orange-500/5 to-transparent"
+        }`}
+      >
+        {passed && (
+          <>
+            {[...Array(10)].map((_, i) => (
+              <motion.span
+                key={i}
+                initial={{ y: 0, x: 0, opacity: 1 }}
+                animate={{
+                  y: -40 - Math.random() * 40,
+                  x: (Math.random() - 0.5) * 220,
+                  opacity: 0,
+                }}
+                transition={{ duration: 1.6, delay: i * 0.06, repeat: Infinity, repeatDelay: 1.4 }}
+                className="absolute left-1/2 top-12 w-2 h-2 rounded-full"
+                style={{ background: ["#F59E0B", "#10B981", "#3B82F6", "#EC4899"][i % 4] }}
+              />
+            ))}
+          </>
         )}
-      </p>
-      <div className="flex gap-2">
-        <button
-          onClick={() => navigate(`/cursos/${lesson.course_id}`)}
-          className="flex-1 py-3 rounded-xl bg-secondary font-medium text-sm hover:bg-secondary/80 transition-all"
+        <motion.div
+          initial={{ scale: 0.6, rotate: -10 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 220, damping: 14 }}
+          className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center shadow-glow ${
+            passed ? "bg-gradient-to-br from-green-400 to-emerald-600" : "bg-gradient-to-br from-amber-400 to-orange-500"
+          }`}
         >
-          Voltar à trilha
-        </button>
-        <button
-          onClick={() =>
-            navigate("/chat", {
-              state: {
-                lessonContext: {
-                  lesson_id: lesson.id,
-                  lesson_title: lesson.title,
-                  youtube_url: lesson.youtube_url,
-                },
-              },
-            })
-          }
-          className="flex-1 py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow flex items-center justify-center gap-1.5"
-        >
-          <Sparkles size={14} /> Treinar mais
-        </button>
+          {passed ? <Trophy size={32} className="text-white" /> : <RefreshCw size={28} className="text-white" />}
+        </motion.div>
+        <div className="space-y-1">
+          <h2 className="font-display text-xl font-bold">
+            {passed ? (reviewMode ? "Boa revisão!" : "Aula concluída!") : "Quase lá!"}
+          </h2>
+          <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+            {passed
+              ? reviewMode
+                ? "Você mandou bem na revisão."
+                : `Você dominou o conteúdo${!reviewMode ? ` e ganhou +${xpReward} XP` : ""}.`
+              : "Você errou a maior parte das questões. Reassista a aula e tente novamente para avançar."}
+          </p>
+        </div>
+        {total > 0 && (
+          <div className="flex items-center justify-center gap-4 pt-1">
+            <div className="text-center">
+              <div className={`font-display text-3xl font-bold ${passed ? "text-green-500" : "text-amber-500"}`}>
+                {correct}
+                <span className="text-lg text-muted-foreground">/{total}</span>
+              </div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Acertos</div>
+            </div>
+            <div className="h-10 w-px bg-border/50" />
+            <div className="text-center">
+              <div className={`font-display text-3xl font-bold ${passed ? "text-green-500" : "text-amber-500"}`}>
+                {score}%
+              </div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Desempenho</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Resumo acertos / erros */}
+      {total > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-3 flex items-center gap-2">
+            <CheckCircle2 size={20} className="text-green-500 shrink-0" />
+            <div className="min-w-0">
+              <div className="text-lg font-bold text-green-500 leading-none">{correct}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Corretas</div>
+            </div>
+          </div>
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 flex items-center gap-2">
+            <XCircle size={20} className="text-red-500 shrink-0" />
+            <div className="min-w-0">
+              <div className="text-lg font-bold text-red-500 leading-none">{wrong}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Incorretas</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback por questão */}
+      {results.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
+            Revisão das respostas
+          </h3>
+          {results.map((r, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+              className={`rounded-xl p-3 border space-y-2 ${
+                r.isCorrect
+                  ? "border-green-500/30 bg-green-500/5"
+                  : "border-red-500/30 bg-red-500/5"
+              }`}
+            >
+              <div className="flex items-start gap-2">
+                <div className="shrink-0 mt-0.5">
+                  {r.isCorrect ? (
+                    <CheckCircle2 size={16} className="text-green-500" />
+                  ) : (
+                    <XCircle size={16} className="text-red-500" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="text-sm font-medium leading-snug">
+                    {i + 1}. {r.question}
+                  </p>
+                  <div className="space-y-1.5 text-xs">
+                    <div>
+                      <span className="text-muted-foreground">Sua resposta: </span>
+                      <span className={r.isCorrect ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
+                        {r.userAnswer}
+                      </span>
+                    </div>
+                    {!r.isCorrect && r.correctAnswer && (
+                      <div>
+                        <span className="text-muted-foreground">
+                          {r.type === "open" ? "Palavras-chave esperadas: " : "Resposta correta: "}
+                        </span>
+                        <span className="text-green-500 font-medium">{r.correctAnswer}</span>
+                      </div>
+                    )}
+                    {r.explanation && (
+                      <div className="pt-1 text-muted-foreground italic">{r.explanation}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Ações */}
+      <div className="space-y-2 pt-1">
+        {passed ? (
+          <>
+            {hasNext ? (
+              <button
+                onClick={onNext}
+                className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow flex items-center justify-center gap-2 transition-all"
+              >
+                Próxima aula <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={onBack}
+                className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow transition-all"
+              >
+                Voltar à trilha
+              </button>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onRetry}
+                className="py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 font-medium text-xs flex items-center justify-center gap-1.5 transition-all"
+              >
+                <RotateCcw size={14} /> Refazer
+              </button>
+              <button
+                onClick={onRewatch}
+                className="py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 font-medium text-xs flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Play size={14} /> Reassistir
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={onRewatch}
+              className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow flex items-center justify-center gap-2 transition-all"
+            >
+              <Play size={16} /> Reassistir aula agora
+            </button>
+            <button
+              onClick={onRetry}
+              className="w-full py-2.5 rounded-xl bg-secondary hover:bg-secondary/80 font-medium text-sm flex items-center justify-center gap-2 transition-all"
+            >
+              <RotateCcw size={14} /> Tentar quiz novamente
+            </button>
+            <button
+              onClick={onBack}
+              className="w-full py-2.5 rounded-xl bg-transparent hover:bg-secondary/40 text-muted-foreground font-medium text-xs transition-all"
+            >
+              Voltar à trilha
+            </button>
+          </>
+        )}
+        {passed && !reviewMode && (
+          <button
+            onClick={() => onBack()}
+            className="w-full pt-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
+          >
+            <Sparkles size={11} /> Voltar à trilha
+          </button>
+        )}
       </div>
     </motion.div>
   );
