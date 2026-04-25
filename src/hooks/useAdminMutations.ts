@@ -35,11 +35,15 @@ export const useAdminMutations = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  const invalidateAll = (courseId?: string) => {
-    qc.invalidateQueries({ queryKey: ["courses"] });
-    qc.invalidateQueries({ queryKey: ["course_lessons"] });
-    if (courseId) qc.invalidateQueries({ queryKey: ["course_lessons", courseId] });
-    qc.invalidateQueries({ queryKey: ["lesson"] });
+  const invalidateAll = async (courseId?: string) => {
+    await Promise.all([
+      qc.refetchQueries({ queryKey: ["courses"], type: "all" }),
+      qc.refetchQueries({ queryKey: ["course_lessons"], type: "all" }),
+      qc.refetchQueries({ queryKey: ["lesson"], type: "all" }),
+    ]);
+    if (courseId) {
+      await qc.refetchQueries({ queryKey: ["course_lessons", courseId], type: "all" });
+    }
   };
 
   const saveCourse = useMutation({
