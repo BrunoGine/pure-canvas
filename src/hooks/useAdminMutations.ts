@@ -127,8 +127,8 @@ export const useAdminMutations = () => {
       const { error: e3 } = await (supabase as any).from("lessons").update({ order: b.order }).eq("id", a.id);
       if (e3) throw e3;
     },
-    onSuccess: (_, { course_id }) => {
-      invalidateAll(course_id);
+    onSuccess: async (_, { course_id }) => {
+      await invalidateAll(course_id);
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
