@@ -37,9 +37,10 @@ const LessonEditor = ({
   const { toast } = useToast();
 
   useEffect(() => {
+    if (!open) return;
     setForm(initial ? { ...empty, ...initial, course_id: initial.course_id || courseId } : { ...empty, course_id: courseId });
     setTab("info");
-  }, [initial, open, courseId]);
+  }, [open, initial?.id, courseId]);
 
   const submit = async () => {
     if (!form.title.trim() || !form.youtube_url.trim()) {
