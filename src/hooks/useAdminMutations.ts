@@ -57,9 +57,9 @@ export const useAdminMutations = () => {
         if (error) throw error;
       }
     },
-    onSuccess: (_, input) => {
+    onSuccess: async (_, input) => {
       toast({ title: input.id ? "Mundo atualizado" : "Mundo criado" });
-      invalidateAll();
+      await invalidateAll();
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
