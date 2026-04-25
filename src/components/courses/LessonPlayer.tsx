@@ -208,7 +208,7 @@ const LessonPlayer = () => {
 
   const goToNextLesson = () => {
     if (nextLesson) {
-      navigate(`/aula/${nextLesson.id}`);
+      navigate(`/cursos/aula/${nextLesson.id}`);
     } else {
       navigate(`/cursos/${lesson.course_id}`);
     }
