@@ -69,9 +69,9 @@ export const useAdminMutations = () => {
       const { error } = await (supabase as any).from("courses").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ title: "Mundo excluído" });
-      invalidateAll();
+      await invalidateAll();
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
