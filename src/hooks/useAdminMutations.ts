@@ -96,9 +96,9 @@ export const useAdminMutations = () => {
         if (error) throw error;
       }
     },
-    onSuccess: (_, input) => {
+    onSuccess: async (_, input) => {
       toast({ title: input.id ? "Aula atualizada" : "Aula criada" });
-      invalidateAll(input.course_id);
+      await invalidateAll(input.course_id);
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
