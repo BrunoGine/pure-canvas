@@ -108,9 +108,9 @@ export const useAdminMutations = () => {
       const { error } = await (supabase as any).from("lessons").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: (_, { course_id }) => {
+    onSuccess: async (_, { course_id }) => {
       toast({ title: "Aula excluída" });
-      invalidateAll(course_id);
+      await invalidateAll(course_id);
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
