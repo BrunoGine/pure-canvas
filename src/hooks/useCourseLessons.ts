@@ -62,6 +62,6 @@ export const useCourseLessons = (courseId: string | undefined) => {
       return { course, lessons: withProgress };
     },
     enabled: !!courseId,
-    staleTime: 60_000,
+    staleTime: 0,
   });
 };

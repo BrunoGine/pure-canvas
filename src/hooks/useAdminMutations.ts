@@ -35,11 +35,15 @@ export const useAdminMutations = () => {
   const qc = useQueryClient();
   const { toast } = useToast();
 
-  const invalidateAll = (courseId?: string) => {
-    qc.invalidateQueries({ queryKey: ["courses"] });
-    qc.invalidateQueries({ queryKey: ["course_lessons"] });
-    if (courseId) qc.invalidateQueries({ queryKey: ["course_lessons", courseId] });
-    qc.invalidateQueries({ queryKey: ["lesson"] });
+  const invalidateAll = async (courseId?: string) => {
+    await Promise.all([
+      qc.refetchQueries({ queryKey: ["courses"], type: "all" }),
+      qc.refetchQueries({ queryKey: ["course_lessons"], type: "all" }),
+      qc.refetchQueries({ queryKey: ["lesson"], type: "all" }),
+    ]);
+    if (courseId) {
+      await qc.refetchQueries({ queryKey: ["course_lessons", courseId], type: "all" });
+    }
   };
 
   const saveCourse = useMutation({
@@ -53,9 +57,9 @@ export const useAdminMutations = () => {
         if (error) throw error;
       }
     },
-    onSuccess: (_, input) => {
+    onSuccess: async (_, input) => {
       toast({ title: input.id ? "Mundo atualizado" : "Mundo criado" });
-      invalidateAll();
+      await invalidateAll();
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
@@ -65,9 +69,9 @@ export const useAdminMutations = () => {
       const { error } = await (supabase as any).from("courses").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ title: "Mundo excluído" });
-      invalidateAll();
+      await invalidateAll();
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
@@ -92,9 +96,9 @@ export const useAdminMutations = () => {
         if (error) throw error;
       }
     },
-    onSuccess: (_, input) => {
+    onSuccess: async (_, input) => {
       toast({ title: input.id ? "Aula atualizada" : "Aula criada" });
-      invalidateAll(input.course_id);
+      await invalidateAll(input.course_id);
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
@@ -104,9 +108,9 @@ export const useAdminMutations = () => {
       const { error } = await (supabase as any).from("lessons").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: (_, { course_id }) => {
+    onSuccess: async (_, { course_id }) => {
       toast({ title: "Aula excluída" });
-      invalidateAll(course_id);
+      await invalidateAll(course_id);
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
@@ -123,8 +127,8 @@ export const useAdminMutations = () => {
       const { error: e3 } = await (supabase as any).from("lessons").update({ order: b.order }).eq("id", a.id);
       if (e3) throw e3;
     },
-    onSuccess: (_, { course_id }) => {
-      invalidateAll(course_id);
+    onSuccess: async (_, { course_id }) => {
+      await invalidateAll(course_id);
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });

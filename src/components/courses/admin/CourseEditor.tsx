@@ -27,8 +27,9 @@ const CourseEditor = ({
   const { saveCourse } = useAdminMutations();
 
   useEffect(() => {
+    if (!open) return;
     setForm(initial ?? empty);
-  }, [initial, open]);
+  }, [open, initial?.id]);
 
   const submit = async () => {
     if (!form.title.trim()) return;
