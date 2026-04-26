@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { GraduationCap, ChevronRight, Settings } from "lucide-react";
+import { GraduationCap, ChevronRight, Settings, Brain } from "lucide-react";
 import StatsHeader from "./StatsHeader";
 import { useCourses } from "@/hooks/useCourses";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -29,15 +29,24 @@ const WorldMap = () => {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Aprenda jogando</p>
         </div>
-        {isAdmin && (
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => navigate("/cursos/admin")}
-            className="p-2 rounded-xl hover:bg-secondary transition-colors"
-            title="Painel admin"
+            onClick={() => navigate("/cursos/treino")}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-colors"
+            title="Treino para Prova"
           >
-            <Settings size={18} className="text-muted-foreground" />
+            <Brain size={14} /> Treino
           </button>
-        )}
+          {isAdmin && (
+            <button
+              onClick={() => navigate("/cursos/admin")}
+              className="p-2 rounded-xl hover:bg-secondary transition-colors"
+              title="Painel admin"
+            >
+              <Settings size={18} className="text-muted-foreground" />
+            </button>
+          )}
+        </div>
       </motion.div>
 
       <StatsHeader />

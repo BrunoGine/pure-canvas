@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Lock, Check, Play } from "lucide-react";
+import { ChevronLeft, Lock, Check, Play, Brain } from "lucide-react";
 import { useCourseLessons, type LessonWithProgress } from "@/hooks/useCourseLessons";
 import StatsHeader from "./StatsHeader";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,13 @@ const LessonPath = () => {
       </motion.div>
 
       <StatsHeader />
+
+      <button
+        onClick={() => navigate(`/cursos/${courseId}/treino`)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold transition-colors"
+      >
+        <Brain size={14} /> Treino para Prova deste mundo
+      </button>
 
       {isLoading && <div className="text-center text-sm text-muted-foreground py-8">Carregando aulas...</div>}
 
