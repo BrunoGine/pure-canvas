@@ -52,8 +52,11 @@ const LessonPlayer = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const { upsert, data: progress } = useLessonProgress(lessonId);
-  const { awardXp, updateStreak } = useUserStats();
+  const { awardXp, updateStreak, data: stats } = useUserStats();
+  const { checkAndAward } = useBadges();
+  const { issue: issueCertificate } = useCertificates();
   const [step, setStep] = useState<number>(-1); // -1=unset, 0=video, 1=summary, 2=quiz, 3=completion (deprecated path), 4=review menu, 5=quiz results
   const [reviewMode, setReviewMode] = useState(false);
   const [lastResults, setLastResults] = useState<QuestionResult[]>([]);
