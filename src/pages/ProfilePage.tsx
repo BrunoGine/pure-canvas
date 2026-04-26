@@ -1,12 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LogOut, Pencil, Check, X } from "lucide-react";
+import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LogOut, Pencil, Check, X, Award, Trophy } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import StatsHeader from "@/components/courses/StatsHeader";
+import BadgesGrid from "@/components/profile/BadgesGrid";
+import CertificatesList from "@/components/profile/CertificatesList";
+import MentorCard from "@/components/profile/MentorCard";
 
 const ProfilePage = () => {
   const { theme, toggleTheme } = useTheme();
