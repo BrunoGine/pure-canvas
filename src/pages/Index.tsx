@@ -5,6 +5,7 @@ import SpreadsheetsPage from "./SpreadsheetsPage";
 import CoursesPage from "./CoursesPage";
 import ChatPage from "./ChatPage";
 import ProfilePage from "./ProfilePage";
+import CertificatePage from "./CertificatePage";
 
 const Index = () => {
   return (
@@ -16,6 +17,8 @@ const Index = () => {
           <Route path="cursos/*" element={<CoursesPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="perfil" element={<ProfilePage />} />
+          <Route path="perfil/certificados" element={<CertificatePage />} />
+          <Route path="perfil/certificados/:certificateId" element={<CertificatePage />} />
         </Routes>
       </main>
       <BottomNav />
