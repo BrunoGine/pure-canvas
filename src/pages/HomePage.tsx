@@ -67,6 +67,54 @@ const HomePage = () => {
         <h1 className="font-display text-2xl font-bold">Seu Resumo</h1>
       </motion.div>
 
+      {/* Continue de onde parei */}
+      {continueLesson && (
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          onClick={() => navigate(`/cursos/aula/${continueLesson.lesson_id}`)}
+          className="w-full text-left rounded-2xl p-4 border transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          style={{
+            background: `linear-gradient(135deg, ${continueLesson.course_color}22 0%, hsl(var(--card)) 100%)`,
+            borderColor: `${continueLesson.course_color}44`,
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0"
+              style={{ background: continueLesson.course_color }}
+            >
+              {(() => {
+                const Ic = (Icons as any)[continueLesson.course_icon] ?? Play;
+                return <Ic size={20} />;
+              })()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                Continue estudando
+              </p>
+              <p className="text-sm font-semibold truncate">{continueLesson.lesson_title}</p>
+              <p className="text-xs text-muted-foreground truncate">{continueLesson.course_title}</p>
+              <div className="mt-1.5 h-1.5 bg-secondary/60 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${continueLesson.progress_pct}%`,
+                    background: continueLesson.course_color,
+                  }}
+                />
+              </div>
+            </div>
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0"
+              style={{ background: continueLesson.course_color }}
+            >
+              <Play size={14} fill="white" />
+            </div>
+          </div>
+        </motion.button>
+      )}
       {/* Balance Card — Liquid Glass */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         <div className="relative rounded-2xl overflow-hidden">
