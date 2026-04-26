@@ -15,6 +15,7 @@ import {
   XCircle,
   RefreshCw,
   ArrowRight,
+  MessageCircle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,9 @@ import { useUserStats } from "@/hooks/useUserStats";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCourseLessons } from "@/hooks/useCourseLessons";
+import { useBadges, incrementAnswersCount } from "@/hooks/useBadges";
+import { useCertificates } from "@/hooks/useCertificates";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Question {
   type: "multiple_choice" | "open";
