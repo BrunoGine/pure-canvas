@@ -123,6 +123,45 @@ const ProfilePage = () => {
         </div>
       </motion.div>
 
+      {/* Dashboard do aluno */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className="space-y-3"
+      >
+        <h2 className="font-display text-base font-semibold flex items-center gap-2">
+          <Trophy size={16} className="text-primary" /> Meu Progresso
+        </h2>
+        <StatsHeader />
+
+        <MentorCard />
+
+        <div>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Conquistas
+            </p>
+          </div>
+          <BadgesGrid />
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
+              <Award size={12} /> Certificados
+            </p>
+            <button
+              onClick={() => navigate("/perfil/certificados")}
+              className="text-[11px] text-primary font-medium"
+            >
+              Ver todos
+            </button>
+          </div>
+          <CertificatesList />
+        </div>
+      </motion.section>
+
       {/* Theme Toggle */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
         <div className="glass-card rounded-xl p-4">
