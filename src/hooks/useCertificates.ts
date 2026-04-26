@@ -36,7 +36,9 @@ export const useCertificates = () => {
         .from("courses")
         .select("id, title, color")
         .in("id", courseIds);
-      const map = new Map((courses ?? []).map((c: any) => [c.id, c]));
+      const map = new Map<string, { title: string; color: string }>(
+        (courses ?? []).map((c: any) => [c.id as string, { title: c.title, color: c.color }])
+      );
       return certs.map((c) => ({
         ...c,
         course_title: map.get(c.course_id)?.title,
