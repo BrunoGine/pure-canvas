@@ -156,6 +156,9 @@ const LessonPlayer = () => {
     setLastScore(score);
     setLastPassed(passed);
 
+    // contagem de respostas (para badge "answers_50")
+    if (results.length > 0) incrementAnswersCount(results.length);
+
     // Persistir tentativas localmente (sem mudança de schema)
     try {
       const key = `lesson_attempts_${lessonId}`;
@@ -196,6 +199,57 @@ const LessonPlayer = () => {
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
       qc.invalidateQueries({ queryKey: ["courses"] });
       toast({ title: `+${xpReward} XP ⚡`, description: "Aula concluída!" });
+
+      // Detecta conclusão do mundo (curso) — emite certificado e badges
+      try {
+        const courseId = lesson?.course_id;
+        let completedCoursesCount = 0;
+        if (courseId && user) {
+          const { data: allLessons } = await (supabase as any)
+            .from("lessons")
+            .select("id, course_id");
+          const { data: doneProg } = await (supabase as any)
+            .from("user_progress")
+            .select("lesson_id, completed")
+            .eq("user_id", user.id)
+            .eq("completed", true);
+          const doneSet = new Set([...((doneProg ?? []).map((p: any) => p.lesson_id)), lessonId]);
+          const byCourse = new Map<string, { total: number; done: number }>();
+          for (const l of (allLessons ?? []) as any[]) {
+            const cur = byCourse.get(l.course_id) ?? { total: 0, done: 0 };
+            cur.total += 1;
+            if (doneSet.has(l.id)) cur.done += 1;
+            byCourse.set(l.course_id, cur);
+          }
+          for (const [, v] of byCourse) if (v.total > 0 && v.done >= v.total) completedCoursesCount += 1;
+
+          const courseStats = byCourse.get(courseId);
+          if (courseStats && courseStats.total > 0 && courseStats.done >= courseStats.total) {
+            await issueCertificate(courseId);
+            toast({ title: "🎓 Certificado emitido!", description: "Você concluiu este mundo." });
+          }
+        }
+
+        // contagem global de aulas concluídas
+        let completedLessonsCount = 0;
+        if (user) {
+          const { count } = await (supabase as any)
+            .from("user_progress")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("completed", true);
+          completedLessonsCount = count ?? 0;
+        }
+
+        await checkAndAward({
+          xp: (stats?.xp ?? 0) + xpReward,
+          streak: stats?.streak ?? 0,
+          completedLessonsCount,
+          completedCoursesCount,
+        });
+      } catch (e) {
+        console.error("Badge/cert check failed", e);
+      }
     } else {
       // Reforço: salva apenas score e marca questions_passed=false. Não conclui.
       await upsert.mutateAsync({
