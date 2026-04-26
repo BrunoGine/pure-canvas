@@ -14,7 +14,9 @@ import { useContinueLesson } from "@/hooks/useContinueLesson";
 
 const HomePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { transactions } = useTransactions();
+  const { data: continueLesson } = useContinueLesson();
   const [userName, setUserName] = useState("Usuário");
 
   useEffect(() => {
