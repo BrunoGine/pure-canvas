@@ -17,6 +17,7 @@ const ProfilePage = () => {
   const { theme, toggleTheme } = useTheme();
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
