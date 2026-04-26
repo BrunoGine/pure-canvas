@@ -15,6 +15,7 @@ import {
   XCircle,
   RefreshCw,
   ArrowRight,
+  MessageCircle,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,9 @@ import { useUserStats } from "@/hooks/useUserStats";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCourseLessons } from "@/hooks/useCourseLessons";
+import { useBadges, incrementAnswersCount } from "@/hooks/useBadges";
+import { useCertificates } from "@/hooks/useCertificates";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Question {
   type: "multiple_choice" | "open";
@@ -48,8 +52,11 @@ const LessonPlayer = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const { upsert, data: progress } = useLessonProgress(lessonId);
-  const { awardXp, updateStreak } = useUserStats();
+  const { awardXp, updateStreak, data: stats } = useUserStats();
+  const { checkAndAward } = useBadges();
+  const { issue: issueCertificate } = useCertificates();
   const [step, setStep] = useState<number>(-1); // -1=unset, 0=video, 1=summary, 2=quiz, 3=completion (deprecated path), 4=review menu, 5=quiz results
   const [reviewMode, setReviewMode] = useState(false);
   const [lastResults, setLastResults] = useState<QuestionResult[]>([]);
@@ -149,6 +156,9 @@ const LessonPlayer = () => {
     setLastScore(score);
     setLastPassed(passed);
 
+    // contagem de respostas (para badge "answers_50")
+    if (results.length > 0) incrementAnswersCount(results.length);
+
     // Persistir tentativas localmente (sem mudança de schema)
     try {
       const key = `lesson_attempts_${lessonId}`;
@@ -189,6 +199,57 @@ const LessonPlayer = () => {
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
       qc.invalidateQueries({ queryKey: ["courses"] });
       toast({ title: `+${xpReward} XP ⚡`, description: "Aula concluída!" });
+
+      // Detecta conclusão do mundo (curso) — emite certificado e badges
+      try {
+        const courseId = lesson?.course_id;
+        let completedCoursesCount = 0;
+        if (courseId && user) {
+          const { data: allLessons } = await (supabase as any)
+            .from("lessons")
+            .select("id, course_id");
+          const { data: doneProg } = await (supabase as any)
+            .from("user_progress")
+            .select("lesson_id, completed")
+            .eq("user_id", user.id)
+            .eq("completed", true);
+          const doneSet = new Set([...((doneProg ?? []).map((p: any) => p.lesson_id)), lessonId]);
+          const byCourse = new Map<string, { total: number; done: number }>();
+          for (const l of (allLessons ?? []) as any[]) {
+            const cur = byCourse.get(l.course_id) ?? { total: 0, done: 0 };
+            cur.total += 1;
+            if (doneSet.has(l.id)) cur.done += 1;
+            byCourse.set(l.course_id, cur);
+          }
+          for (const [, v] of byCourse) if (v.total > 0 && v.done >= v.total) completedCoursesCount += 1;
+
+          const courseStats = byCourse.get(courseId);
+          if (courseStats && courseStats.total > 0 && courseStats.done >= courseStats.total) {
+            await issueCertificate(courseId);
+            toast({ title: "🎓 Certificado emitido!", description: "Você concluiu este mundo." });
+          }
+        }
+
+        // contagem global de aulas concluídas
+        let completedLessonsCount = 0;
+        if (user) {
+          const { count } = await (supabase as any)
+            .from("user_progress")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("completed", true);
+          completedLessonsCount = count ?? 0;
+        }
+
+        await checkAndAward({
+          xp: (stats?.xp ?? 0) + xpReward,
+          streak: stats?.streak ?? 0,
+          completedLessonsCount,
+          completedCoursesCount,
+        });
+      } catch (e) {
+        console.error("Badge/cert check failed", e);
+      }
     } else {
       // Reforço: salva apenas score e marca questions_passed=false. Não conclui.
       await upsert.mutateAsync({
@@ -244,6 +305,24 @@ const LessonPlayer = () => {
           <h1 className="font-display text-lg font-bold truncate">{lesson.title}</h1>
           {lesson.subtitle && <p className="text-xs text-muted-foreground truncate">{lesson.subtitle}</p>}
         </div>
+        <button
+          onClick={() =>
+            navigate("/chat", {
+              state: {
+                lessonContext: {
+                  lesson_id: lesson.id,
+                  lesson_title: lesson.title,
+                  youtube_url: lesson.youtube_url,
+                  summary: aiContent?.summary || lesson.summary || "",
+                },
+              },
+            })
+          }
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-semibold transition-colors shrink-0"
+          title="Perguntar ao Harp sobre esta aula"
+        >
+          <MessageCircle size={12} /> Harp
+        </button>
         {reviewMode && (
           <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/15 text-amber-500 font-semibold shrink-0">
             Revisão
