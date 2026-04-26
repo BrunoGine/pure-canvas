@@ -305,6 +305,24 @@ const LessonPlayer = () => {
           <h1 className="font-display text-lg font-bold truncate">{lesson.title}</h1>
           {lesson.subtitle && <p className="text-xs text-muted-foreground truncate">{lesson.subtitle}</p>}
         </div>
+        <button
+          onClick={() =>
+            navigate("/chat", {
+              state: {
+                lessonContext: {
+                  lesson_id: lesson.id,
+                  lesson_title: lesson.title,
+                  youtube_url: lesson.youtube_url,
+                  summary: aiContent?.summary || lesson.summary || "",
+                },
+              },
+            })
+          }
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-semibold transition-colors shrink-0"
+          title="Perguntar ao Harp sobre esta aula"
+        >
+          <MessageCircle size={12} /> Harp
+        </button>
         {reviewMode && (
           <span className="text-[10px] uppercase tracking-wide px-2 py-1 rounded-full bg-amber-500/15 text-amber-500 font-semibold shrink-0">
             Revisão
