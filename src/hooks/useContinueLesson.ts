@@ -2,41 +2,80 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-export interface ContinueLesson {
-  lesson_id: string;
-  lesson_title: string;
-  course_id: string;
-  course_title: string;
-  course_color: string;
-  course_icon: string;
-  progress_pct: number;
-  updated_at: string;
+export interface ContinueData {
+  lesson: { id: string; title: string; subtitle: string | null; course_id: string } | null;
+  course: { id: string; title: string; color: string; icon: string } | null;
+  progressPct: number;
+  totalLessons: number;
+  completedLessons: number;
+  status: "in_progress" | "next" | "empty";
 }
 
 export const useContinueLesson = () => {
   const { user } = useAuth();
-
-  return useQuery<ContinueLesson | null>({
+  return useQuery<ContinueData>({
     queryKey: ["continue_lesson", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data: progress, error } = await (supabase as any)
+    queryFn: async (): Promise<ContinueData> => {
+      if (!user) {
+        return { lesson: null, course: null, progressPct: 0, totalLessons: 0, completedLessons: 0, status: "empty" };
+      }
+
+      // 1. Find most recently updated incomplete progress
+      const { data: incomplete } = await (supabase as any)
         .from("user_progress")
-        .select("lesson_id, video_watched, summary_read, questions_passed, completed, updated_at")
+        .select("lesson_id, updated_at, video_watched, summary_read, score")
         .eq("user_id", user.id)
         .eq("completed", false)
         .order("updated_at", { ascending: false })
         .limit(1);
-      if (error) throw error;
-      const last = (progress ?? [])[0];
-      if (!last) return null;
+
+      let targetLessonId: string | null = incomplete?.[0]?.lesson_id ?? null;
+      let status: ContinueData["status"] = "in_progress";
+
+      // 2. Otherwise find next lesson after the most recently completed
+      if (!targetLessonId) {
+        const { data: lastCompleted } = await (supabase as any)
+          .from("user_progress")
+          .select("lesson_id, updated_at")
+          .eq("user_id", user.id)
+          .eq("completed", true)
+          .order("updated_at", { ascending: false })
+          .limit(1);
+
+        if (lastCompleted?.[0]) {
+          const { data: lastLesson } = await (supabase as any)
+            .from("lessons")
+            .select("course_id, order")
+            .eq("id", lastCompleted[0].lesson_id)
+            .maybeSingle();
+
+          if (lastLesson) {
+            const { data: nextLesson } = await (supabase as any)
+              .from("lessons")
+              .select("id")
+              .eq("course_id", lastLesson.course_id)
+              .gt("order", lastLesson.order)
+              .order("order", { ascending: true })
+              .limit(1);
+            targetLessonId = nextLesson?.[0]?.id ?? null;
+            status = "next";
+          }
+        }
+      }
+
+      if (!targetLessonId) {
+        return { lesson: null, course: null, progressPct: 0, totalLessons: 0, completedLessons: 0, status: "empty" };
+      }
 
       const { data: lesson } = await (supabase as any)
         .from("lessons")
-        .select("id, title, course_id")
-        .eq("id", last.lesson_id)
+        .select("id, title, subtitle, course_id")
+        .eq("id", targetLessonId)
         .maybeSingle();
-      if (!lesson) return null;
+
+      if (!lesson) {
+        return { lesson: null, course: null, progressPct: 0, totalLessons: 0, completedLessons: 0, status: "empty" };
+      }
 
       const { data: course } = await (supabase as any)
         .from("courses")
@@ -44,19 +83,32 @@ export const useContinueLesson = () => {
         .eq("id", lesson.course_id)
         .maybeSingle();
 
-      const steps = [last.video_watched, last.summary_read, last.questions_passed];
-      const done = steps.filter(Boolean).length;
-      const pct = Math.round((done / 3) * 100);
+      // Compute progress for this course
+      const { data: courseLessons } = await (supabase as any)
+        .from("lessons")
+        .select("id")
+        .eq("course_id", lesson.course_id);
+
+      const ids: string[] = (courseLessons ?? []).map((l: any) => l.id);
+      const { data: progress } = ids.length
+        ? await (supabase as any)
+            .from("user_progress")
+            .select("lesson_id, completed")
+            .eq("user_id", user.id)
+            .in("lesson_id", ids)
+        : { data: [] };
+
+      const completed = (progress ?? []).filter((p: any) => p.completed).length;
+      const total = ids.length;
+      const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
       return {
-        lesson_id: lesson.id,
-        lesson_title: lesson.title,
-        course_id: lesson.course_id,
-        course_title: course?.title ?? "Curso",
-        course_color: course?.color ?? "#8A05BE",
-        course_icon: course?.icon ?? "BookOpen",
-        progress_pct: pct,
-        updated_at: last.updated_at,
+        lesson,
+        course,
+        progressPct: pct,
+        totalLessons: total,
+        completedLessons: completed,
+        status,
       };
     },
     enabled: !!user,

@@ -120,8 +120,7 @@ Deno.serve(async (req) => {
       { role: "system", content: SYSTEM_PROMPT },
     ];
     if (lessonContext && typeof lessonContext === "object") {
-      const summary = typeof lessonContext.summary === "string" ? lessonContext.summary.slice(0, 2000) : "";
-      const ctx = `Contexto: o usuário acabou de assistir à aula "${lessonContext.lesson_title ?? ""}" (vídeo: ${lessonContext.youtube_url ?? ""}).${summary ? `\n\nResumo da aula:\n${summary}` : ""}\n\nUse este contexto para responder dúvidas específicas sobre o conteúdo desta aula. Evite respostas genéricas — referencie o material da aula sempre que possível.`;
+      const ctx = `Contexto: o usuário acabou de assistir à aula "${lessonContext.lesson_title ?? ""}" (vídeo: ${lessonContext.youtube_url ?? ""}). Aprofunde o tema e responda dúvidas relacionadas a essa aula.`;
       systemMessages.push({ role: "system", content: ctx });
     }
 

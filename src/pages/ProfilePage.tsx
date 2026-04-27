@@ -1,23 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LogOut, Pencil, Check, X, Award, Trophy } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LogOut, Pencil, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import StatsHeader from "@/components/courses/StatsHeader";
-import BadgesGrid from "@/components/profile/BadgesGrid";
-import CertificatesList from "@/components/profile/CertificatesList";
-import MentorCard from "@/components/profile/MentorCard";
 
 const ProfilePage = () => {
   const { theme, toggleTheme } = useTheme();
   const { signOut, user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
@@ -122,45 +116,6 @@ const ProfilePage = () => {
           )}
         </div>
       </motion.div>
-
-      {/* Dashboard do aluno */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.12 }}
-        className="space-y-3"
-      >
-        <h2 className="font-display text-base font-semibold flex items-center gap-2">
-          <Trophy size={16} className="text-primary" /> Meu Progresso
-        </h2>
-        <StatsHeader />
-
-        <MentorCard />
-
-        <div>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Conquistas
-            </p>
-          </div>
-          <BadgesGrid />
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-2 px-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1">
-              <Award size={12} /> Certificados
-            </p>
-            <button
-              onClick={() => navigate("/perfil/certificados")}
-              className="text-[11px] text-primary font-medium"
-            >
-              Ver todos
-            </button>
-          </div>
-          <CertificatesList />
-        </div>
-      </motion.section>
 
       {/* Theme Toggle */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>

@@ -1,64 +1,70 @@
-import { Award, Flame, Zap, BookOpen, Globe2, Trophy, type LucideIcon } from "lucide-react";
+import { Award, Flame, GraduationCap, Sparkles, Star, Trophy, Zap, type LucideIcon } from "lucide-react";
 
 export interface BadgeDef {
   key: string;
-  name: string;
+  title: string;
   description: string;
   icon: LucideIcon;
-  color: string;
+  color: string; // hex
 }
 
-export const BADGES: BadgeDef[] = [
-  {
+export const BADGES: Record<string, BadgeDef> = {
+  first_lesson: {
     key: "first_lesson",
-    name: "Primeiros Passos",
-    description: "Conclua sua primeira aula",
-    icon: BookOpen,
-    color: "#3B82F6",
+    title: "Primeira Aula",
+    description: "Concluiu sua primeira aula",
+    icon: Sparkles,
+    color: "#8A05BE",
   },
-  {
-    key: "streak_7",
-    name: "Semana de Fogo",
-    description: "Mantenha 7 dias de ofensiva",
-    icon: Flame,
-    color: "#F97316",
-  },
-  {
-    key: "streak_30",
-    name: "Disciplina de Aço",
-    description: "Mantenha 30 dias de ofensiva",
-    icon: Flame,
-    color: "#DC2626",
-  },
-  {
-    key: "answers_50",
-    name: "Mente Afiada",
-    description: "Responda 50 perguntas",
-    icon: Zap,
-    color: "#A855F7",
-  },
-  {
-    key: "first_world",
-    name: "Conquistador",
-    description: "Conclua seu primeiro mundo",
-    icon: Globe2,
-    color: "#10B981",
-  },
-  {
-    key: "xp_1000",
-    name: "Lenda em Ascensão",
-    description: "Alcance 1000 XP",
+  world_complete: {
+    key: "world_complete",
+    title: "Mundo Conquistado",
+    description: "Concluiu um mundo inteiro",
     icon: Trophy,
     color: "#F59E0B",
   },
-];
-
-export const BADGE_MAP = Object.fromEntries(BADGES.map(b => [b.key, b]));
-
-export const getBadge = (key: string): BadgeDef => BADGE_MAP[key] ?? {
-  key,
-  name: key,
-  description: "",
-  icon: Award,
-  color: "#8A05BE",
+  streak_7: {
+    key: "streak_7",
+    title: "7 Dias de Foco",
+    description: "Manteve uma ofensiva de 7 dias",
+    icon: Flame,
+    color: "#F97316",
+  },
+  streak_30: {
+    key: "streak_30",
+    title: "Disciplina de Aço",
+    description: "30 dias de ofensiva ativa",
+    icon: Flame,
+    color: "#DC2626",
+  },
+  level_5: {
+    key: "level_5",
+    title: "Nível 5",
+    description: "Alcançou o nível 5",
+    icon: Zap,
+    color: "#3B82F6",
+  },
+  level_10: {
+    key: "level_10",
+    title: "Nível 10",
+    description: "Alcançou o nível 10",
+    icon: Star,
+    color: "#06B6D4",
+  },
+  scholar: {
+    key: "scholar",
+    title: "Estudioso",
+    description: "Concluiu 10 aulas",
+    icon: GraduationCap,
+    color: "#10B981",
+  },
+  certified: {
+    key: "certified",
+    title: "Certificado",
+    description: "Recebeu seu primeiro certificado",
+    icon: Award,
+    color: "#EC4899",
+  },
 };
+
+export const ALL_BADGE_KEYS = Object.keys(BADGES);
