@@ -211,6 +211,26 @@ const LessonPlayer = () => {
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
       qc.invalidateQueries({ queryKey: ["courses"] });
       toast({ title: `+${xpReward} XP ⚡`, description: "Aula concluída!" });
+
+      // Award "first lesson" badge
+      try { await awardBadge.mutateAsync("first_lesson"); } catch {}
+
+      // Check if this lesson completes the world (last incomplete lesson)
+      try {
+        const allLessons = courseData?.lessons ?? [];
+        const remaining = allLessons.filter((l) => l.id !== lesson.id && !l.completed);
+        const isLastOfWorld = allLessons.length > 0 && remaining.length === 0;
+        if (isLastOfWorld) {
+          const cert = await issueCertificate.mutateAsync(lesson.course_id);
+          await awardBadge.mutateAsync("world_complete");
+          await awardBadge.mutateAsync("certified");
+          if (cert) {
+            setWorldCertificate({ id: cert.id, code: cert.code, issued_at: cert.issued_at });
+          }
+        }
+      } catch (e) {
+        console.error("World completion error:", e);
+      }
     } else {
       // Reforço: salva apenas score e marca questions_passed=false. Não conclui.
       await upsert.mutateAsync({
