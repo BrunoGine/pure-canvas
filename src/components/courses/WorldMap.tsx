@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { GraduationCap, ChevronRight, Settings } from "lucide-react";
+import { GraduationCap, ChevronRight, Settings, BarChart3 } from "lucide-react";
 import StatsHeader from "./StatsHeader";
+import ContinueCard from "./ContinueCard";
+import MentorCard from "./MentorCard";
+import QuickActions from "./QuickActions";
 import { useCourses } from "@/hooks/useCourses";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
@@ -29,20 +32,32 @@ const WorldMap = () => {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Aprenda jogando</p>
         </div>
-        {isAdmin && (
+        <div className="flex items-center gap-1.5">
           <button
-            onClick={() => navigate("/cursos/admin")}
-            className="p-2 rounded-xl hover:bg-secondary transition-colors"
-            title="Painel admin"
+            onClick={() => navigate("/cursos/progresso")}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/15 text-primary text-xs font-semibold transition-colors"
+            title="Perfil do Aluno"
           >
-            <Settings size={18} className="text-muted-foreground" />
+            <BarChart3 size={14} /> Meu Progresso
           </button>
-        )}
+          {isAdmin && (
+            <button
+              onClick={() => navigate("/cursos/admin")}
+              className="p-2 rounded-xl hover:bg-secondary transition-colors"
+              title="Painel admin"
+            >
+              <Settings size={18} className="text-muted-foreground" />
+            </button>
+          )}
+        </div>
       </motion.div>
 
       <StatsHeader />
+      <ContinueCard />
+      <MentorCard />
+      <QuickActions />
 
-      <div className="space-y-4">
+      <div id="worlds-grid" className="space-y-4">
         {isLoading && <div className="text-center text-sm text-muted-foreground py-8">Carregando mundos...</div>}
         {courses?.map((c, i) => {
           const Icon = (Icons as any)[c.icon] ?? GraduationCap;
