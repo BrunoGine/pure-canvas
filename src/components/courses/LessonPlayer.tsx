@@ -54,14 +54,30 @@ const LessonPlayer = () => {
   const qc = useQueryClient();
   const { upsert, data: progress } = useLessonProgress(lessonId);
   const { awardXp, updateStreak } = useUserStats();
+  const { issue: issueCertificate } = useCertificates();
+  const { award: awardBadge } = useBadges();
+  const { user } = useAuth();
   const [step, setStep] = useState<number>(-1); // -1=unset, 0=video, 1=summary, 2=quiz, 3=completion (deprecated path), 4=review menu, 5=quiz results
   const [reviewMode, setReviewMode] = useState(false);
   const [lastResults, setLastResults] = useState<QuestionResult[]>([]);
   const [lastScore, setLastScore] = useState(0);
   const [lastPassed, setLastPassed] = useState(false);
   const [quizResetKey, setQuizResetKey] = useState(0);
+  const [studentName, setStudentName] = useState("Aluno");
+  const [worldCertificate, setWorldCertificate] = useState<{ id: string; code: string; issued_at: string } | null>(null);
 
-  const { data: lesson, isLoading: lessonLoading } = useQuery({
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const n = data?.display_name || user.user_metadata?.display_name || "Aluno";
+        setStudentName(n);
+      });
+  }, [user]);
     queryKey: ["lesson", lessonId],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("lessons").select("*").eq("id", lessonId).maybeSingle();
