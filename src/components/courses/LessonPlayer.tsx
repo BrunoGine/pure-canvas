@@ -23,6 +23,10 @@ import { useUserStats } from "@/hooks/useUserStats";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCourseLessons } from "@/hooks/useCourseLessons";
+import { useCertificates } from "@/hooks/useCertificates";
+import { useBadges } from "@/hooks/useBadges";
+import { useAuth } from "@/contexts/AuthContext";
+import WorldCompleteDialog from "./WorldCompleteDialog";
 
 interface Question {
   type: "multiple_choice" | "open";
