@@ -406,6 +406,19 @@ const LessonPlayer = () => {
           />
         )}
       </AnimatePresence>
+
+      {worldCertificate && courseData?.course && (
+        <WorldCompleteDialog
+          open={!!worldCertificate}
+          onOpenChange={(o) => !o && setWorldCertificate(null)}
+          certificateId={worldCertificate.id}
+          studentName={studentName}
+          courseTitle={courseData.course.title}
+          code={worldCertificate.code}
+          issuedAt={worldCertificate.issued_at}
+          color={courseData.course.color}
+        />
+      )}
     </div>
   );
 };
