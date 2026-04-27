@@ -78,6 +78,8 @@ const LessonPlayer = () => {
         setStudentName(n);
       });
   }, [user]);
+
+  const { data: lesson, isLoading: lessonLoading } = useQuery({
     queryKey: ["lesson", lessonId],
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("lessons").select("*").eq("id", lessonId).maybeSingle();
