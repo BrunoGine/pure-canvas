@@ -66,7 +66,7 @@ const CertificateView = forwardRef<HTMLDivElement, Props>(
           >
             Certificado de Conclusão
           </p>
-          <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">Harp</h1>
+          <h1 className="font-display text-2xl md:text-3xl font-bold mb-3">Harpy</h1>
 
           <p className="text-xs text-gray-600 mb-2">Certificamos que</p>
           <p className="font-display text-xl md:text-2xl font-bold mb-3" style={{ color }}>
