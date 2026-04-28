@@ -35,6 +35,8 @@ import { tickMission } from "@/lib/dailyMissions";
 
 const LessonPlayer = () => {
   const { lessonId } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedReview = searchParams.get("mode") === "review";
   const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
