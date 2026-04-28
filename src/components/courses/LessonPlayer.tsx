@@ -720,6 +720,14 @@ const QuizResultsStep = ({
             >
               <RotateCcw size={14} /> Tentar quiz novamente
             </button>
+            {onAskHarp && (
+              <button
+                onClick={onAskHarp}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-glow"
+              >
+                <MessageCircleQuestion size={14} /> Estudar isso com o Harp
+              </button>
+            )}
             <button
               onClick={onBack}
               className="w-full py-2.5 rounded-xl bg-transparent hover:bg-secondary/40 text-muted-foreground font-medium text-xs transition-all"
