@@ -149,6 +149,7 @@ const LessonPlayer = () => {
       await upsert.mutateAsync({ video_watched: true });
       await awardXp.mutateAsync(10);
       toast({ title: "+10 XP ⚡", description: "Vídeo concluído!" });
+      tickMission("watch_lesson", user?.id);
     }
     setStep(1);
   };
