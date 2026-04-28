@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -15,6 +15,7 @@ import {
   XCircle,
   RefreshCw,
   ArrowRight,
+  MessageCircleQuestion,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,25 +28,10 @@ import { useCertificates } from "@/hooks/useCertificates";
 import { useBadges } from "@/hooks/useBadges";
 import { useAuth } from "@/contexts/AuthContext";
 import WorldCompleteDialog from "./WorldCompleteDialog";
+import QuestionsStep, { type Question, type QuestionResult } from "./quiz/QuestionsStep";
+import { scheduleReview, removeReview } from "@/lib/spacedReview";
+import { tickMission } from "@/lib/dailyMissions";
 
-interface Question {
-  type: "multiple_choice" | "open";
-  question: string;
-  options?: string[];
-  correct_index?: number;
-  expected_keywords?: string[];
-  explanation?: string;
-}
-
-interface QuestionResult {
-  question: string;
-  type: "multiple_choice" | "open";
-  userAnswer: string;
-  correctAnswer: string;
-  isCorrect: boolean;
-  explanation?: string;
-  expectedKeywords?: string[];
-}
 
 const LessonPlayer = () => {
   const { lessonId } = useParams();
