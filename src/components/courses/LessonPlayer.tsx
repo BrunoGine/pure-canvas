@@ -500,6 +500,8 @@ const QuizResultsStep = ({
   onRetry,
   onRewatch,
   onBack,
+  lessonTitle,
+  onAskHarp,
 }: {
   results: QuestionResult[];
   score: number;
@@ -511,6 +513,8 @@ const QuizResultsStep = ({
   onRetry: () => void;
   onRewatch: () => void;
   onBack: () => void;
+  lessonTitle?: string;
+  onAskHarp?: () => void;
 }) => {
   const total = results.length;
   const correct = results.filter((r) => r.isCorrect).length;
