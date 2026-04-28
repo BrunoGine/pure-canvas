@@ -192,6 +192,13 @@ const LessonPlayer = () => {
       if (passed) {
         await awardXp.mutateAsync(10);
         toast({ title: "+10 XP ⚡", description: "Modo revisão — XP reduzido" });
+        // Spaced review + daily mission
+        if (lessonId) scheduleReview(lessonId, score);
+        tickMission("review_one", user?.id);
+        tickMission("quiz_pass", user?.id);
+      } else if (lessonId) {
+        // Falhou na revisão → re-agenda para 1 dia
+        scheduleReview(lessonId, score);
       }
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
       setStep(5);
@@ -211,6 +218,11 @@ const LessonPlayer = () => {
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
       qc.invalidateQueries({ queryKey: ["courses"] });
       toast({ title: `+${xpReward} XP ⚡`, description: "Aula concluída!" });
+
+      // Spaced repetition: agendar 1ª revisão
+      if (lessonId) scheduleReview(lessonId, score);
+      // Daily missions
+      tickMission("quiz_pass", user?.id);
 
       // Award "first lesson" badge
       try { await awardBadge.mutateAsync("first_lesson"); } catch {}
