@@ -70,13 +70,13 @@ const LessonPlayer = () => {
   // Reset state when navigating between lessons (component is reused via route param change)
   useEffect(() => {
     setStep(-1);
-    setReviewMode(false);
+    setReviewMode(requestedReview);
     setLastResults([]);
     setLastScore(0);
     setLastPassed(false);
     setWorldCertificate(null);
     setQuizResetKey((k) => k + 1);
-  }, [lessonId]);
+  }, [lessonId, requestedReview]);
 
   const { data: lesson, isLoading: lessonLoading } = useQuery({
     queryKey: ["lesson", lessonId],
