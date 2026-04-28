@@ -69,10 +69,7 @@ const StudentHubPage = () => {
   const displayName = profile?.display_name || user?.user_metadata?.display_name || "Aluno";
   const overallPct = totals.lessons > 0 ? Math.round((totals.completedLessons / totals.lessons) * 100) : 0;
 
-  const startTraining = () => {
-    if (continueData?.lesson) navigate(`/cursos/aula/${continueData.lesson.id}`);
-    else navigate("/cursos");
-  };
+  void continueData;
 
   return (
     <div className="space-y-5 pb-24">
