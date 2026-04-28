@@ -42,6 +42,7 @@ const ChatPage = () => {
   const lessonContext = (location.state as any)?.lessonContext as
     | { lesson_id: string; lesson_title: string; youtube_url: string }
     | undefined;
+  const initialPrompt = (location.state as any)?.initialPrompt as string | undefined;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,7 +53,10 @@ const ChatPage = () => {
     if (lessonContext && messages.length === 0) {
       const autoMsg = `Vamos aprofundar a aula "${lessonContext.lesson_title}". Pode me explicar os pontos principais?`;
       send(autoMsg);
-      // clear state so it doesn't re-fire
+      navigate(location.pathname, { replace: true, state: {} });
+    } else if (initialPrompt && messages.length === 0) {
+      // Pre-fill input (do NOT auto-send — user controls when to spend a credit)
+      setInput(initialPrompt);
       navigate(location.pathname, { replace: true, state: {} });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

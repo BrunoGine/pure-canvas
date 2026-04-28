@@ -1,4 +1,4 @@
-import { Award, Flame, GraduationCap, Sparkles, Star, Trophy, Zap, type LucideIcon } from "lucide-react";
+import { Award, Calendar, Flame, GraduationCap, Sparkles, Star, Trophy, Zap, type LucideIcon } from "lucide-react";
 
 export interface BadgeDef {
   key: string;
@@ -64,6 +64,13 @@ export const BADGES: Record<string, BadgeDef> = {
     description: "Recebeu seu primeiro certificado",
     icon: Award,
     color: "#EC4899",
+  },
+  daily_complete: {
+    key: "daily_complete",
+    title: "Dia Completo",
+    description: "Concluiu todas as missões do dia",
+    icon: Calendar,
+    color: "#FACC15",
   },
 };
 

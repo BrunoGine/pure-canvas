@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft,
@@ -15,6 +15,7 @@ import {
   XCircle,
   RefreshCw,
   ArrowRight,
+  MessageCircleQuestion,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,28 +28,15 @@ import { useCertificates } from "@/hooks/useCertificates";
 import { useBadges } from "@/hooks/useBadges";
 import { useAuth } from "@/contexts/AuthContext";
 import WorldCompleteDialog from "./WorldCompleteDialog";
+import QuestionsStep, { type Question, type QuestionResult } from "./quiz/QuestionsStep";
+import { scheduleReview, removeReview } from "@/lib/spacedReview";
+import { tickMission } from "@/lib/dailyMissions";
 
-interface Question {
-  type: "multiple_choice" | "open";
-  question: string;
-  options?: string[];
-  correct_index?: number;
-  expected_keywords?: string[];
-  explanation?: string;
-}
-
-interface QuestionResult {
-  question: string;
-  type: "multiple_choice" | "open";
-  userAnswer: string;
-  correctAnswer: string;
-  isCorrect: boolean;
-  explanation?: string;
-  expectedKeywords?: string[];
-}
 
 const LessonPlayer = () => {
   const { lessonId } = useParams();
+  const [searchParams] = useSearchParams();
+  const requestedReview = searchParams.get("mode") === "review";
   const navigate = useNavigate();
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -82,13 +70,13 @@ const LessonPlayer = () => {
   // Reset state when navigating between lessons (component is reused via route param change)
   useEffect(() => {
     setStep(-1);
-    setReviewMode(false);
+    setReviewMode(requestedReview);
     setLastResults([]);
     setLastScore(0);
     setLastPassed(false);
     setWorldCertificate(null);
     setQuizResetKey((k) => k + 1);
-  }, [lessonId]);
+  }, [lessonId, requestedReview]);
 
   const { data: lesson, isLoading: lessonLoading } = useQuery({
     queryKey: ["lesson", lessonId],
@@ -131,7 +119,8 @@ const LessonPlayer = () => {
       return;
     }
     if (progress.completed) {
-      setStep(4); // review menu
+      // Coming via "?mode=review" → jump straight into review (video step)
+      setStep(requestedReview ? 0 : 4);
     } else if (progress.summary_read) {
       setStep(2);
     } else if (progress.video_watched) {
@@ -139,7 +128,7 @@ const LessonPlayer = () => {
     } else {
       setStep(0);
     }
-  }, [progress, step]);
+  }, [progress, step, requestedReview]);
 
   useEffect(() => {
     if ((step === 1 || step === 2) && !aiContent && !aiLoading) refetchAi();
@@ -160,6 +149,7 @@ const LessonPlayer = () => {
       await upsert.mutateAsync({ video_watched: true });
       await awardXp.mutateAsync(10);
       toast({ title: "+10 XP ⚡", description: "Vídeo concluído!" });
+      tickMission("watch_lesson", user?.id);
     }
     setStep(1);
   };
@@ -203,6 +193,13 @@ const LessonPlayer = () => {
       if (passed) {
         await awardXp.mutateAsync(10);
         toast({ title: "+10 XP ⚡", description: "Modo revisão — XP reduzido" });
+        // Spaced review + daily mission
+        if (lessonId) scheduleReview(lessonId, score);
+        tickMission("review_one", user?.id);
+        tickMission("quiz_pass", user?.id);
+      } else if (lessonId) {
+        // Falhou na revisão → re-agenda para 1 dia
+        scheduleReview(lessonId, score);
       }
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
       setStep(5);
@@ -222,6 +219,11 @@ const LessonPlayer = () => {
       qc.invalidateQueries({ queryKey: ["course_lessons"] });
       qc.invalidateQueries({ queryKey: ["courses"] });
       toast({ title: `+${xpReward} XP ⚡`, description: "Aula concluída!" });
+
+      // Spaced repetition: agendar 1ª revisão
+      if (lessonId) scheduleReview(lessonId, score);
+      // Daily missions
+      tickMission("quiz_pass", user?.id);
 
       // Award "first lesson" badge
       try { await awardBadge.mutateAsync("first_lesson"); } catch {}
@@ -414,6 +416,14 @@ const LessonPlayer = () => {
             onRetry={retryQuiz}
             onRewatch={reinforceWatch}
             onBack={() => navigate(`/cursos/${lesson.course_id}`)}
+            lessonTitle={lesson.title}
+            onAskHarp={() =>
+              navigate("/chat", {
+                state: {
+                  initialPrompt: `Estou com dificuldade na aula "${lesson.title}". Pode me explicar os pontos principais com exemplos práticos?`,
+                },
+              })
+            }
           />
         )}
       </AnimatePresence>
@@ -484,124 +494,8 @@ const ReviewMenu = ({
   </motion.div>
 );
 
-const QuestionsStep = ({
-  questions,
-  onDone,
-  loading,
-}: {
-  questions: Question[];
-  onDone: (score: number, passed: boolean, results: QuestionResult[]) => void;
-  loading: boolean;
-}) => {
-  const [answers, setAnswers] = useState<Record<number, string | number>>({});
+// QuestionsStep moved to ./quiz/QuestionsStep.tsx
 
-  if (loading) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center py-12 gap-2 text-sm text-muted-foreground">
-        <Loader2 className="animate-spin" size={16} /> Carregando perguntas...
-      </motion.div>
-    );
-  }
-
-  if (!questions || questions.length === 0) {
-    return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-        <div className="glass-card rounded-xl p-6 text-center text-sm text-muted-foreground">
-          Perguntas indisponíveis. Marque a aula como concluída para seguir.
-        </div>
-        <button
-          onClick={() => onDone(100, true, [])}
-          className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow"
-        >
-          Concluir aula
-        </button>
-      </motion.div>
-    );
-  }
-
-  const submit = () => {
-    const results: QuestionResult[] = questions.map((q, i) => {
-      const ans = answers[i];
-      let isCorrect = false;
-      let userAnswer = "";
-      let correctAnswer = "";
-
-      if (q.type === "multiple_choice") {
-        const userIdx = typeof ans === "number" ? ans : -1;
-        userAnswer = userIdx >= 0 ? q.options?.[userIdx] ?? "" : "(sem resposta)";
-        correctAnswer = q.correct_index !== undefined ? q.options?.[q.correct_index] ?? "" : "";
-        isCorrect = userIdx === q.correct_index;
-      } else {
-        userAnswer = (typeof ans === "string" ? ans : "").trim() || "(sem resposta)";
-        correctAnswer = (q.expected_keywords ?? []).join(", ");
-        if (typeof ans === "string" && ans.trim().length > 5) {
-          const lower = ans.toLowerCase();
-          const hit = (q.expected_keywords ?? []).some((k) => lower.includes(k.toLowerCase()));
-          isCorrect = hit || ans.trim().length > 30;
-        }
-      }
-
-      return {
-        question: q.question,
-        type: q.type,
-        userAnswer,
-        correctAnswer,
-        isCorrect,
-        explanation: q.explanation,
-        expectedKeywords: q.expected_keywords,
-      };
-    });
-
-    const correct = results.filter((r) => r.isCorrect).length;
-    const score = Math.round((correct / questions.length) * 100);
-    onDone(score, score >= 60, results);
-  };
-
-  const allAnswered = questions.every((_, i) => answers[i] !== undefined && answers[i] !== "");
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-      {questions.map((q, i) => (
-        <div key={i} className="glass-card rounded-xl p-4 space-y-3">
-          <p className="text-sm font-medium">
-            {i + 1}. {q.question}
-          </p>
-          {q.type === "multiple_choice" ? (
-            <div className="space-y-1.5">
-              {q.options?.map((opt, oi) => (
-                <button
-                  key={oi}
-                  onClick={() => setAnswers((p) => ({ ...p, [i]: oi }))}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm border transition-all ${
-                    answers[i] === oi
-                      ? "border-primary bg-primary/10"
-                      : "border-border/50 hover:border-border"
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <textarea
-              value={(answers[i] as string) ?? ""}
-              onChange={(e) => setAnswers((p) => ({ ...p, [i]: e.target.value }))}
-              placeholder="Sua resposta..."
-              className="w-full min-h-[80px] rounded-lg bg-secondary/30 border border-border/50 p-2 text-sm focus:outline-none focus:border-primary"
-            />
-          )}
-        </div>
-      ))}
-      <button
-        onClick={submit}
-        disabled={!allAnswered}
-        className="w-full py-3 rounded-xl gradient-primary text-white font-medium text-sm shadow-glow disabled:opacity-50 transition-all"
-      >
-        Enviar respostas
-      </button>
-    </motion.div>
-  );
-};
 
 const QuizResultsStep = ({
   results,
@@ -614,6 +508,8 @@ const QuizResultsStep = ({
   onRetry,
   onRewatch,
   onBack,
+  lessonTitle,
+  onAskHarp,
 }: {
   results: QuestionResult[];
   score: number;
@@ -625,6 +521,8 @@ const QuizResultsStep = ({
   onRetry: () => void;
   onRewatch: () => void;
   onBack: () => void;
+  lessonTitle?: string;
+  onAskHarp?: () => void;
 }) => {
   const total = results.length;
   const correct = results.filter((r) => r.isCorrect).length;
@@ -830,6 +728,14 @@ const QuizResultsStep = ({
             >
               <RotateCcw size={14} /> Tentar quiz novamente
             </button>
+            {onAskHarp && (
+              <button
+                onClick={onAskHarp}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white font-medium text-sm flex items-center justify-center gap-2 transition-all shadow-glow"
+              >
+                <MessageCircleQuestion size={14} /> Estudar isso com o Harp
+              </button>
+            )}
             <button
               onClick={onBack}
               className="w-full py-2.5 rounded-xl bg-transparent hover:bg-secondary/40 text-muted-foreground font-medium text-xs transition-all"
