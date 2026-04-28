@@ -119,7 +119,8 @@ const LessonPlayer = () => {
       return;
     }
     if (progress.completed) {
-      setStep(4); // review menu
+      // Coming via "?mode=review" → jump straight into review (video step)
+      setStep(requestedReview ? 0 : 4);
     } else if (progress.summary_read) {
       setStep(2);
     } else if (progress.video_watched) {
@@ -127,7 +128,7 @@ const LessonPlayer = () => {
     } else {
       setStep(0);
     }
-  }, [progress, step]);
+  }, [progress, step, requestedReview]);
 
   useEffect(() => {
     if ((step === 1 || step === 2) && !aiContent && !aiLoading) refetchAi();
