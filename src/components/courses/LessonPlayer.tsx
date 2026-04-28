@@ -416,6 +416,14 @@ const LessonPlayer = () => {
             onRetry={retryQuiz}
             onRewatch={reinforceWatch}
             onBack={() => navigate(`/cursos/${lesson.course_id}`)}
+            lessonTitle={lesson.title}
+            onAskHarp={() =>
+              navigate("/chat", {
+                state: {
+                  initialPrompt: `Estou com dificuldade na aula "${lesson.title}". Pode me explicar os pontos principais com exemplos práticos?`,
+                },
+              })
+            }
           />
         )}
       </AnimatePresence>

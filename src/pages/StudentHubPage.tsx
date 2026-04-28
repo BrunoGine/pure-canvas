@@ -10,6 +10,7 @@ import { useContinueLesson } from "@/hooks/useContinueLesson";
 import StatsHeader from "@/components/courses/StatsHeader";
 import BadgesGrid from "@/components/courses/BadgesGrid";
 import CertificatesList from "@/components/courses/CertificatesList";
+import ExamCenter from "@/components/courses/ExamCenter";
 
 type Tab = "progresso" | "certificados" | "treino";
 
@@ -186,25 +187,7 @@ const StudentHubPage = () => {
         </div>
       )}
 
-      {tab === "treino" && (
-        <div className="glass-card rounded-2xl p-6 text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center gradient-primary shadow-glow">
-            <Dumbbell size={26} className="text-white" />
-          </div>
-          <div>
-            <h3 className="font-display text-lg font-bold">Modo Treino</h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              Refaça uma aula recente em modo revisão. Você ganha XP reduzido sem afetar sua ofensiva.
-            </p>
-          </div>
-          <button
-            onClick={startTraining}
-            className="w-full py-3 rounded-xl gradient-primary text-white text-sm font-medium shadow-glow"
-          >
-            {continueData?.lesson ? `Treinar: ${continueData.lesson.title}` : "Escolher um mundo"}
-          </button>
-        </div>
-      )}
+      {tab === "treino" && <ExamCenter />}
     </div>
   );
 };
