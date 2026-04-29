@@ -23,14 +23,13 @@ export const useMentorAdvice = () => {
 
       const { data: stats } = await (supabase as any)
         .from("user_stats")
-        .select("streak, level, xp")
+        .select("level, xp")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // Streak == 0 → encourage
-      if (!stats || (stats.streak ?? 0) === 0) {
+      if (!stats || (stats.xp ?? 0) === 0) {
         return {
-          message: "Sua ofensiva está zerada. Que tal assistir uma aula curta hoje para começar de novo?",
+          message: "Que tal começar com uma aula curta hoje? Pequenos passos viram grandes conquistas.",
           tone: "encourage",
         };
       }

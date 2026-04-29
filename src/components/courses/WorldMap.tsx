@@ -6,7 +6,6 @@ import StatsHeader from "./StatsHeader";
 import ContinueCard from "./ContinueCard";
 import MentorCard from "./MentorCard";
 import QuickActions from "./QuickActions";
-import DailyMissionsCard from "./DailyMissionsCard";
 import PendingReviewsCard from "./PendingReviewsCard";
 import { useCourses } from "@/hooks/useCourses";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -57,7 +56,6 @@ const WorldMap = () => {
       <StatsHeader />
       <ContinueCard />
       <PendingReviewsCard />
-      <DailyMissionsCard />
       <MentorCard />
       <QuickActions />
 

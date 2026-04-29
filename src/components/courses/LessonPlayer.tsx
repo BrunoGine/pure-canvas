@@ -30,7 +30,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import WorldCompleteDialog from "./WorldCompleteDialog";
 import QuestionsStep, { type Question, type QuestionResult } from "./quiz/QuestionsStep";
 import { scheduleReview, removeReview } from "@/lib/spacedReview";
-import { tickMission } from "@/lib/dailyMissions";
 
 
 const LessonPlayer = () => {
@@ -149,7 +148,6 @@ const LessonPlayer = () => {
       await upsert.mutateAsync({ video_watched: true });
       await awardXp.mutateAsync(10);
       toast({ title: "+10 XP ⚡", description: "Vídeo concluído!" });
-      tickMission("watch_lesson", user?.id);
     }
     setStep(1);
   };
@@ -193,10 +191,8 @@ const LessonPlayer = () => {
       if (passed) {
         await awardXp.mutateAsync(10);
         toast({ title: "+10 XP ⚡", description: "Modo revisão — XP reduzido" });
-        // Spaced review + daily mission
+        // Spaced review
         if (lessonId) scheduleReview(lessonId, score);
-        tickMission("review_one", user?.id);
-        tickMission("quiz_pass", user?.id);
       } else if (lessonId) {
         // Falhou na revisão → re-agenda para 1 dia
         scheduleReview(lessonId, score);
@@ -222,8 +218,6 @@ const LessonPlayer = () => {
 
       // Spaced repetition: agendar 1ª revisão
       if (lessonId) scheduleReview(lessonId, score);
-      // Daily missions
-      tickMission("quiz_pass", user?.id);
 
       // Award "first lesson" badge
       try { await awardBadge.mutateAsync("first_lesson"); } catch {}
