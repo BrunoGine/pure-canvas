@@ -23,12 +23,12 @@ const BottomNav = () => {
             <button
               key={path}
               onClick={() => navigate(path)}
-              className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all duration-300 group"
+              className="relative flex w-16 flex-col items-center gap-0.5 px-1 py-1.5 transition-all duration-300 group"
             >
               {active && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className="absolute -top-0.5 left-1/2 -translate-x-1/2 h-[3px] w-8 rounded-full gradient-primary shadow-glow"
+                  className="absolute -top-0.5 left-0 right-0 mx-auto h-[3px] w-8 rounded-full gradient-primary shadow-glow"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
@@ -45,7 +45,7 @@ const BottomNav = () => {
                 className={`transition-all duration-300 ${active ? "text-primary drop-shadow-[0_0_8px_hsla(233,70%,58%,0.5)]" : "text-muted-foreground group-hover:text-foreground"}`}
               />
               <span
-                className={`text-[10px] font-medium transition-all duration-300 ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}
+                className={`text-[10px] font-medium transition-all duration-300 truncate max-w-full ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}
               >
                 {label}
               </span>
