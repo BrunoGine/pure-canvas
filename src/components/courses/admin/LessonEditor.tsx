@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,6 +97,12 @@ const LessonEditor = ({
             <Input placeholder="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <Input placeholder="Subtítulo" value={form.subtitle ?? ""} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
             <Input placeholder="URL do YouTube" value={form.youtube_url} onChange={(e) => setForm({ ...form, youtube_url: e.target.value })} />
+            <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+              <Info size={14} className="mt-0.5 shrink-0" />
+              <p>
+                Vídeos com restrição de idade (+18) do YouTube não tocam embedados. Use uma versão alternativa do conteúdo, sem restrição, para garantir a reprodução na aula.
+              </p>
+            </div>
             <Input
               placeholder="Crédito do vídeo (opcional, ex: Canal Me Poupe)"
               value={form.video_credit ?? ""}

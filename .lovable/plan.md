@@ -1,44 +1,24 @@
-# Remover Ofensiva, Escudos e Missões Diárias
+## Objetivo
 
-Remover os elementos de gamificação por streak (ofensiva), escudos de proteção e missões diárias da aba Cursos e do Hub do Aluno, sem quebrar mundos, trilha, badges, certificados, "continue de onde parei" nem o perfil interno.
+Adicionar um aviso visual no editor de aulas (admin) informando que vídeos do YouTube com restrição de idade (+18) não funcionam embedados, orientando o admin a usar uma versão alternativa sem restrição.
 
-## O que será removido da UI
+## Mudança
 
-1. **StatsHeader** (bloco com Nível/XP + Ofensiva 🔥 + Escudos 🛡️)
-   - Hoje exibe 3 cards: Nível, Streak (ofensiva) e Proteções (escudos).
-   - Será substituído por um cabeçalho enxuto contendo apenas **Nível + barra de XP** (mantém progressão sem gamificação por dias).
-   - Aplicado em: `WorldMap.tsx`, `LessonPath.tsx`, `StudentHubPage.tsx`.
+Arquivo único: **`src/components/courses/admin/LessonEditor.tsx`**
 
-2. **DailyMissionsCard** (card de missões diárias com chama verde)
-   - Removido do `WorldMap.tsx` (única tela onde aparece).
-   - Arquivos `DailyMissionsCard.tsx`, `useDailyMissions.ts` e `lib/dailyMissions.ts` serão deletados.
-
-3. **Chamadas a `tickMission(...)`** em `LessonPlayer.tsx` (3 ocorrências) e `ExamCenter.tsx` (1 ocorrência) — removidas. Sem impacto no progresso real do aluno (XP, badges de conclusão e progresso de aula continuam funcionando normalmente).
-
-## O que será mantido
-
-- **XP e Nível**: continuam intactos (barra fica visível no novo cabeçalho enxuto).
-- **Badges**: o catálogo em `lib/badges.ts` mantém `streak_7` e `streak_30` para não quebrar registros já concedidos a usuários existentes, mas eles deixam de ser exibidos como destaque ativo (continuam apenas como histórico no grid de badges, se o usuário já tiver). Não serão mais concedidos novos.
-- **Mentor**: `useMentorAdvice.ts` continua lendo `streak` do banco apenas para personalizar a mensagem inicial ("comece sua ofensiva"). Será ajustado para uma mensagem neutra de incentivo, sem mencionar ofensiva.
-- **Banco de dados**: colunas `streak`, `streak_protection` em `user_stats` permanecem (para não exigir migração destrutiva). Apenas deixam de ser exibidas/usadas na UI.
-- **Mundos, trilha, certificados, continue studying, perfil do aluno, exames, revisões espaçadas**: nada muda.
+- Logo abaixo do campo "URL do YouTube" (aba "Informações"), adicionar um bloco informativo discreto:
+  - Ícone de alerta (`Info` do lucide-react)
+  - Texto: *"Vídeos com restrição de idade (+18) do YouTube não tocam embedados. Use uma versão alternativa do conteúdo, sem restrição, para garantir a reprodução na aula."*
+  - Estilo: card pequeno com `bg-amber-500/10`, borda `border-amber-500/30`, texto `text-amber-700 dark:text-amber-300`, padding compacto e tipografia `text-xs`.
+- Aviso é puramente estático (sem chamada de API, sem detecção automática) — zero custo de IA e zero impacto em performance.
 
 ## Arquivos afetados
 
-**Editar**
-- `src/components/courses/StatsHeader.tsx` — remover blocos de Streak e Escudos; manter só Nível + XP.
-- `src/components/courses/WorldMap.tsx` — remover import e render de `DailyMissionsCard`.
-- `src/components/courses/LessonPlayer.tsx` — remover import e chamadas a `tickMission`.
-- `src/components/courses/ExamCenter.tsx` — remover `useDailyMissions` e chamada a `tick`.
-- `src/hooks/useMentorAdvice.ts` — substituir mensagem "Sua ofensiva está zerada..." por incentivo neutro.
+- `src/components/courses/admin/LessonEditor.tsx` (apenas edição visual na aba de informações)
 
-**Deletar**
-- `src/components/courses/DailyMissionsCard.tsx`
-- `src/hooks/useDailyMissions.ts`
-- `src/lib/dailyMissions.ts`
+## Não afeta
 
-## Resultado visual
-
-Antes (topo do `/cursos`): Nível • 🔥 Ofensiva • 🛡️ Escudos → Card de Missões Diárias → Mundos.
-
-Depois: Nível + barra de XP (cabeçalho compacto) → Mundos. Interface mais limpa, sem mecânicas de pressão diária.
+- Player do aluno (`LessonPlayer.tsx`)
+- Schema do banco
+- Hooks de mutação
+- Nenhuma outra funcionalidade existente
