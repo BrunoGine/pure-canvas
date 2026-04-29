@@ -5,7 +5,6 @@ import { Dumbbell, Timer, Repeat, ChevronRight, ArrowLeft, MessageCircleQuestion
 import { useCourses } from "@/hooks/useCourses";
 import { useQuestionBank, sampleQuestions, getRecentWrongQuestions, type QuestionBankItem } from "@/hooks/useQuestionBank";
 import { useUserStats } from "@/hooks/useUserStats";
-import { useDailyMissions } from "@/hooks/useDailyMissions";
 import { useToast } from "@/hooks/use-toast";
 import QuestionsStep, { type QuestionResult } from "./quiz/QuestionsStep";
 
@@ -24,7 +23,6 @@ const ExamCenter = () => {
   const { toast } = useToast();
   const { data: courses } = useCourses();
   const { awardXp } = useUserStats();
-  const { tick } = useDailyMissions();
 
   const [scope, setScope] = useState<string>("all");
   const [mode, setMode] = useState<Mode | null>(null);
@@ -72,7 +70,7 @@ const ExamCenter = () => {
     setRunning(false);
     setScore(s);
     setResults(r);
-    if (mode === "quick") tick("complete_training");
+    
     if (s >= 60 && mode) {
       try { await awardXp.mutateAsync(MODE_META[mode].xp); } catch {}
       toast({ title: `+${MODE_META[mode].xp} XP ⚡`, description: `Treino concluído (${s}%)` });
