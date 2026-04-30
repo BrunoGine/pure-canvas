@@ -56,10 +56,22 @@ const AuthPage = () => {
         "Password should be at least 6 characters": "A senha deve ter no mínimo 6 caracteres",
         "Signup requires a valid password": "Por favor, insira uma senha válida",
         "Unable to validate email address: invalid format": "Formato de e-mail inválido",
+        "Email rate limit exceeded": "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.",
+        "email rate limit exceeded": "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.",
       };
+
+      const isRateLimit =
+        error?.status === 429 ||
+        error?.code === "over_email_send_rate_limit" ||
+        /rate limit/i.test(error?.message ?? "");
+
+      const description = isRateLimit
+        ? "Muitas tentativas de cadastro em pouco tempo. Aguarde cerca de 1 hora e tente novamente, ou use outro e-mail."
+        : errorMessages[error?.message] ?? "Ocorreu um erro. Tente novamente.";
+
       toast({
-        title: "Erro",
-        description: errorMessages[error?.message] ?? "Ocorreu um erro. Tente novamente.",
+        title: isRateLimit ? "Limite de e-mails atingido" : "Erro",
+        description,
         variant: "destructive",
       });
     } finally {
