@@ -303,6 +303,48 @@ export type Database = {
         }
         Relationships: []
       }
+      goals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_amount: number
+          deadline: string | null
+          id: string
+          image_url: string | null
+          is_completed: boolean
+          name: string
+          target_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          image_url?: string | null
+          is_completed?: boolean
+          name: string
+          target_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          id?: string
+          image_url?: string | null
+          is_completed?: boolean
+          name?: string
+          target_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           course_id: string
@@ -367,6 +409,7 @@ export type Database = {
           created_at: string
           date: string
           description: string
+          goal_id: string | null
           id: string
           notes: string | null
           payment_method: string
@@ -380,6 +423,7 @@ export type Database = {
           created_at?: string
           date?: string
           description: string
+          goal_id?: string | null
           id?: string
           notes?: string | null
           payment_method?: string
@@ -393,6 +437,7 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string
+          goal_id?: string | null
           id?: string
           notes?: string | null
           payment_method?: string
@@ -437,6 +482,7 @@ export type Database = {
           created_at: string
           day_of_month: number
           description: string
+          goal_id: string | null
           id: string
           last_executed_at: string | null
           notes: string | null
@@ -453,6 +499,7 @@ export type Database = {
           created_at?: string
           day_of_month?: number
           description: string
+          goal_id?: string | null
           id?: string
           last_executed_at?: string | null
           notes?: string | null
@@ -469,6 +516,7 @@ export type Database = {
           created_at?: string
           day_of_month?: number
           description?: string
+          goal_id?: string | null
           id?: string
           last_executed_at?: string | null
           notes?: string | null
