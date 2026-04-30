@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, Wallet, Plus, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTransactions } from "@/hooks/useTransactions";
+import GoalsSection from "@/components/goals/GoalsSection";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -36,8 +36,6 @@ const HomePage = () => {
       .reduce((s, t) => s + Math.abs(t.amount), 0);
     return { income: inc, expenses: exp, balance: inc - exp };
   }, [transactions]);
-
-  const goals: { name: string; current: number; target: number }[] = [];
 
   const recentTransactions = useMemo(
     () =>
@@ -113,40 +111,7 @@ const HomePage = () => {
       </motion.div>
 
       {/* Goals */}
-      <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-            <Target size={18} className="text-primary" /> Metas
-          </h2>
-          <button className="text-primary text-xs font-medium flex items-center gap-1 hover:gap-2 transition-all">
-            <Plus size={14} /> Nova
-          </button>
-        </div>
-        <div className="space-y-3">
-          {goals.map((goal, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25 + i * 0.05 }}
-            >
-              <div className="glass-card rounded-xl p-4 hover:glow-border transition-all duration-300">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{goal.name}</span>
-                  <span className="text-xs font-semibold text-primary">
-                    {Math.round((goal.current / goal.target) * 100)}%
-                  </span>
-                </div>
-                <Progress value={(goal.current / goal.target) * 100} className="h-2 mb-1.5" />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>R$ {goal.current.toLocaleString("pt-BR")}</span>
-                  <span>R$ {goal.target.toLocaleString("pt-BR")}</span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.section>
+      <GoalsSection />
 
       {/* Recent Transactions */}
       <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>

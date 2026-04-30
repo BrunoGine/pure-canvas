@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
   // Get active recurring transactions for today's day
   const { data: recurrings, error: fetchError } = await supabase
     .from("recurring_transactions")
-    .select("id, user_id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id, last_executed_at")
+    .select("id, user_id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id, last_executed_at, goal_id")
     .eq("day_of_month", dayOfMonth)
     .eq("active", true);
 
@@ -52,6 +52,7 @@ Deno.serve(async (req) => {
         notes: rec.notes,
         payment_method: rec.payment_method || "pix",
         card_id: rec.card_id || null,
+        goal_id: rec.goal_id || null,
       });
 
     if (!insertError) {
@@ -59,6 +60,23 @@ Deno.serve(async (req) => {
         .from("recurring_transactions")
         .update({ last_executed_at: today.toISOString().split("T")[0] })
         .eq("id", rec.id);
+
+      // Se a recorrência alimenta uma meta, somar o valor à meta
+      if (rec.goal_id) {
+        const { data: goal } = await supabase
+          .from("goals")
+          .select("current_amount")
+          .eq("id", rec.goal_id)
+          .single();
+        if (goal) {
+          const newAmount = Number(goal.current_amount) + Number(rec.amount);
+          await supabase
+            .from("goals")
+            .update({ current_amount: newAmount })
+            .eq("id", rec.goal_id);
+        }
+      }
+
       created++;
     }
   }
