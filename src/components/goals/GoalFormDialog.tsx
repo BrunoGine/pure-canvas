@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Sparkles, Loader2, RefreshCw } from "lucide-react";
+import { CalendarIcon, Sparkles, Loader2, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { NewGoalInput } from "@/hooks/useGoals";
+import { GOAL_PRESETS, presetToImageUrl } from "./goalPresets";
 
 interface Props {
   open: boolean;
@@ -19,14 +20,11 @@ interface Props {
   onCreate: (input: NewGoalInput) => Promise<unknown>;
 }
 
-const buildImageUrl = (name: string) =>
-  `https://source.unsplash.com/600x400/?${encodeURIComponent(name.trim())}`;
-
 const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>();
-  const [imageUrl, setImageUrl] = useState("");
+  const [presetKey, setPresetKey] = useState<string>("other");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<{ amount: number; rationale: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -35,7 +33,7 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
     setName("");
     setTarget("");
     setDeadline(undefined);
-    setImageUrl("");
+    setPresetKey("other");
     setAiSuggestion(null);
   };
 
@@ -71,11 +69,6 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
     }
   };
 
-  const refreshImage = () => {
-    if (!name.trim()) return;
-    setImageUrl(`${buildImageUrl(name)}&t=${Date.now()}`);
-  };
-
   const handleSubmit = async () => {
     const targetNum = parseFloat(target);
     if (!name.trim() || !Number.isFinite(targetNum) || targetNum <= 0) {
@@ -83,12 +76,11 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
       return;
     }
     setSubmitting(true);
-    const finalImage = imageUrl.trim() || buildImageUrl(name);
     const result = await onCreate({
       name: name.trim(),
       target_amount: targetNum,
       deadline: deadline ? format(deadline, "yyyy-MM-dd") : null,
-      image_url: finalImage,
+      image_url: presetToImageUrl(presetKey),
     });
     setSubmitting(false);
     if (result) {
@@ -190,35 +182,45 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
             </Popover>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="goal-image">Imagem (opcional)</Label>
-              <button
-                type="button"
-                onClick={refreshImage}
-                disabled={!name.trim()}
-                className="text-xs text-primary flex items-center gap-1 disabled:opacity-40"
-              >
-                <RefreshCw size={11} /> Sugerir
-              </button>
+          <div className="space-y-2">
+            <Label>Categoria</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {GOAL_PRESETS.map((p) => {
+                const Icon = p.icon;
+                const selected = presetKey === p.key;
+                return (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => setPresetKey(p.key)}
+                    className={cn(
+                      "relative flex flex-col items-center gap-1 rounded-xl p-2 transition-all",
+                      "border border-border/40 hover:border-primary/60",
+                      selected && "ring-2 ring-primary ring-offset-2 ring-offset-background border-transparent",
+                    )}
+                    aria-pressed={selected}
+                    aria-label={p.label}
+                  >
+                    <div
+                      className={cn(
+                        "w-full aspect-square rounded-lg bg-gradient-to-br flex items-center justify-center",
+                        p.gradient,
+                      )}
+                    >
+                      <Icon className="text-white drop-shadow" size={20} />
+                    </div>
+                    <span className="text-[10px] font-medium text-foreground/80 truncate w-full text-center">
+                      {p.label}
+                    </span>
+                    {selected && (
+                      <div className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                        <Check size={10} />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <Input
-              id="goal-image"
-              placeholder="Cole uma URL ou deixe automática"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="bg-secondary/30 border-border/50"
-            />
-            {(imageUrl || name.trim()) && (
-              <div className="rounded-lg overflow-hidden border border-border/30 h-28 bg-secondary/20">
-                <img
-                  src={imageUrl || buildImageUrl(name)}
-                  alt="prévia"
-                  className="w-full h-full object-cover"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0.2"; }}
-                />
-              </div>
-            )}
           </div>
 
           <Button
