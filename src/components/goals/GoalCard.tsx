@@ -25,6 +25,8 @@ const GoalCard = ({ goal, onContribute, onWithdraw, onDelete }: Props) => {
   const target = Number(goal.target_amount);
   const current = Number(goal.current_amount);
   const pct = Math.min(100, Math.round((current / target) * 100));
+  const preset = getGoalPreset(goal.image_url);
+  const PresetIcon = preset.icon;
 
   return (
     <motion.div
@@ -32,22 +34,9 @@ const GoalCard = ({ goal, onContribute, onWithdraw, onDelete }: Props) => {
       animate={{ opacity: 1, y: 0 }}
       className="glass-card rounded-2xl overflow-hidden hover:glow-border transition-all"
     >
-      <div className="relative h-28 bg-secondary/40">
-        {goal.image_url ? (
-          <img
-            src={goal.image_url}
-            alt={goal.name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-            }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-            <Target size={28} />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+      <div className={cn("relative h-28 bg-gradient-to-br flex items-center justify-center", preset.gradient)}>
+        <PresetIcon className="text-white/95 drop-shadow-lg" size={44} />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent pointer-events-none" />
         {goal.is_completed && (
           <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-semibold px-2 py-1">
             <CheckCircle2 size={12} /> Concluída
