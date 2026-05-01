@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MoreVertical, Plus, Minus, Trash2, Target, CheckCircle2 } from "lucide-react";
+import { MoreVertical, Plus, Minus, Trash2, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
@@ -7,7 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import type { Goal } from "@/hooks/useGoals";
+import { getGoalPreset } from "./goalPresets";
 
 interface Props {
   goal: Goal;
