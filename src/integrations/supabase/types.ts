@@ -413,6 +413,7 @@ export type Database = {
           id: string
           notes: string | null
           payment_method: string
+          shared_goal_id: string | null
           type: string
           user_id: string
         }
@@ -427,6 +428,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method?: string
+          shared_goal_id?: string | null
           type?: string
           user_id: string
         }
@@ -441,6 +443,7 @@ export type Database = {
           id?: string
           notes?: string | null
           payment_method?: string
+          shared_goal_id?: string | null
           type?: string
           user_id?: string
         }
@@ -524,6 +527,165 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shared_goal_contributions: {
+        Row: {
+          amount: number
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          shared_goal_id: string
+          status: Database["public"]["Enums"]["shared_request_status"]
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          shared_goal_id: string
+          status?: Database["public"]["Enums"]["shared_request_status"]
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          shared_goal_id?: string
+          status?: Database["public"]["Enums"]["shared_request_status"]
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goal_contributions_shared_goal_id_fkey"
+            columns: ["shared_goal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_goal_join_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          shared_goal_id: string
+          status: Database["public"]["Enums"]["shared_request_status"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          shared_goal_id: string
+          status?: Database["public"]["Enums"]["shared_request_status"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          shared_goal_id?: string
+          status?: Database["public"]["Enums"]["shared_request_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goal_join_requests_shared_goal_id_fkey"
+            columns: ["shared_goal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_goal_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: Database["public"]["Enums"]["shared_goal_role"]
+          shared_goal_id: string
+          total_contributed: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["shared_goal_role"]
+          shared_goal_id: string
+          total_contributed?: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: Database["public"]["Enums"]["shared_goal_role"]
+          shared_goal_id?: string
+          total_contributed?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_goal_members_shared_goal_id_fkey"
+            columns: ["shared_goal_id"]
+            isOneToOne: false
+            referencedRelation: "shared_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_goals: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          current_amount: number
+          id: string
+          invite_code: string
+          is_completed: boolean
+          name: string
+          preset_key: string
+          target_amount: number
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          current_amount?: number
+          id?: string
+          invite_code: string
+          is_completed?: boolean
+          name: string
+          preset_key?: string
+          target_amount: number
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          current_amount?: number
+          id?: string
+          invite_code?: string
+          is_completed?: boolean
+          name?: string
+          preset_key?: string
+          target_amount?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -676,11 +838,32 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      find_shared_goal_by_code: {
+        Args: { _code: string }
+        Returns: {
+          current_amount: number
+          id: string
+          is_completed: boolean
+          member_count: number
+          name: string
+          preset_key: string
+          target_amount: number
+        }[]
+      }
+      gen_invite_code: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_shared_goal_admin: {
+        Args: { _goal: string; _user: string }
+        Returns: boolean
+      }
+      is_shared_goal_member: {
+        Args: { _goal: string; _user: string }
         Returns: boolean
       }
       update_streak: {
@@ -705,6 +888,8 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      shared_goal_role: "admin" | "member"
+      shared_request_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -833,6 +1018,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      shared_goal_role: ["admin", "member"],
+      shared_request_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
