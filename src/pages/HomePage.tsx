@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTransactions } from "@/hooks/useTransactions";
 import GoalsSection from "@/components/goals/GoalsSection";
+import SharedGoalsSection from "@/components/goals/SharedGoalsSection";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -112,6 +113,9 @@ const HomePage = () => {
 
       {/* Goals */}
       <GoalsSection />
+
+      {/* Shared Goals (Vaquinhas) */}
+      <SharedGoalsSection />
 
       {/* Recent Transactions */}
       <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
