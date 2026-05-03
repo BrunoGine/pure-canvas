@@ -14,6 +14,7 @@ export interface RecurringTransaction {
   active: boolean;
   payment_method?: string | null;
   card_id?: string | null;
+  last_executed_at?: string | null;
 }
 
 export function useRecurringTransactions() {
