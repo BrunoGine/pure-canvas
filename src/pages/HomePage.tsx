@@ -29,11 +29,12 @@ const HomePage = () => {
   }, [user]);
 
   const { income, expenses, balance } = useMemo(() => {
+    const isCredit = (t: typeof transactions[number]) => t.payment_method === "credito";
     const inc = transactions
-      .filter((t) => t.type === "income")
+      .filter((t) => t.type === "income" && !isCredit(t))
       .reduce((s, t) => s + Math.abs(t.amount), 0);
     const exp = transactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => t.type === "expense" && !isCredit(t))
       .reduce((s, t) => s + Math.abs(t.amount), 0);
     return { income: inc, expenses: exp, balance: inc - exp };
   }, [transactions]);
