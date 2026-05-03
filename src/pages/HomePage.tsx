@@ -58,9 +58,8 @@ const HomePage = () => {
     const recPending = recurringTransactions
       .filter((r) => r.active && r.type === "expense")
       .filter((r) => {
-        // pending if never executed or last execution before this month
-        // recurringTransactions hook doesn't expose last_executed_at; treat all active expense recurrences as pending for the month
-        return true;
+        if (!r.last_executed_at) return true;
+        return parseISO(r.last_executed_at) < monthStart;
       })
       .reduce((s, r) => s + Math.abs(r.amount), 0);
 
