@@ -14,6 +14,7 @@ import SharedGoalsSection from "@/components/goals/SharedGoalsSection";
 const HomePage = () => {
   const { user } = useAuth();
   const { transactions } = useTransactions();
+  const { recurringTransactions } = useRecurringTransactions();
   const [userName, setUserName] = useState("Usuário");
 
   useEffect(() => {
