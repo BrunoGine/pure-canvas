@@ -93,14 +93,17 @@ const HomePage = () => {
         <h1 className="font-display text-2xl font-bold">Seu Resumo</h1>
       </motion.div>
 
-      {/* Balance Card — Liquid Glass */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+      {/* Balance Cards — Liquid Glass */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        {/* Saldo Atual */}
         <div className="relative rounded-2xl overflow-hidden">
-          {/* Background gradient */}
           <div className="absolute inset-0 gradient-primary opacity-95" />
-          {/* Glass highlight overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
-          {/* Inner glow at top */}
           <div className="absolute top-0 left-0 right-0 h-px bg-white/30" />
 
           <div className="relative p-6">
@@ -138,8 +141,42 @@ const HomePage = () => {
               </div>
             </div>
           </div>
-          {/* Bottom reflection */}
           <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-black/10 to-transparent" />
+        </div>
+
+        {/* Saldo Disponível para Uso */}
+        <div className="relative rounded-2xl overflow-hidden glass-card border border-border/60">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-foreground/10" />
+
+          <div className="relative p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center border border-primary/20">
+                <ShieldCheck size={16} className="text-primary" />
+              </div>
+              <p className="text-muted-foreground text-sm font-medium">Disponível para Uso</p>
+            </div>
+            <p className={`text-3xl font-display font-bold mt-2 ${availableBalance < 0 ? "text-destructive" : "text-foreground"}`}>
+              R$ {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Saldo após reservar faturas e recorrências do mês
+            </p>
+            <div className="flex flex-col gap-1.5 mt-4 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Faturas do crédito</span>
+                <span className="font-semibold tabular-nums">
+                  − R$ {creditInvoices.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Recorrências pendentes</span>
+                <span className="font-semibold tabular-nums">
+                  − R$ {recurringPending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.div>
 
