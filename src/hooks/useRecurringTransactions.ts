@@ -14,6 +14,7 @@ export interface RecurringTransaction {
   active: boolean;
   payment_method?: string | null;
   card_id?: string | null;
+  last_executed_at?: string | null;
 }
 
 export function useRecurringTransactions() {
@@ -26,7 +27,7 @@ export function useRecurringTransactions() {
     setLoading(true);
     const { data, error } = await supabase
       .from("recurring_transactions")
-      .select("id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id")
+      .select("id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id, last_executed_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -61,7 +62,7 @@ export function useRecurringTransactions() {
           payment_method: tx.payment_method || "pix",
           card_id: tx.card_id || null,
         })
-        .select("id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id")
+        .select("id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id, last_executed_at")
         .single();
 
       if (error) {

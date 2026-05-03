@@ -1,32 +1,28 @@
-# Saldo atual: ignorar transações no Crédito
+# Saldo disponível para uso
 
-## Problema
-Hoje o Saldo atual da Home soma todas as `income` e subtrai todas as `expense`, incluindo despesas pagas no cartão de crédito — que ainda não saíram da conta. Isso distorce o saldo disponível.
+## Objetivo
+Adicionar um segundo card ao lado do "Saldo Atual" mostrando quanto sobra após reservar o que ainda precisa ser pago: faturas de cartão de crédito e transações recorrentes do mês.
 
-## Solução
-No cálculo do `balance` em `src/pages/HomePage.tsx`, ignorar transações cujo `payment_method === "credito"`.
+## Fórmula
 
-- `income`: continua somando todas as entradas (entradas raramente têm payment_method "credito", mas mesmo assim ficam fora se for o caso, para coerência).
-- `expenses`: passa a somar apenas despesas onde `payment_method !== "credito"`.
-- `balance = income - expenses` (com a nova regra).
-
-A lista "Transações recentes" e a página de Planilhas continuam mostrando as transações de crédito normalmente — só o card de Saldo atual deixa de descontá-las.
-
-## Alteração técnica
-
-Em `src/pages/HomePage.tsx`, ajustar o `useMemo`:
-
-```ts
-const { income, expenses, balance } = useMemo(() => {
-  const isCredit = (t: Transaction) => t.payment_method === "credito";
-  const inc = transactions
-    .filter((t) => t.type === "income" && !isCredit(t))
-    .reduce((s, t) => s + Math.abs(t.amount), 0);
-  const exp = transactions
-    .filter((t) => t.type === "expense" && !isCredit(t))
-    .reduce((s, t) => s + Math.abs(t.amount), 0);
-  return { income: inc, expenses: exp, balance: inc - exp };
-}, [transactions]);
+```
+Saldo disponível = Saldo Atual
+                 − Faturas em aberto (despesas no crédito do mês corrente)
+                 − Recorrências pendentes (recorrências expense ativas ainda não executadas neste mês)
 ```
 
-Nenhuma alteração de banco, hook ou outros componentes é necessária.
+Detalhes:
+- **Faturas em aberto**: soma de `manual_transactions` com `type="expense"` e `payment_method="credito"` cuja `date` está no mês corrente (essas não entram no Saldo Atual hoje, conforme a regra anterior).
+- **Recorrências pendentes**: soma de `recurring_transactions` com `active=true` e `type="expense"` cuja `last_executed_at` é null ou anterior ao primeiro dia do mês corrente. Recorrências de `income` não entram (o foco é o que vai sair).
+
+## Mudanças
+
+**`src/pages/HomePage.tsx`**
+- Importar `useRecurringTransactions`.
+- Adicionar `useMemo` para `creditInvoices`, `recurringPending` e `availableBalance`.
+- Reorganizar o bloco do Saldo Atual em um grid de 2 colunas (md+) com dois cards lado a lado:
+  - Card 1 (atual, mantém visual gradient/glass): Saldo Atual.
+  - Card 2 (novo, mesmo estilo glass mais sutil — `glass-card` com pequeno gradient secundário): Saldo Disponível para Uso, com ícone (`PiggyBank` ou `ShieldCheck`), valor grande, e duas linhas pequenas mostrando "Faturas: R$ X" e "Recorrentes: R$ Y" para o usuário entender o que foi descontado.
+- Em mobile (sm), os dois cards ficam empilhados.
+
+Nenhuma alteração de banco ou de hook. Sem novas dependências.
