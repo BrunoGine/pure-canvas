@@ -855,6 +855,14 @@ export type Database = {
         }[]
       }
       gen_invite_code: { Args: never; Returns: string }
+      get_shared_goal_profiles: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
