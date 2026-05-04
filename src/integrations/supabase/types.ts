@@ -819,6 +819,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_shared_contribution: {
+        Args: { _contribution_id: string }
+        Returns: string
+      }
       award_xp: {
         Args: { _amount: number; _user_id: string }
         Returns: {

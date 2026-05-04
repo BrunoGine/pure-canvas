@@ -265,65 +265,15 @@ export function useSharedGoals() {
   const approveContribution = useCallback(
     async (contrib: SharedContribution, goal: SharedGoal) => {
       if (!user) return;
-      const today = new Date().toISOString().split("T")[0];
-      // 1. Create transaction for the contributor
-      const { data: tx, error: txErr } = await supabase
-        .from("manual_transactions")
-        .insert({
-          user_id: contrib.user_id,
-          description: `Vaquinha: ${goal.name}`,
-          amount: contrib.amount,
-          type: "expense",
-          category: "Meta compartilhada",
-          date: today,
-          payment_method: "pix",
-          shared_goal_id: goal.id,
-        })
-        .select("id")
-        .single();
-      if (txErr) {
-        console.error(txErr);
-        toast.error("Erro ao registrar transação");
+      const { error } = await supabase.rpc("approve_shared_contribution", {
+        _contribution_id: contrib.id,
+      });
+      if (error) {
+        console.error(error);
+        toast.error("Erro ao aprovar contribuição");
         return;
       }
-
-      // 2. Update goal current_amount
       const newAmount = Number(goal.current_amount) + Number(contrib.amount);
-      const { error: gErr } = await supabase
-        .from("shared_goals")
-        .update({ current_amount: newAmount })
-        .eq("id", goal.id);
-      if (gErr) {
-        await supabase.from("manual_transactions").delete().eq("id", tx.id);
-        toast.error("Erro ao atualizar vaquinha");
-        return;
-      }
-
-      // 3. Update member total_contributed
-      const { data: memberRow } = await supabase
-        .from("shared_goal_members")
-        .select("id, total_contributed")
-        .eq("shared_goal_id", goal.id)
-        .eq("user_id", contrib.user_id)
-        .maybeSingle();
-      if (memberRow) {
-        await supabase
-          .from("shared_goal_members")
-          .update({ total_contributed: Number(memberRow.total_contributed) + Number(contrib.amount) })
-          .eq("id", memberRow.id);
-      }
-
-      // 4. Mark contribution approved
-      await supabase
-        .from("shared_goal_contributions")
-        .update({
-          status: "approved",
-          decided_at: new Date().toISOString(),
-          decided_by: user.id,
-          transaction_id: tx.id,
-        })
-        .eq("id", contrib.id);
-
       toast.success("Contribuição aprovada!");
       if (newAmount >= Number(goal.target_amount) && !goal.is_completed) {
         setJustCompleted({ ...goal, current_amount: newAmount, is_completed: true });
