@@ -440,11 +440,12 @@ export async function loadSharedGoalDetail(goalId: string) {
   contribRes.data?.forEach((c) => userIds.add(c.user_id));
   let profilesMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
   if (userIds.size > 0) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, display_name, avatar_url")
-      .in("id", Array.from(userIds));
-    profiles?.forEach((p) => profilesMap.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url }));
+    const { data: profiles } = await supabase.rpc("get_shared_goal_profiles", {
+      _user_ids: Array.from(userIds),
+    });
+    profiles?.forEach((p: { id: string; display_name: string | null; avatar_url: string | null }) =>
+      profilesMap.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url }),
+    );
   }
   const enrich = <T extends { user_id: string }>(rows: T[] | null) =>
     (rows ?? []).map((r) => ({
