@@ -24,6 +24,7 @@ import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import CardsTab from "@/components/cards/CardsTab";
 import { paymentMethods } from "@/lib/paymentMethods";
+import TransactionEditDialog, { EditableTransaction } from "@/components/spreadsheets/TransactionEditDialog";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
