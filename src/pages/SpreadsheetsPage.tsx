@@ -565,9 +565,47 @@ const SpreadsheetsPage = () => {
         </TabsContent>
 
         <TabsContent value="cards" className="space-y-4">
-          <CardsTab transactions={transactions} onRemoveTransaction={remove} />
+          <CardsTab
+            transactions={transactions}
+            onRemoveTransaction={remove}
+            onEditTransaction={(tx) => {
+              setEditTxId(tx.id);
+              setEditTxInitial({
+                description: tx.description,
+                amount: tx.amount,
+                type: tx.type,
+                category: tx.category,
+                date: tx.date,
+                notes: tx.notes ?? null,
+                payment_method: tx.payment_method ?? "pix",
+                card_id: tx.card_id ?? null,
+              });
+              setEditTxOpen(true);
+            }}
+          />
         </TabsContent>
       </Tabs>
+
+      <TransactionEditDialog
+        open={editTxOpen}
+        onOpenChange={setEditTxOpen}
+        initial={editTxInitial}
+        categories={categories}
+        variant="normal"
+        onSave={(patch) => {
+          if (editTxId) updateTx(editTxId, patch);
+        }}
+      />
+      <TransactionEditDialog
+        open={editRecOpen}
+        onOpenChange={setEditRecOpen}
+        initial={editRecInitial}
+        categories={categories}
+        variant="recurring"
+        onSave={(patch) => {
+          if (editRecId) updateRecurring(editRecId, patch);
+        }}
+      />
     </div>
   );
 };
