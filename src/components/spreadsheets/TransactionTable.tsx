@@ -1,4 +1,4 @@
-import { Trash2, StickyNote } from "lucide-react";
+import { Trash2, StickyNote, Pencil } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { paymentMethodLabel } from "@/lib/paymentMethods";
@@ -12,14 +12,16 @@ interface ManualTransaction {
   date: string;
   notes?: string | null;
   payment_method?: string | null;
+  card_id?: string | null;
 }
 
 interface TransactionTableProps {
   manualTransactions?: ManualTransaction[];
   onRemoveManual?: (id: string) => void;
+  onEditManual?: (tx: ManualTransaction) => void;
 }
 
-const TransactionTable = ({ manualTransactions = [], onRemoveManual }: TransactionTableProps) => {
+const TransactionTable = ({ manualTransactions = [], onRemoveManual, onEditManual }: TransactionTableProps) => {
   if (manualTransactions.length === 0) {
     return (
       <Card className="shadow-card">
@@ -39,7 +41,7 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual }: Transacti
               <th className="px-3 sm:px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Descrição</th>
               <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Categoria</th>
               <th className="px-3 sm:px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Valor</th>
-              <th className="px-2 sm:px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground w-16 sm:w-20"></th>
+              <th className="px-2 sm:px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground w-20 sm:w-28"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -70,8 +72,13 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual }: Transacti
                         </PopoverContent>
                       </Popover>
                     )}
+                    {onEditManual ? (
+                      <button onClick={() => onEditManual(tx)} className="p-1.5 sm:p-2 text-muted-foreground hover:text-primary transition-colors" aria-label="Editar">
+                        <Pencil size={16} />
+                      </button>
+                    ) : null}
                     {onRemoveManual ? (
-                      <button onClick={() => onRemoveManual(tx.id)} className="p-1.5 sm:p-2 text-muted-foreground hover:text-destructive transition-colors">
+                      <button onClick={() => onRemoveManual(tx.id)} className="p-1.5 sm:p-2 text-muted-foreground hover:text-destructive transition-colors" aria-label="Remover">
                         <Trash2 size={16} />
                       </button>
                     ) : null}
