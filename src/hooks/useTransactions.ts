@@ -79,6 +79,36 @@ export function useTransactions() {
     [user]
   );
 
+  const updateTransaction = useCallback(
+    async (id: string, patch: Partial<Omit<Transaction, "id">>) => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("manual_transactions")
+        .update({
+          ...(patch.description !== undefined && { description: patch.description }),
+          ...(patch.amount !== undefined && { amount: patch.amount }),
+          ...(patch.type !== undefined && { type: patch.type }),
+          ...(patch.category !== undefined && { category: patch.category }),
+          ...(patch.date !== undefined && { date: patch.date }),
+          ...(patch.notes !== undefined && { notes: patch.notes || null }),
+          ...(patch.card_id !== undefined && { card_id: patch.card_id || null }),
+          ...(patch.payment_method !== undefined && { payment_method: patch.payment_method || "pix" }),
+        })
+        .eq("id", id)
+        .select("id, description, amount, type, category, date, notes, card_id, payment_method")
+        .single();
+      if (error) {
+        toast.error("Erro ao atualizar transação");
+      } else if (data) {
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === id ? { ...data, type: data.type as "income" | "expense" } : t)),
+        );
+        toast.success("Transação atualizada");
+      }
+    },
+    [user],
+  );
+
   const removeTransaction = useCallback(
     async (id: string) => {
       if (!user) return;
@@ -97,5 +127,5 @@ export function useTransactions() {
     [user]
   );
 
-  return { transactions, loading, addTransaction, removeTransaction };
+  return { transactions, loading, addTransaction, updateTransaction, removeTransaction };
 }
