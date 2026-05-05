@@ -136,7 +136,7 @@ export function useSharedGoals() {
           name: input.name.trim(),
           target_amount: input.target_amount,
           preset_key: input.preset_key,
-          invite_code: "TEMPCODE",
+          invite_code: "",
           created_by: user.id,
         })
         .select("*")
