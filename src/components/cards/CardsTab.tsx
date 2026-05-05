@@ -345,7 +345,7 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <CreditCard size={16} className="text-primary" /> Meus cartões
         </h3>
-        <Button onClick={() => setFormOpen(true)} size="sm" className="gradient-primary border-0 text-white">
+        <Button onClick={() => { setEditingCard(null); setEditingCardId(null); setFormOpen(true); }} size="sm" className="gradient-primary border-0 text-white">
           <Plus size={14} className="mr-1" /> Adicionar
         </Button>
       </div>
