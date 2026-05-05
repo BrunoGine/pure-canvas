@@ -45,19 +45,9 @@ export const useCertificates = () => {
   const issue = useMutation({
     mutationFn: async (course_id: string) => {
       if (!user) return null;
-      // Idempotent
-      const { data: existing } = await (supabase as any)
-        .from("certificates")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("course_id", course_id)
-        .maybeSingle();
-      if (existing) return existing as Certificate;
-      const { data, error } = await (supabase as any)
-        .from("certificates")
-        .insert({ user_id: user.id, course_id })
-        .select()
-        .single();
+      const { data, error } = await (supabase as any).rpc("issue_certificate", {
+        _course_id: course_id,
+      });
       if (error) throw error;
       return data as Certificate;
     },
