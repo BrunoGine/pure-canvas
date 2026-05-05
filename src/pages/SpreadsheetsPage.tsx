@@ -385,6 +385,28 @@ const SpreadsheetsPage = () => {
                     </div>
                     <div className="flex items-center gap-2 ml-2">
                       <Switch checked={rec.active} onCheckedChange={(v) => toggleRecurring(rec.id, v)} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditRecId(rec.id);
+                          setEditRecInitial({
+                            description: rec.description,
+                            amount: rec.amount,
+                            type: rec.type,
+                            category: rec.category,
+                            day_of_month: rec.day_of_month,
+                            notes: rec.notes ?? null,
+                            payment_method: rec.payment_method ?? "pix",
+                            card_id: rec.card_id ?? null,
+                          });
+                          setEditRecOpen(true);
+                        }}
+                        className="text-muted-foreground hover:text-primary h-8 w-8"
+                        aria-label="Editar"
+                      >
+                        <Pencil size={14} />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => removeRecurring(rec.id)} className="text-destructive hover:text-destructive h-8 w-8">
                         <Trash2 size={14} />
                       </Button>
