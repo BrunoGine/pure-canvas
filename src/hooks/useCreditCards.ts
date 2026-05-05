@@ -66,6 +66,31 @@ export function useCreditCards() {
     [user]
   );
 
+  const updateCard = useCallback(
+    async (id: string, patch: Partial<Omit<CreditCard, "id">>) => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("credit_cards")
+        .update({
+          ...(patch.name !== undefined && { name: patch.name }),
+          ...(patch.bank !== undefined && { bank: patch.bank }),
+          ...(patch.brand !== undefined && { brand: patch.brand }),
+          ...(patch.closing_day !== undefined && { closing_day: patch.closing_day }),
+          ...(patch.color !== undefined && { color: patch.color }),
+        })
+        .eq("id", id)
+        .select("id, name, bank, brand, closing_day, color")
+        .single();
+      if (error) {
+        toast.error("Erro ao atualizar cartão");
+      } else if (data) {
+        setCards((prev) => prev.map((c) => (c.id === id ? data : c)));
+        toast.success("Cartão atualizado");
+      }
+    },
+    [user],
+  );
+
   const removeCard = useCallback(
     async (id: string) => {
       if (!user) return;
@@ -80,5 +105,5 @@ export function useCreditCards() {
     [user]
   );
 
-  return { cards, loading, addCard, removeCard };
+  return { cards, loading, addCard, updateCard, removeCard };
 }
