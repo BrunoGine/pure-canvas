@@ -6,48 +6,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { BANKS, BRANDS, CARD_COLORS, getBank } from "./bankBrandData";
 import CardVisual from "./CardVisual";
-import { Plus } from "lucide-react";
+import { Plus, Save } from "lucide-react";
+
+export interface CardFormValues {
+  name: string;
+  bank: string;
+  brand: string;
+  closing_day: number;
+  color: string;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSubmit: (card: { name: string; bank: string; brand: string; closing_day: number; color: string }) => void;
+  onSubmit: (card: CardFormValues) => void;
+  initial?: CardFormValues | null;
 }
 
-const CardForm = ({ open, onOpenChange, onSubmit }: Props) => {
-  const [name, setName] = useState("");
-  const [bank, setBank] = useState("nubank");
-  const [brand, setBrand] = useState("mastercard");
-  const [closingDay, setClosingDay] = useState("10");
-  const [color, setColor] = useState(getBank("nubank").color);
-  const [colorTouched, setColorTouched] = useState(false);
+const CardForm = ({ open, onOpenChange, onSubmit, initial }: Props) => {
+  const isEdit = !!initial;
+  const [name, setName] = useState(initial?.name ?? "");
+  const [bank, setBank] = useState(initial?.bank ?? "nubank");
+  const [brand, setBrand] = useState(initial?.brand ?? "mastercard");
+  const [closingDay, setClosingDay] = useState(String(initial?.closing_day ?? 10));
+  const [color, setColor] = useState(initial?.color ?? getBank("nubank").color);
+  const [colorTouched, setColorTouched] = useState(!!initial);
+
+  useEffect(() => {
+    if (open) {
+      setName(initial?.name ?? "");
+      setBank(initial?.bank ?? "nubank");
+      setBrand(initial?.brand ?? "mastercard");
+      setClosingDay(String(initial?.closing_day ?? 10));
+      setColor(initial?.color ?? getBank("nubank").color);
+      setColorTouched(!!initial);
+    }
+  }, [open, initial]);
 
   useEffect(() => {
     if (!colorTouched) setColor(getBank(bank).color);
   }, [bank, colorTouched]);
 
-  const reset = () => {
-    setName("");
-    setBank("nubank");
-    setBrand("mastercard");
-    setClosingDay("10");
-    setColor(getBank("nubank").color);
-    setColorTouched(false);
-  };
-
   const handleSubmit = () => {
     if (!name.trim()) return;
     const day = Math.min(31, Math.max(1, parseInt(closingDay) || 1));
     onSubmit({ name: name.trim(), bank, brand, closing_day: day, color });
-    reset();
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-card border-border/30 max-w-md">
         <DialogHeader>
-          <DialogTitle>Novo Cartão</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar Cartão" : "Novo Cartão"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -121,7 +132,8 @@ const CardForm = ({ open, onOpenChange, onSubmit }: Props) => {
           </div>
 
           <Button onClick={handleSubmit} className="w-full gradient-primary border-0 text-white">
-            <Plus size={16} className="mr-1" /> Adicionar cartão
+            {isEdit ? <Save size={16} className="mr-1" /> : <Plus size={16} className="mr-1" />}
+            {isEdit ? "Salvar alterações" : "Adicionar cartão"}
           </Button>
         </div>
       </DialogContent>
