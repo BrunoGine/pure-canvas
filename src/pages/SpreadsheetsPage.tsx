@@ -519,7 +519,24 @@ const SpreadsheetsPage = () => {
             </DialogContent>
           </Dialog>
 
-          <TransactionTable manualTransactions={filteredTransactions} onRemoveManual={remove} />
+          <TransactionTable
+            manualTransactions={filteredTransactions}
+            onRemoveManual={remove}
+            onEditManual={(tx) => {
+              setEditTxId(tx.id);
+              setEditTxInitial({
+                description: tx.description,
+                amount: tx.amount,
+                type: tx.type,
+                category: tx.category,
+                date: tx.date,
+                notes: tx.notes ?? null,
+                payment_method: tx.payment_method ?? "pix",
+                card_id: (tx as any).card_id ?? null,
+              });
+              setEditTxOpen(true);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-4">
