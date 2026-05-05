@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet, CreditCard } from "lucide-react";
+import { Plus, Table2, Download, BarChart3, Trash2, Filter, CalendarIcon, Repeat, Power, Wallet, CreditCard, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,13 +24,21 @@ import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import CardsTab from "@/components/cards/CardsTab";
 import { paymentMethods } from "@/lib/paymentMethods";
+import TransactionEditDialog, { EditableTransaction } from "@/components/spreadsheets/TransactionEditDialog";
 
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
-  const { transactions, loading, addTransaction: addTx, removeTransaction: removeTx } = useTransactions();
-  const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring } = useRecurringTransactions();
+  const { transactions, loading, addTransaction: addTx, updateTransaction: updateTx, removeTransaction: removeTx } = useTransactions();
+  const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring, updateRecurring } = useRecurringTransactions();
   const { cards } = useCreditCards();
+
+  const [editTxId, setEditTxId] = useState<string | null>(null);
+  const [editTxOpen, setEditTxOpen] = useState(false);
+  const [editTxInitial, setEditTxInitial] = useState<EditableTransaction | null>(null);
+  const [editRecId, setEditRecId] = useState<string | null>(null);
+  const [editRecOpen, setEditRecOpen] = useState(false);
+  const [editRecInitial, setEditRecInitial] = useState<EditableTransaction | null>(null);
 
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
@@ -377,6 +385,28 @@ const SpreadsheetsPage = () => {
                     </div>
                     <div className="flex items-center gap-2 ml-2">
                       <Switch checked={rec.active} onCheckedChange={(v) => toggleRecurring(rec.id, v)} />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditRecId(rec.id);
+                          setEditRecInitial({
+                            description: rec.description,
+                            amount: rec.amount,
+                            type: rec.type,
+                            category: rec.category,
+                            day_of_month: rec.day_of_month,
+                            notes: rec.notes ?? null,
+                            payment_method: rec.payment_method ?? "pix",
+                            card_id: rec.card_id ?? null,
+                          });
+                          setEditRecOpen(true);
+                        }}
+                        className="text-muted-foreground hover:text-primary h-8 w-8"
+                        aria-label="Editar"
+                      >
+                        <Pencil size={14} />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => removeRecurring(rec.id)} className="text-destructive hover:text-destructive h-8 w-8">
                         <Trash2 size={14} />
                       </Button>
@@ -489,7 +519,24 @@ const SpreadsheetsPage = () => {
             </DialogContent>
           </Dialog>
 
-          <TransactionTable manualTransactions={filteredTransactions} onRemoveManual={remove} />
+          <TransactionTable
+            manualTransactions={filteredTransactions}
+            onRemoveManual={remove}
+            onEditManual={(tx) => {
+              setEditTxId(tx.id);
+              setEditTxInitial({
+                description: tx.description,
+                amount: tx.amount,
+                type: tx.type,
+                category: tx.category,
+                date: tx.date,
+                notes: tx.notes ?? null,
+                payment_method: tx.payment_method ?? "pix",
+                card_id: (tx as any).card_id ?? null,
+              });
+              setEditTxOpen(true);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-4">
@@ -518,9 +565,47 @@ const SpreadsheetsPage = () => {
         </TabsContent>
 
         <TabsContent value="cards" className="space-y-4">
-          <CardsTab transactions={transactions} onRemoveTransaction={remove} />
+          <CardsTab
+            transactions={transactions}
+            onRemoveTransaction={remove}
+            onEditTransaction={(tx) => {
+              setEditTxId(tx.id);
+              setEditTxInitial({
+                description: tx.description,
+                amount: tx.amount,
+                type: tx.type,
+                category: tx.category,
+                date: tx.date,
+                notes: tx.notes ?? null,
+                payment_method: tx.payment_method ?? "pix",
+                card_id: tx.card_id ?? null,
+              });
+              setEditTxOpen(true);
+            }}
+          />
         </TabsContent>
       </Tabs>
+
+      <TransactionEditDialog
+        open={editTxOpen}
+        onOpenChange={setEditTxOpen}
+        initial={editTxInitial}
+        categories={categories}
+        variant="normal"
+        onSave={(patch) => {
+          if (editTxId) updateTx(editTxId, patch);
+        }}
+      />
+      <TransactionEditDialog
+        open={editRecOpen}
+        onOpenChange={setEditRecOpen}
+        initial={editRecInitial}
+        categories={categories}
+        variant="recurring"
+        onSave={(patch) => {
+          if (editRecId) updateRecurring(editRecId, patch);
+        }}
+      />
     </div>
   );
 };

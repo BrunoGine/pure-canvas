@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, ArrowLeft, Trash2, CreditCard, Receipt } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CreditCard, Receipt, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,20 +8,23 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Sector } fro
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { Transaction } from "@/hooks/useTransactions";
 import CardVisual from "./CardVisual";
-import CardForm from "./CardForm";
+import CardForm, { CardFormValues } from "./CardForm";
 import TransactionTable from "@/components/spreadsheets/TransactionTable";
 import { computeCardInvoices, formatBRL, formatDateShort } from "@/lib/invoice";
 
 interface Props {
   transactions: Transaction[];
   onRemoveTransaction: (id: string) => void;
+  onEditTransaction?: (tx: Transaction) => void;
 }
 
 const COLORS = ["#6366F1", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6", "#06B6D4", "#F97316", "#14B8A6"];
 
-const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
-  const { cards, addCard, removeCard } = useCreditCards();
+const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Props) => {
+  const { cards, addCard, updateCard, removeCard } = useCreditCards();
   const [formOpen, setFormOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<CardFormValues | null>(null);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -89,19 +92,39 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
           <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)} className="gap-1">
             <ArrowLeft size={16} /> Voltar
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (confirm(`Remover cartão "${selected.name}"?`)) {
-                removeCard(selected.id);
-                setSelectedId(null);
-              }
-            }}
-            className="text-destructive hover:text-destructive gap-1"
-          >
-            <Trash2 size={14} /> Remover
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setEditingCardId(selected.id);
+                setEditingCard({
+                  name: selected.name,
+                  bank: selected.bank,
+                  brand: selected.brand,
+                  closing_day: selected.closing_day,
+                  color: selected.color,
+                });
+                setFormOpen(true);
+              }}
+              className="gap-1"
+            >
+              <Pencil size={14} /> Editar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (confirm(`Remover cartão "${selected.name}"?`)) {
+                  removeCard(selected.id);
+                  setSelectedId(null);
+                }
+              }}
+              className="text-destructive hover:text-destructive gap-1"
+            >
+              <Trash2 size={14} /> Remover
+            </Button>
+          </div>
         </div>
 
         <div className="max-w-sm mx-auto">
@@ -310,7 +333,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
 
         <div>
           <h3 className="text-sm font-semibold mb-2">Transações deste cartão</h3>
-          <TransactionTable manualTransactions={cardTxs} onRemoveManual={onRemoveTransaction} />
+          <TransactionTable manualTransactions={cardTxs} onRemoveManual={onRemoveTransaction} onEditManual={onEditTransaction ? (tx) => onEditTransaction(tx as Transaction) : undefined} />
         </div>
       </motion.div>
     );
@@ -322,7 +345,7 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <CreditCard size={16} className="text-primary" /> Meus cartões
         </h3>
-        <Button onClick={() => setFormOpen(true)} size="sm" className="gradient-primary border-0 text-white">
+        <Button onClick={() => { setEditingCard(null); setEditingCardId(null); setFormOpen(true); }} size="sm" className="gradient-primary border-0 text-white">
           <Plus size={14} className="mr-1" /> Adicionar
         </Button>
       </div>
@@ -355,7 +378,15 @@ const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
         </div>
       )}
 
-      <CardForm open={formOpen} onOpenChange={setFormOpen} onSubmit={addCard} />
+      <CardForm
+        open={formOpen}
+        onOpenChange={(v) => { setFormOpen(v); if (!v) { setEditingCard(null); setEditingCardId(null); } }}
+        initial={editingCard}
+        onSubmit={(values) => {
+          if (editingCardId) updateCard(editingCardId, values);
+          else addCard(values);
+        }}
+      />
     </div>
   );
 };
