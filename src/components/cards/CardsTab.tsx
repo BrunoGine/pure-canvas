@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, ArrowLeft, Trash2, CreditCard, Receipt } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CreditCard, Receipt, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,20 +8,23 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Sector } fro
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { Transaction } from "@/hooks/useTransactions";
 import CardVisual from "./CardVisual";
-import CardForm from "./CardForm";
+import CardForm, { CardFormValues } from "./CardForm";
 import TransactionTable from "@/components/spreadsheets/TransactionTable";
 import { computeCardInvoices, formatBRL, formatDateShort } from "@/lib/invoice";
 
 interface Props {
   transactions: Transaction[];
   onRemoveTransaction: (id: string) => void;
+  onEditTransaction?: (tx: Transaction) => void;
 }
 
 const COLORS = ["#6366F1", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6", "#06B6D4", "#F97316", "#14B8A6"];
 
-const CardsTab = ({ transactions, onRemoveTransaction }: Props) => {
-  const { cards, addCard, removeCard } = useCreditCards();
+const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Props) => {
+  const { cards, addCard, updateCard, removeCard } = useCreditCards();
   const [formOpen, setFormOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<CardFormValues | null>(null);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
