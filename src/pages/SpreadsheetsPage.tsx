@@ -29,9 +29,16 @@ import TransactionEditDialog, { EditableTransaction } from "@/components/spreads
 const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
-  const { transactions, loading, addTransaction: addTx, removeTransaction: removeTx } = useTransactions();
-  const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring } = useRecurringTransactions();
+  const { transactions, loading, addTransaction: addTx, updateTransaction: updateTx, removeTransaction: removeTx } = useTransactions();
+  const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring, updateRecurring } = useRecurringTransactions();
   const { cards } = useCreditCards();
+
+  const [editTxId, setEditTxId] = useState<string | null>(null);
+  const [editTxOpen, setEditTxOpen] = useState(false);
+  const [editTxInitial, setEditTxInitial] = useState<EditableTransaction | null>(null);
+  const [editRecId, setEditRecId] = useState<string | null>(null);
+  const [editRecOpen, setEditRecOpen] = useState(false);
+  const [editRecInitial, setEditRecInitial] = useState<EditableTransaction | null>(null);
 
   const [desc, setDesc] = useState("");
   const [amount, setAmount] = useState("");
