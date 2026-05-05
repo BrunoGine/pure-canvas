@@ -92,19 +92,39 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
           <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)} className="gap-1">
             <ArrowLeft size={16} /> Voltar
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              if (confirm(`Remover cartão "${selected.name}"?`)) {
-                removeCard(selected.id);
-                setSelectedId(null);
-              }
-            }}
-            className="text-destructive hover:text-destructive gap-1"
-          >
-            <Trash2 size={14} /> Remover
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setEditingCardId(selected.id);
+                setEditingCard({
+                  name: selected.name,
+                  bank: selected.bank,
+                  brand: selected.brand,
+                  closing_day: selected.closing_day,
+                  color: selected.color,
+                });
+                setFormOpen(true);
+              }}
+              className="gap-1"
+            >
+              <Pencil size={14} /> Editar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (confirm(`Remover cartão "${selected.name}"?`)) {
+                  removeCard(selected.id);
+                  setSelectedId(null);
+                }
+              }}
+              className="text-destructive hover:text-destructive gap-1"
+            >
+              <Trash2 size={14} /> Remover
+            </Button>
+          </div>
         </div>
 
         <div className="max-w-sm mx-auto">
