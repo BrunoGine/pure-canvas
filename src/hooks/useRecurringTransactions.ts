@@ -114,5 +114,34 @@ export function useRecurringTransactions() {
     []
   );
 
-  return { recurringTransactions, loading, addRecurring, removeRecurring, toggleRecurring };
+  const updateRecurring = useCallback(
+    async (id: string, patch: Partial<Omit<RecurringTransaction, "id" | "active" | "last_executed_at">>) => {
+      const { data, error } = await supabase
+        .from("recurring_transactions")
+        .update({
+          ...(patch.description !== undefined && { description: patch.description }),
+          ...(patch.amount !== undefined && { amount: patch.amount }),
+          ...(patch.type !== undefined && { type: patch.type }),
+          ...(patch.category !== undefined && { category: patch.category }),
+          ...(patch.notes !== undefined && { notes: patch.notes || null }),
+          ...(patch.day_of_month !== undefined && { day_of_month: patch.day_of_month }),
+          ...(patch.payment_method !== undefined && { payment_method: patch.payment_method || "pix" }),
+          ...(patch.card_id !== undefined && { card_id: patch.card_id || null }),
+        })
+        .eq("id", id)
+        .select("id, description, amount, type, category, notes, day_of_month, active, payment_method, card_id, last_executed_at")
+        .single();
+      if (error) {
+        toast.error("Erro ao atualizar recorrência");
+      } else if (data) {
+        setRecurringTransactions((prev) =>
+          prev.map((r) => (r.id === id ? { ...data, type: data.type as "income" | "expense" } : r)),
+        );
+        toast.success("Recorrência atualizada");
+      }
+    },
+    [],
+  );
+
+  return { recurringTransactions, loading, addRecurring, removeRecurring, toggleRecurring, updateRecurring };
 }
