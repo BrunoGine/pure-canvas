@@ -333,7 +333,7 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
 
         <div>
           <h3 className="text-sm font-semibold mb-2">Transações deste cartão</h3>
-          <TransactionTable manualTransactions={cardTxs} onRemoveManual={onRemoveTransaction} />
+          <TransactionTable manualTransactions={cardTxs} onRemoveManual={onRemoveTransaction} onEditManual={onEditTransaction ? (tx) => onEditTransaction(tx as Transaction) : undefined} />
         </div>
       </motion.div>
     );
