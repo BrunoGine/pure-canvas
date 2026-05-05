@@ -823,6 +823,21 @@ export type Database = {
         Args: { _contribution_id: string }
         Returns: string
       }
+      award_user_badge: {
+        Args: { _badge_key: string }
+        Returns: {
+          badge_key: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_badges"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       award_xp: {
         Args: { _amount: number; _user_id: string }
         Returns: {
@@ -877,6 +892,22 @@ export type Database = {
       is_shared_goal_member: {
         Args: { _goal: string; _user: string }
         Returns: boolean
+      }
+      issue_certificate: {
+        Args: { _course_id: string }
+        Returns: {
+          code: string
+          course_id: string
+          id: string
+          issued_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "certificates"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       update_streak: {
         Args: { _user_id: string }

@@ -32,21 +32,11 @@ export const useBadges = () => {
   const award = useMutation({
     mutationFn: async (badge_key: string) => {
       if (!user) return null;
-      // Idempotent: ignore if already exists
-      const { data: existing } = await (supabase as any)
-        .from("user_badges")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("badge_key", badge_key)
-        .maybeSingle();
-      if (existing) return { existed: true };
-      const { data, error } = await (supabase as any)
-        .from("user_badges")
-        .insert({ user_id: user.id, badge_key })
-        .select()
-        .single();
+      const { data, error } = await (supabase as any).rpc("award_user_badge", {
+        _badge_key: badge_key,
+      });
       if (error) throw error;
-      return { existed: false, badge: data };
+      return { badge: data };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["user_badges", user?.id] }),
   });
