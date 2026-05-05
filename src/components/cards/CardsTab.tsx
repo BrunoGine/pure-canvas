@@ -378,7 +378,15 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
         </div>
       )}
 
-      <CardForm open={formOpen} onOpenChange={setFormOpen} onSubmit={addCard} />
+      <CardForm
+        open={formOpen}
+        onOpenChange={(v) => { setFormOpen(v); if (!v) { setEditingCard(null); setEditingCardId(null); } }}
+        initial={editingCard}
+        onSubmit={(values) => {
+          if (editingCardId) updateCard(editingCardId, values);
+          else addCard(values);
+        }}
+      />
     </div>
   );
 };
