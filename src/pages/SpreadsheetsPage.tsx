@@ -58,10 +58,11 @@ const SpreadsheetsPage = () => {
     const saved = localStorage.getItem("finapp-removed-categories");
     return saved ? JSON.parse(saved) : [];
   });
-  const [budgets, setBudgets] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem("finapp-budgets");
-    return saved ? JSON.parse(saved) : {};
-  });
+  const { budgets: budgetsList } = useBudgets();
+  const budgets = budgetsList.reduce<Record<string, number>>((acc, b) => {
+    acc[b.category] = b.limit_amount;
+    return acc;
+  }, {});
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
