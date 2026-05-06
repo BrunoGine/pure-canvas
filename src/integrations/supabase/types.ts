@@ -148,6 +148,36 @@ export type Database = {
           },
         ]
       }
+      budgets: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          limit_amount: number
+          period: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          limit_amount: number
+          period?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          limit_amount?: number
+          period?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           code: string
