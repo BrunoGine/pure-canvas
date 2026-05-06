@@ -112,10 +112,6 @@ const SpreadsheetsPage = () => {
     if (selectedCategory === cat) setSelectedCategory(null);
   };
 
-  const updateBudgets = (b: Record<string, number>) => {
-    setBudgets(b);
-    localStorage.setItem("finapp-budgets", JSON.stringify(b));
-  };
 
   const addTransaction = () => {
     if (!desc || !amount) return;
