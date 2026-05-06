@@ -12,6 +12,10 @@ export interface CreditCard {
   color: string;
 }
 
+// Module-level pub/sub so all hook instances stay in sync
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach((l) => l());
+
 export function useCreditCards() {
   const { user } = useAuth();
   const [cards, setCards] = useState<CreditCard[]>([]);
@@ -19,7 +23,6 @@ export function useCreditCards() {
 
   const fetchCards = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
     const { data, error } = await supabase
       .from("credit_cards")
       .select("id, name, bank, brand, closing_day, color")
@@ -36,7 +39,13 @@ export function useCreditCards() {
   }, [user]);
 
   useEffect(() => {
+    setLoading(true);
     fetchCards();
+    const l = () => fetchCards();
+    listeners.add(l);
+    return () => {
+      listeners.delete(l);
+    };
   }, [fetchCards]);
 
   const addCard = useCallback(
@@ -59,8 +68,8 @@ export function useCreditCards() {
         console.error("Error adding card:", error);
         toast.error("Erro ao adicionar cartão");
       } else if (data) {
-        setCards((prev) => [data, ...prev]);
         toast.success("Cartão adicionado");
+        notify();
       }
     },
     [user]
@@ -84,8 +93,8 @@ export function useCreditCards() {
       if (error) {
         toast.error("Erro ao atualizar cartão");
       } else if (data) {
-        setCards((prev) => prev.map((c) => (c.id === id ? data : c)));
         toast.success("Cartão atualizado");
+        notify();
       }
     },
     [user],
@@ -98,8 +107,8 @@ export function useCreditCards() {
       if (error) {
         toast.error("Erro ao remover cartão");
       } else {
-        setCards((prev) => prev.filter((c) => c.id !== id));
         toast.success("Cartão removido");
+        notify();
       }
     },
     [user]
