@@ -557,11 +557,9 @@ const SpreadsheetsPage = () => {
         </TabsContent>
 
         <TabsContent value="budget" className="space-y-4">
-          <CategoryBudget
+          <BudgetsTab
             transactions={txForCharts}
             categories={categories.filter(c => c !== "Outros")}
-            budgets={budgets}
-            onUpdateBudgets={updateBudgets}
           />
         </TabsContent>
 
