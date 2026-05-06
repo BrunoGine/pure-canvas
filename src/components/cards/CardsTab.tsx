@@ -335,6 +335,16 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
           <h3 className="text-sm font-semibold mb-2">Transações deste cartão</h3>
           <TransactionTable manualTransactions={cardTxs} onRemoveManual={onRemoveTransaction} onEditManual={onEditTransaction ? (tx) => onEditTransaction(tx as Transaction) : undefined} />
         </div>
+
+        <CardForm
+          open={formOpen}
+          onOpenChange={(v) => { setFormOpen(v); if (!v) { setEditingCard(null); setEditingCardId(null); } }}
+          initial={editingCard}
+          onSubmit={(values) => {
+            if (editingCardId) updateCard(editingCardId, values);
+            else addCard(values);
+          }}
+        />
       </motion.div>
     );
   }
