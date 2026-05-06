@@ -16,7 +16,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import TransactionTable from "@/components/spreadsheets/TransactionTable";
 import CategoryBreakdown from "@/components/spreadsheets/CategoryBreakdown";
 import MonthlyOverview from "@/components/spreadsheets/MonthlyOverview";
-import CategoryBudget from "@/components/spreadsheets/CategoryBudget";
+import BudgetsTab from "@/components/spreadsheets/BudgetsTab";
+import { useBudgets } from "@/hooks/useBudgets";
 import CategorySummaryCards from "@/components/spreadsheets/CategorySummaryCards";
 import CategorySpendingDialog from "@/components/spreadsheets/CategorySpendingDialog";
 import { useTransactions } from "@/hooks/useTransactions";
@@ -57,10 +58,11 @@ const SpreadsheetsPage = () => {
     const saved = localStorage.getItem("finapp-removed-categories");
     return saved ? JSON.parse(saved) : [];
   });
-  const [budgets, setBudgets] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem("finapp-budgets");
-    return saved ? JSON.parse(saved) : {};
-  });
+  const { budgets: budgetsList } = useBudgets();
+  const budgets = budgetsList.reduce<Record<string, number>>((acc, b) => {
+    acc[b.category] = b.limit_amount;
+    return acc;
+  }, {});
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [removeCategoryDialogOpen, setRemoveCategoryDialogOpen] = useState(false);
@@ -110,10 +112,6 @@ const SpreadsheetsPage = () => {
     if (selectedCategory === cat) setSelectedCategory(null);
   };
 
-  const updateBudgets = (b: Record<string, number>) => {
-    setBudgets(b);
-    localStorage.setItem("finapp-budgets", JSON.stringify(b));
-  };
 
   const addTransaction = () => {
     if (!desc || !amount) return;
@@ -556,11 +554,9 @@ const SpreadsheetsPage = () => {
         </TabsContent>
 
         <TabsContent value="budget" className="space-y-4">
-          <CategoryBudget
+          <BudgetsTab
             transactions={txForCharts}
             categories={categories.filter(c => c !== "Outros")}
-            budgets={budgets}
-            onUpdateBudgets={updateBudgets}
           />
         </TabsContent>
 
