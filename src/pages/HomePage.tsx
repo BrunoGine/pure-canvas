@@ -180,7 +180,7 @@ const HomePage = () => {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Faturas do crédito</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {creditInvoices.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  − R$ {fmt(creditInvoices)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
