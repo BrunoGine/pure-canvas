@@ -149,7 +149,7 @@ const HomePage = () => {
                 <div>
                   <p className="text-white/50 text-[10px] uppercase tracking-wider">Saídas</p>
                   <p className="text-white text-sm font-semibold">
-                    R$ {expenses.toLocaleString("pt-BR")}
+                    R$ {hideBalances ? "••••" : expenses.toLocaleString("pt-BR")}
                   </p>
                 </div>
               </div>
