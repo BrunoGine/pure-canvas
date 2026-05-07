@@ -16,6 +16,10 @@ const HomePage = () => {
   const { transactions } = useTransactions();
   const { recurringTransactions } = useRecurringTransactions();
   const [userName, setUserName] = useState("Usuário");
+  const [hideBalances, setHideBalances] = useState(false);
+
+  const fmt = (v: number) =>
+    hideBalances ? "••••••" : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
   useEffect(() => {
     if (!user) return;
