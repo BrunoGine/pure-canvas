@@ -75,7 +75,7 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual, onEditManua
           </thead>
           <tbody className="divide-y divide-border">
             {groups.map(group => (
-              <>
+              <Fragment key={group.key}>
                 <tr key={`h-${group.key}`} className="bg-muted/30">
                   <td colSpan={4} className="px-3 sm:px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {group.label}
