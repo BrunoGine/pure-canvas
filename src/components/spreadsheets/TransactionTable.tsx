@@ -122,7 +122,7 @@ const TransactionTable = ({ manualTransactions = [], onRemoveManual, onEditManua
                     </td>
                   </tr>
                 ))}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
