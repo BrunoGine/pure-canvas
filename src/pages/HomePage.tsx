@@ -128,7 +128,7 @@ const HomePage = () => {
               <p className="text-white/70 text-sm font-medium">Saldo Atual</p>
             </div>
             <p className="text-white text-3xl font-display font-bold mt-2 glow-text">
-              R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              R$ {fmt(balance)}
             </p>
             <div className="flex gap-6 mt-5">
               <div className="flex items-center gap-3">
