@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote, ShieldCheck } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -16,6 +16,10 @@ const HomePage = () => {
   const { transactions } = useTransactions();
   const { recurringTransactions } = useRecurringTransactions();
   const [userName, setUserName] = useState("Usuário");
+  const [hideBalances, setHideBalances] = useState(false);
+
+  const fmt = (v: number) =>
+    hideBalances ? "••••••" : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
   useEffect(() => {
     if (!user) return;
@@ -85,12 +89,22 @@ const HomePage = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles size={14} className="text-primary" />
-          <p className="text-muted-foreground text-sm">Olá, {userName} 👋</p>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles size={14} className="text-primary" />
+            <p className="text-muted-foreground text-sm">Olá, {userName} 👋</p>
+          </div>
+          <h1 className="font-display text-2xl font-bold">Seu Resumo</h1>
         </div>
-        <h1 className="font-display text-2xl font-bold">Seu Resumo</h1>
+        <button
+          type="button"
+          onClick={() => setHideBalances((v) => !v)}
+          aria-label={hideBalances ? "Mostrar saldos" : "Ocultar saldos"}
+          className="mt-1 w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 flex items-center justify-center text-primary transition-colors"
+        >
+          {hideBalances ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
       </motion.div>
 
       {/* Balance Cards — Liquid Glass */}
@@ -114,7 +128,7 @@ const HomePage = () => {
               <p className="text-white/70 text-sm font-medium">Saldo Atual</p>
             </div>
             <p className="text-white text-3xl font-display font-bold mt-2 glow-text">
-              R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              R$ {fmt(balance)}
             </p>
             <div className="flex gap-6 mt-5">
               <div className="flex items-center gap-3">
@@ -124,7 +138,7 @@ const HomePage = () => {
                 <div>
                   <p className="text-white/50 text-[10px] uppercase tracking-wider">Entradas</p>
                   <p className="text-white text-sm font-semibold">
-                    R$ {income.toLocaleString("pt-BR")}
+                    R$ {hideBalances ? "••••" : income.toLocaleString("pt-BR")}
                   </p>
                 </div>
               </div>
@@ -135,7 +149,7 @@ const HomePage = () => {
                 <div>
                   <p className="text-white/50 text-[10px] uppercase tracking-wider">Saídas</p>
                   <p className="text-white text-sm font-semibold">
-                    R$ {expenses.toLocaleString("pt-BR")}
+                    R$ {hideBalances ? "••••" : expenses.toLocaleString("pt-BR")}
                   </p>
                 </div>
               </div>
@@ -157,7 +171,7 @@ const HomePage = () => {
               <p className="text-muted-foreground text-sm font-medium">Disponível para Uso</p>
             </div>
             <p className={`text-3xl font-display font-bold mt-2 ${availableBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-              R$ {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              R$ {fmt(availableBalance)}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
               Saldo após reservar faturas e recorrências do mês
@@ -166,13 +180,13 @@ const HomePage = () => {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Faturas do crédito</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {creditInvoices.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  − R$ {fmt(creditInvoices)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Recorrências pendentes</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {recurringPending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  − R$ {fmt(recurringPending)}
                 </span>
               </div>
             </div>
