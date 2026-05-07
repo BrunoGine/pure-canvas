@@ -31,10 +31,9 @@ const SlideRoutes = ({
   children: JSX.Element;
 }) => {
   const location = useLocation();
-  const forced = isActive ? undefined : { pathname: base, search: "", hash: "", state: null, key: "preview" };
   const path = base === "/" ? "/*" : `${base}/*`;
   return (
-    <Routes location={isActive ? location : forced}>
+    <Routes location={isActive ? location : base}>
       <Route path={path} element={children} />
     </Routes>
   );
