@@ -171,7 +171,7 @@ const HomePage = () => {
               <p className="text-muted-foreground text-sm font-medium">Disponível para Uso</p>
             </div>
             <p className={`text-3xl font-display font-bold mt-2 ${availableBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-              R$ {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              R$ {fmt(availableBalance)}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
               Saldo após reservar faturas e recorrências do mês
