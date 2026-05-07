@@ -89,12 +89,22 @@ const HomePage = () => {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles size={14} className="text-primary" />
-          <p className="text-muted-foreground text-sm">Olá, {userName} 👋</p>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles size={14} className="text-primary" />
+            <p className="text-muted-foreground text-sm">Olá, {userName} 👋</p>
+          </div>
+          <h1 className="font-display text-2xl font-bold">Seu Resumo</h1>
         </div>
-        <h1 className="font-display text-2xl font-bold">Seu Resumo</h1>
+        <button
+          type="button"
+          onClick={() => setHideBalances((v) => !v)}
+          aria-label={hideBalances ? "Mostrar saldos" : "Ocultar saldos"}
+          className="mt-1 w-10 h-10 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 flex items-center justify-center text-primary transition-colors"
+        >
+          {hideBalances ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
       </motion.div>
 
       {/* Balance Cards — Liquid Glass */}
