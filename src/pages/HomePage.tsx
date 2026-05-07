@@ -186,7 +186,7 @@ const HomePage = () => {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Recorrências pendentes</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {recurringPending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  − R$ {fmt(recurringPending)}
                 </span>
               </div>
             </div>
