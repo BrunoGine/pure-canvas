@@ -7,6 +7,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import FinancialProfileSection from "@/components/profile/FinancialProfileSection";
 
 const ProfilePage = () => {
   const { theme, toggleTheme } = useTheme();
@@ -116,6 +117,8 @@ const ProfilePage = () => {
           )}
         </div>
       </motion.div>
+
+      <FinancialProfileSection />
 
       {/* Theme Toggle */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
