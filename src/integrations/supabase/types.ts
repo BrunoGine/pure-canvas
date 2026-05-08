@@ -484,24 +484,39 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
+          financial_goal: string | null
+          has_emergency_fund: boolean | null
           id: string
+          monthly_income: number | null
+          onboarding_completed: boolean
           theme_preference: string | null
+          tracks_expenses: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          financial_goal?: string | null
+          has_emergency_fund?: boolean | null
           id: string
+          monthly_income?: number | null
+          onboarding_completed?: boolean
           theme_preference?: string | null
+          tracks_expenses?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          financial_goal?: string | null
+          has_emergency_fund?: boolean | null
           id?: string
+          monthly_income?: number | null
+          onboarding_completed?: boolean
           theme_preference?: string | null
+          tracks_expenses?: string | null
           updated_at?: string
         }
         Relationships: []
