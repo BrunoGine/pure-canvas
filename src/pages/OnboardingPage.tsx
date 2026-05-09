@@ -134,7 +134,9 @@ const OnboardingPage = () => {
       }
 
       localStorage.removeItem(DRAFT_KEY);
-      navigate("/", { replace: true });
+      // Full reload so ProtectedRoutes re-fetches onboarding_completed=true
+      window.location.replace("/");
+      return;
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao salvar");
     } finally {
