@@ -61,13 +61,6 @@ const LoginForm = ({ onBack, onForgot, onSignup }: Props) => {
           <p className="text-sm text-muted-foreground mt-1">Bom te ver de novo.</p>
         </div>
 
-        <SocialAuthButtons mode="signin" />
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border/50" />
-          <span className="text-xs text-muted-foreground">ou</span>
-          <div className="h-px flex-1 bg-border/50" />
-        </div>
 
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
