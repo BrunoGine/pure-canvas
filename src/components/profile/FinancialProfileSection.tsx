@@ -63,12 +63,21 @@ const FinancialProfileSection = () => {
 
   const restartOnboarding = async () => {
     if (!user) return;
-    if (!confirm("Refazer o onboarding completo?")) return;
-    await supabase
+    const { error } = await supabase
       .from("profiles")
       .update({ onboarding_completed: false })
       .eq("id", user.id);
-    navigate("/onboarding");
+    if (error) {
+      toast.error("Erro ao reiniciar onboarding");
+      return;
+    }
+    try {
+      localStorage.removeItem("onboarding_draft_v1");
+    } catch {
+      /* ignore */
+    }
+    // Full reload so ProtectedRoutes re-fetches onboarding_completed=false
+    window.location.replace("/onboarding");
   };
 
   const recalcAndApply = async () => {
