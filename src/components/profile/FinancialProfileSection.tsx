@@ -76,8 +76,8 @@ const FinancialProfileSection = () => {
     } catch {
       /* ignore */
     }
-    // Full reload so ProtectedRoutes re-fetches onboarding_completed=false
-    window.location.replace("/onboarding");
+    // Client-side nav; ProtectedRoutes re-fetches on pathname change
+    navigate("/onboarding");
   };
 
   const recalcAndApply = async () => {
