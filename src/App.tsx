@@ -37,7 +37,7 @@ const ProtectedRoutes = () => {
       .eq("id", session.user.id)
       .maybeSingle()
       .then(({ data }) => setOnboardingDone(!!data?.onboarding_completed));
-  }, [session]);
+  }, [session, location.pathname]);
 
   if (loading) return <Spinner />;
   if (!session) return <Navigate to="/auth" replace />;
