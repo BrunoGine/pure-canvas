@@ -16,7 +16,24 @@ const HomePage = () => {
   const { transactions } = useTransactions();
   const { recurringTransactions } = useRecurringTransactions();
   const [userName, setUserName] = useState("Usuário");
-  const [hideBalances, setHideBalances] = useState(false);
+  const [hideBalances, setHideBalancesState] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("hide_balances_v1") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const setHideBalances = (v: boolean | ((p: boolean) => boolean)) => {
+    setHideBalancesState((prev) => {
+      const next = typeof v === "function" ? (v as (p: boolean) => boolean)(prev) : v;
+      try {
+        localStorage.setItem("hide_balances_v1", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   const fmt = (v: number) =>
     hideBalances ? "••••••" : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
