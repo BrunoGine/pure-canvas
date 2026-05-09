@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import SocialAuthButtons from "./SocialAuthButtons";
+
 
 interface Props {
   onBack: () => void;
@@ -75,13 +75,6 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
           </p>
         </div>
 
-        <SocialAuthButtons mode="signup" />
-
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-border/50" />
-          <span className="text-xs text-muted-foreground">ou</span>
-          <div className="h-px flex-1 bg-border/50" />
-        </div>
 
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-2">
