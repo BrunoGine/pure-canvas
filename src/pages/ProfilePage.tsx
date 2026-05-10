@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import FinancialProfileSection from "@/components/profile/FinancialProfileSection";
+import BusinessEntryCard from "@/components/business/BusinessEntryCard";
 
 const ProfilePage = () => {
   const { theme, toggleTheme } = useTheme();
@@ -117,6 +118,8 @@ const ProfilePage = () => {
           )}
         </div>
       </motion.div>
+
+      <BusinessEntryCard />
 
       <FinancialProfileSection />
 
