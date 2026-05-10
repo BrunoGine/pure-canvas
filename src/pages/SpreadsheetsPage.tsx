@@ -26,10 +26,15 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import CardsTab from "@/components/cards/CardsTab";
 import { paymentMethods } from "@/lib/paymentMethods";
 import TransactionEditDialog, { EditableTransaction } from "@/components/spreadsheets/TransactionEditDialog";
+import BalanceSheetCard from "@/components/business/BalanceSheetCard";
+import { useCompany } from "@/contexts/CompanyContext";
+import { BUSINESS_CATEGORIES } from "@/lib/businessCategories";
 
-const defaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
+const personalDefaultCategories = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Salário", "Freelance", "Outros"];
 
 const SpreadsheetsPage = () => {
+  const { mode } = useCompany();
+  const defaultCategories = mode === "business" ? BUSINESS_CATEGORIES : personalDefaultCategories;
   const { transactions, loading, addTransaction: addTx, updateTransaction: updateTx, removeTransaction: removeTx } = useTransactions();
   const { recurringTransactions, addRecurring, removeRecurring, toggleRecurring, updateRecurring } = useRecurringTransactions();
   const { cards } = useCreditCards();

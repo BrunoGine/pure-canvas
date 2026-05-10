@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
 export interface CreditCard {
@@ -18,16 +19,20 @@ const notify = () => listeners.forEach((l) => l());
 
 export function useCreditCards() {
   const { user } = useAuth();
+  const { activeCompanyId, mode } = useCompany();
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCards = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await supabase
+    let q = supabase
       .from("credit_cards")
       .select("id, name, bank, brand, closing_day, color")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("user_id", user.id);
+    q = mode === "business" && activeCompanyId
+      ? q.eq("company_id", activeCompanyId)
+      : q.is("company_id", null);
+    const { data, error } = await q.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching cards:", error);
@@ -36,7 +41,7 @@ export function useCreditCards() {
       setCards(data || []);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, mode, activeCompanyId]);
 
   useEffect(() => {
     setLoading(true);
@@ -55,6 +60,7 @@ export function useCreditCards() {
         .from("credit_cards")
         .insert({
           user_id: user.id,
+          company_id: mode === "business" ? activeCompanyId : null,
           name: card.name,
           bank: card.bank,
           brand: card.brand,
@@ -72,7 +78,7 @@ export function useCreditCards() {
         notify();
       }
     },
-    [user]
+    [user, mode, activeCompanyId]
   );
 
   const updateCard = useCallback(

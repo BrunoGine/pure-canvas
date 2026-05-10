@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
 export interface Goal {
@@ -31,6 +32,7 @@ export interface RecurringContribution {
 
 export function useGoals() {
   const { user } = useAuth();
+  const { activeCompanyId, mode } = useCompany();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [justCompleted, setJustCompleted] = useState<Goal | null>(null);
@@ -38,11 +40,14 @@ export function useGoals() {
   const fetchGoals = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("goals")
       .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("user_id", user.id);
+    q = mode === "business" && activeCompanyId
+      ? q.eq("company_id", activeCompanyId)
+      : q.is("company_id", null);
+    const { data, error } = await q.order("created_at", { ascending: false });
     if (error) {
       console.error(error);
       toast.error("Erro ao carregar metas");
@@ -50,7 +55,7 @@ export function useGoals() {
       setGoals((data ?? []) as Goal[]);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, mode, activeCompanyId]);
 
   useEffect(() => {
     fetchGoals();
@@ -67,6 +72,7 @@ export function useGoals() {
         .from("goals")
         .insert({
           user_id: user.id,
+          company_id: mode === "business" ? activeCompanyId : null,
           name: input.name.trim(),
           target_amount: input.target_amount,
           deadline: input.deadline || null,
@@ -83,7 +89,7 @@ export function useGoals() {
       toast.success("Meta criada!");
       return data as Goal;
     },
-    [user],
+    [user, mode, activeCompanyId],
   );
 
   const updateGoalRow = (g: Goal) =>
