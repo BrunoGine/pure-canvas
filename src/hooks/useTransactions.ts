@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
 export interface Transaction {
@@ -17,17 +18,21 @@ export interface Transaction {
 
 export function useTransactions() {
   const { user } = useAuth();
+  const { activeCompanyId, mode } = useCompany();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTransactions = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("manual_transactions")
       .select("id, description, amount, type, category, date, notes, card_id, payment_method")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("user_id", user.id);
+    q = mode === "business" && activeCompanyId
+      ? q.eq("company_id", activeCompanyId)
+      : q.is("company_id", null);
+    const { data, error } = await q.order("created_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching transactions:", error);
@@ -41,7 +46,7 @@ export function useTransactions() {
       );
     }
     setLoading(false);
-  }, [user]);
+  }, [user, mode, activeCompanyId]);
 
   useEffect(() => {
     fetchTransactions();
@@ -54,6 +59,7 @@ export function useTransactions() {
         .from("manual_transactions")
         .insert({
           user_id: user.id,
+          company_id: mode === "business" ? activeCompanyId : null,
           description: tx.description,
           amount: tx.amount,
           type: tx.type,
@@ -76,7 +82,7 @@ export function useTransactions() {
         ]);
       }
     },
-    [user]
+    [user, mode, activeCompanyId]
   );
 
   const updateTransaction = useCallback(

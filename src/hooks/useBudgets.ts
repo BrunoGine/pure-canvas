@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
 export interface Budget {
@@ -15,24 +16,28 @@ const notify = () => listeners.forEach((l) => l());
 
 export function useBudgets() {
   const { user } = useAuth();
+  const { activeCompanyId, mode } = useCompany();
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBudgets = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
+    let q = supabase
       .from("budgets")
       .select("id, category, limit_amount, period")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
+      .eq("user_id", user.id);
+    q = mode === "business" && activeCompanyId
+      ? q.eq("company_id", activeCompanyId)
+      : q.is("company_id", null);
+    const { data, error } = await q.order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar orçamentos");
     } else {
       setBudgets((data || []).map((b) => ({ ...b, limit_amount: Number(b.limit_amount) })));
     }
     setLoading(false);
-  }, [user]);
+  }, [user, mode, activeCompanyId]);
 
   useEffect(() => {
     fetchBudgets();
@@ -52,6 +57,7 @@ export function useBudgets() {
       }
       const { error } = await supabase.from("budgets").insert({
         user_id: user.id,
+        company_id: mode === "business" ? activeCompanyId : null,
         category: input.category,
         limit_amount: input.limit_amount,
       });
@@ -63,7 +69,7 @@ export function useBudgets() {
       toast.success("Orçamento criado");
       notify();
     },
-    [user],
+    [user, mode, activeCompanyId],
   );
 
   const updateBudget = useCallback(
