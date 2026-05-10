@@ -6,12 +6,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CompanyProvider } from "@/contexts/CompanyContext";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
 import AuthCallbackPage from "./pages/AuthCallbackPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import OnboardingPage from "./pages/OnboardingPage.tsx";
+import BusinessOnboardingPage from "./pages/BusinessOnboardingPage.tsx";
+import BusinessModeBanner from "./components/business/BusinessModeBanner.tsx";
 
 const queryClient = new QueryClient();
 
@@ -49,7 +52,13 @@ const ProtectedRoutes = () => {
     return <Navigate to="/" replace />;
   }
   if (location.pathname === "/onboarding") return <OnboardingPage />;
-  return <Index />;
+  if (location.pathname === "/empresa/onboarding") return <BusinessOnboardingPage />;
+  return (
+    <>
+      <BusinessModeBanner />
+      <Index />
+    </>
+  );
 };
 
 const AuthPageWrapper = () => {
@@ -63,10 +72,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <CompanyProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               <Route path="/auth" element={<AuthPageWrapper />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
