@@ -84,7 +84,8 @@ const App = () => (
               <Route path="/*" element={<ProtectedRoutes />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
+          </TooltipProvider>
+        </CompanyProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
