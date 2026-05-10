@@ -151,6 +151,7 @@ export type Database = {
       budgets: {
         Row: {
           category: string
+          company_id: string | null
           created_at: string
           id: string
           limit_amount: number
@@ -160,6 +161,7 @@ export type Database = {
         }
         Insert: {
           category: string
+          company_id?: string | null
           created_at?: string
           id?: string
           limit_amount: number
@@ -169,6 +171,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          company_id?: string | null
           created_at?: string
           id?: string
           limit_amount?: number
@@ -237,6 +240,45 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          business_type: string | null
+          created_at: string
+          employees_count: number | null
+          id: string
+          main_goal: string | null
+          monthly_revenue: number | null
+          name: string
+          segment: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_type?: string | null
+          created_at?: string
+          employees_count?: number | null
+          id?: string
+          main_goal?: string | null
+          monthly_revenue?: number | null
+          name: string
+          segment?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_type?: string | null
+          created_at?: string
+          employees_count?: number | null
+          id?: string
+          main_goal?: string | null
+          monthly_revenue?: number | null
+          name?: string
+          segment?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
@@ -303,6 +345,7 @@ export type Database = {
           brand: string
           closing_day: number
           color: string
+          company_id: string | null
           created_at: string
           id: string
           name: string
@@ -314,6 +357,7 @@ export type Database = {
           brand?: string
           closing_day?: number
           color?: string
+          company_id?: string | null
           created_at?: string
           id?: string
           name: string
@@ -325,6 +369,7 @@ export type Database = {
           brand?: string
           closing_day?: number
           color?: string
+          company_id?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -335,6 +380,7 @@ export type Database = {
       }
       goals: {
         Row: {
+          company_id: string | null
           completed_at: string | null
           created_at: string
           current_amount: number
@@ -348,6 +394,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string
           current_amount?: number
@@ -361,6 +408,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_id?: string | null
           completed_at?: string | null
           created_at?: string
           current_amount?: number
@@ -436,6 +484,7 @@ export type Database = {
           amount: number
           card_id: string | null
           category: string
+          company_id: string | null
           created_at: string
           date: string
           description: string
@@ -451,6 +500,7 @@ export type Database = {
           amount: number
           card_id?: string | null
           category?: string
+          company_id?: string | null
           created_at?: string
           date?: string
           description: string
@@ -466,6 +516,7 @@ export type Database = {
           amount?: number
           card_id?: string | null
           category?: string
+          company_id?: string | null
           created_at?: string
           date?: string
           description?: string
@@ -481,6 +532,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_company_id: string | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
@@ -494,6 +546,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          active_company_id?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -507,6 +560,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          active_company_id?: string | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -527,6 +581,7 @@ export type Database = {
           amount: number
           card_id: string | null
           category: string
+          company_id: string | null
           created_at: string
           day_of_month: number
           description: string
@@ -544,6 +599,7 @@ export type Database = {
           amount: number
           card_id?: string | null
           category?: string
+          company_id?: string | null
           created_at?: string
           day_of_month?: number
           description: string
@@ -561,6 +617,7 @@ export type Database = {
           amount?: number
           card_id?: string | null
           category?: string
+          company_id?: string | null
           created_at?: string
           day_of_month?: number
           description?: string
