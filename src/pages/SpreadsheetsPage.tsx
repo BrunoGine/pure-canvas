@@ -171,6 +171,8 @@ const SpreadsheetsPage = () => {
         <p className="text-muted-foreground text-sm mt-1">Gerencie suas finanças manualmente</p>
       </motion.div>
 
+      {mode === "business" && <BalanceSheetCard />}
+
       {/* Category Filter Chips */}
       {usedCategories.length > 0 && (
         <div className="flex items-center gap-2">
