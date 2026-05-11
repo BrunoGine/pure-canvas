@@ -3,15 +3,17 @@ import { FileText, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTransactions } from "@/hooks/useTransactions";
 import { useCompany } from "@/contexts/CompanyContext";
 import { buildBalanceSheet, formatBRL } from "@/lib/balanceSheet";
 import { downloadBalanceSheetPdf } from "@/lib/balanceSheetPdf";
 import { toast } from "sonner";
 
-const BalanceSheetCard = () => {
+interface BalanceSheetCardProps {
+  transactions: Array<{ amount: number; type: "income" | "expense"; category: string; date: string }>;
+}
+
+const BalanceSheetCard = ({ transactions }: BalanceSheetCardProps) => {
   const { activeCompany } = useCompany();
-  const { transactions } = useTransactions();
   const [open, setOpen] = useState(false);
   const [year, setYear] = useState(new Date().getFullYear());
   const [generating, setGenerating] = useState(false);
