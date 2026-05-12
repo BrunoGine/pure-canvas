@@ -1,132 +1,115 @@
+# Minha Empresa — Fase 2
 
-# Minha Empresa — Fase 1 (MVP)
+Foco: tornar o modo empresa um ambiente real de uso diário, com Home própria, troca de contexto sempre acessível e gestão de metas/orçamentos isolada da vida pessoal. Sem IA empresarial e sem múltiplas empresas nesta fase.
 
-Módulo empresarial reusando a infraestrutura existente, com separação lógica via `company_id` e visual diferenciado. Nesta fase entregamos: onboarding, ambiente empresarial navegável, transações empresariais com categorias próprias, Home com KPIs e geração do Balanço Patrimonial em PDF.
+## 1. Switcher fixo no topo
 
-## 1. O que entra no MVP
+- Novo componente `ContextSwitcher` (`src/components/business/ContextSwitcher.tsx`) renderizado no topo do layout principal (dentro de `Index.tsx`, acima do `<main>`), visível em todas as abas autenticadas.
+- Visual: pill com ícone (`User` / `Building2`), nome do contexto ("Pessoal" ou nome da empresa) e chevron. Ao clicar abre dropdown:
+  - **Pessoal** — chama `exitBusinessMode()`
+  - **{Nome da Empresa}** — chama `enterBusinessMode(id)`
+  - Separador + **+ Criar / configurar empresa** → navega para `/empresa/onboarding` (ou Perfil se já existir)
+- Esconde no onboarding pessoal e nas telas de auth.
+- Quando `mode === "business"`, o switcher também serve como atalho para a Home empresarial (`/empresa`).
+- Substitui visualmente o `BusinessModeBanner` atual (que vira redundante e será removido).
 
-- Botão **🏢 Minha Empresa** no Perfil
-- Onboarding empresarial (6 perguntas, 1 por tela, estilo Nubank)
-- Switcher persistente no topo (Pessoal ▾ / Minha Empresa) **+** rota dedicada `/empresa/*`
-- Home empresarial com KPIs (faturamento, despesas, lucro, fluxo recente)
-- Transações empresariais reusando componentes da pessoal, com categorias empresariais padrão
-- Aba **Planilhas → Balanço Patrimonial** (seleção de ano + geração de PDF)
-- Identidade visual sóbria/corporativa (mesmo design system, paleta mais discreta)
+## 2. Home empresarial dedicada
 
-Fora do MVP (estrutura preparada, não implementado): Orçamentos/Metas/Cursos/Harp empresariais, múltiplas empresas, colaboradores, estoque, mapeamento contábil manual.
+Nova rota `/empresa` com layout próprio (não engole a Home pessoal).
 
-## 2. Modelo de dados (separação lógica)
+- `src/pages/business/BusinessIndex.tsx` — layout + `Routes` empresariais, com guard: sem empresa cadastrada → redireciona para `/empresa/onboarding`. Reusa o mesmo `BottomNav` global (Planilhas, Cursos, Início, Harp, Perfil) — Cursos/Harp/Perfil seguem compartilhados; Início e Planilhas passam a renderizar versões empresariais quando `mode === "business"`.
+- `src/pages/business/BusinessHomePage.tsx`:
+  - **Header**: saudação + nome da empresa + segmento.
+  - **KPIs do mês corrente** (cards em grid 2x2 no mobile):
+    - Faturamento (Σ income do mês)
+    - Despesas (Σ expense do mês)
+    - Lucro estimado (Faturamento − Despesas) com cor condicional
+    - Ticket médio (Faturamento / nº de vendas) ou nº de transações
+  - **Mini-gráfico** de últimos 6 meses (receita vs despesa) usando `recharts` (já no projeto).
+  - **Fluxo recente**: lista das 5 últimas transações empresariais reusando estilo do `TransactionTable`.
+  - **Atalhos rápidos**: "Nova entrada", "Nova despesa", "Ver Balanço", "Metas".
+  - **Visual sóbrio**: usa tokens `--business-primary` (azul petróleo) já previstos; cards com glass mais discreto.
+- A Home pessoal em `/` permanece intocada. Quando `mode === "business"`, ao clicar no ícone "Início" do BottomNav, navega para `/empresa` em vez de `/`.
 
-Decisão: **`company_id` nullable** nas tabelas existentes. `null` = pessoal, preenchido = empresa. Reusa hooks e componentes, evita duplicação, e já abre caminho para múltiplas empresas no futuro.
+## 3. Metas e Orçamentos empresariais
 
-Migrações:
+A infraestrutura já existe (`company_id` em `goals` e `budgets`, hooks já filtram). Nesta fase é apenas **expor a UI** e ajustar copy.
 
-- `companies` — `id`, `user_id` (owner), `name`, `business_type`, `segment`, `monthly_revenue`, `employees_count`, `main_goal`, timestamps. RLS: dono lê/edita/deleta o que criou.
-- Adicionar coluna `company_id uuid null` em: `manual_transactions`, `recurring_transactions`, `budgets`, `goals`, `credit_cards`. Índice em `(user_id, company_id)`.
-- Atualizar policies dessas tabelas para continuar exigindo `auth.uid() = user_id` (a separação por escopo é feita no app via filtro `company_id`).
-- Em `profiles`: adicionar `active_company_id uuid null` para lembrar o último contexto usado.
+### Metas empresariais
+- Reusa `GoalsSection`, `GoalFormDialog`, `GoalCard`.
+- Quando `mode === "business"`:
+  - Título muda para "Metas da empresa".
+  - Presets de meta (`goalPresets.ts`) ganham bloco `business`: "Faturar R$ X no mês", "Reserva de capital de giro", "Investir em equipamento", "Quitar fornecedor". Sem mexer nos pessoais.
+  - Metas compartilhadas (`SharedGoalsSection`) ficam ocultas no modo empresa (não fazem sentido aqui).
+- Adicionada como seção da `BusinessHomePage` e como aba dentro da página de Planilhas empresarial.
 
-## 3. Contexto e navegação
+### Orçamentos empresariais
+- Reusa `BudgetsTab` e `BudgetFormDialog` na aba Planilhas.
+- Lista de categorias do seletor passa a usar `BUSINESS_CATEGORIES` quando `mode === "business"` (já está assim na criação de transações; replicar em `BudgetFormDialog`).
+- Nada novo no schema.
 
-- `CompanyContext` (`src/contexts/CompanyContext.tsx`): expõe `activeCompany`, `companies`, `setActiveCompany(id|null)`, `mode: "personal" | "business"`. Persiste em `profiles.active_company_id` + `localStorage`.
-- Switcher no topo (componente `ContextSwitcher`) visível em todas as páginas autenticadas.
-- Rota `/empresa/*` com layout próprio (`BusinessIndex`) e `BottomNav` empresarial; Home pessoal segue em `/`.
-- Hooks existentes (`useTransactions`, `useBudgets`, `useGoals`, `useCreditCards`, `useRecurringTransactions`) recebem filtro automático: quando `mode === "business"`, filtram/escrevem com `company_id = activeCompany.id`; caso contrário `company_id is null`.
+## 4. Roteamento e guards
 
-## 4. Onboarding empresarial
-
-- Rota: `/empresa/onboarding`. Reusa `OnboardingShell` + `StepLayout`.
-- Steps: Nome → Tipo → Segmento → Faturamento → Funcionários (opcional) → Objetivo principal.
-- Ao concluir: insere em `companies`, define `active_company_id` e navega para `/empresa`.
-- Guard: ao entrar em `/empresa/*` sem `companies` para o usuário, redireciona para o onboarding.
-
-## 5. Home empresarial
-
-`src/pages/business/BusinessHomePage.tsx`:
-- KPIs do mês: Faturamento (soma `income`), Despesas (soma `expense`), Lucro estimado (income − expense)
-- Card de metas empresariais (placeholder vazio nesta fase)
-- Lista "Fluxo recente" reusando o componente de transações
-- Visual mais sóbrio: cards com `--business-primary` (azul petróleo/grafite), glass mais discreto, ícones `Briefcase`/`Building2`
-
-## 6. Transações empresariais
-
-- Reusa `TransactionTable`, `TransactionEditDialog` etc.
-- Novo `src/lib/businessCategories.ts`:
-  - Entradas: Vendas, Serviços, Recebimentos
-  - Saídas: Fornecedor, Estoque, Impostos, Funcionários, Marketing, Aluguel, Transporte, Outros
-- O seletor de categoria troca a lista conforme o `mode`. Categorias personalizadas continuam funcionando.
-
-## 7. Balanço Patrimonial (funcionalidade-chave)
-
-Aba **Planilhas** ganha card "📑 Gerar Balanço Patrimonial" quando em modo empresa.
-
-Fluxo:
-1. Usuário escolhe o ano.
-2. App agrega no cliente todas as transações do período (deterministicamente, sem IA).
-3. Mapeamento automático categoria → grupo contábil (com disclaimer "não substitui contador"):
-   - **Ativo Circulante**: saldo positivo de caixa (Σ income − Σ expense quando > 0), Recebimentos pendentes (placeholder 0 nesta fase)
-   - **Ativo Não Circulante**: Investimentos (categoria) — 0 se inexistente
-   - **Passivo Circulante**: Fornecedor, Impostos, Funcionários, Aluguel (vencidos no período)
-   - **Resultado do Exercício**: Receita Bruta, Despesas Totais por grupo, Lucro/Prejuízo
-4. Geração do PDF com `jspdf` + `jspdf-autotable` (já viáveis no projeto): capa com nome da empresa, CNPJ opcional, período; seções Ativo, Passivo, DRE simplificada; tipografia limpa, tabelas com totais em destaque, rodapé com disclaimer.
-5. Preview HTML antes do download (modal full-screen com o mesmo layout do PDF).
-
-Arquivos:
-- `src/lib/balanceSheet.ts` — agregadores puros e tipos.
-- `src/lib/balanceSheetPdf.ts` — geração do PDF (espelha padrão de `certificatePdf.ts`).
-- `src/components/business/BalanceSheetDialog.tsx` — seletor de ano + preview + botão download.
-
-## 8. Identidade visual do modo empresa
-
-- Tokens novos em `index.css`: `--business-primary`, `--business-accent`, `--business-surface`, `--gradient-business`. Mantém base dark/light.
-- Componente `BusinessShell` aplica wrapper com classe `business-mode` para variantes de cards/glass mais sóbrias.
-- Ícones: `Building2`, `Briefcase`, `Receipt`, `BarChart3`.
-
-## 9. Harp.IA, Cursos, Metas, Orçamentos empresariais
-
-Não implementados nesta fase, mas:
-- Rotas `/empresa/chat`, `/empresa/cursos`, `/empresa/metas`, `/empresa/orcamentos` já existem mostrando estado "Em breve" para deixar o BottomNav coerente.
-- `company_id` já presente nas tabelas relacionadas — basta plugar nas próximas fases.
-
-## 10. Segurança e estabilidade
-
-- RLS continua amarrada em `user_id`; `company_id` é filtro de aplicação dentro do escopo do próprio usuário.
-- Nenhuma mudança nas telas pessoais além do switcher e do botão no Perfil.
-- Sem uso de IA em cálculos/relatórios. IA fica reservada para fases futuras (Harp empresarial).
-
-## Detalhes técnicos (resumo de arquivos)
-
+`src/App.tsx`:
 ```text
-supabase/migrations/<ts>_minha_empresa.sql
-  - create table companies + RLS
-  - alter table ... add column company_id (5 tabelas)
-  - alter profiles add active_company_id
+/                       → Index (Home pessoal)
+/planilhas, /cursos...  → idem (compartilhadas, com filtro por mode)
+/empresa                → BusinessIndex
+  /empresa/             → BusinessHomePage
+  /empresa/onboarding   → BusinessOnboardingPage (já existe)
+```
+- Guard em `BusinessIndex`: se `companies.length === 0` → redireciona `/empresa/onboarding`.
+- BottomNav: quando `mode === "business"`, o item "Início" aponta para `/empresa`; demais permanecem.
 
-src/contexts/CompanyContext.tsx           (novo)
-src/hooks/useCompanies.ts                 (novo)
+## 5. Identidade visual empresarial
+
+- Adicionar tokens em `index.css` (light + dark):
+  - `--business-primary`: azul petróleo (~ `200 50% 35%`)
+  - `--business-accent`: dourado discreto para destaque de KPI positivo
+  - `--business-surface`: superfície de card mais opaca
+  - `--gradient-business`: gradient sóbrio para cards de KPI
+- Classe utilitária `.business-card` em `index.css` aplicando os tokens.
+- Sem alterar o tema pessoal.
+
+## 6. Limpezas
+
+- Remover `BusinessModeBanner` (substituído pelo switcher).
+- `BusinessEntryCard` no Perfil continua, mas vira atalho secundário (texto: "Gerenciar empresa").
+
+## 7. Fora do escopo (para Fase 3)
+
+- Harp.IA empresarial
+- Cursos empresariais
+- Múltiplas empresas / colaboradores
+- Estoque, mapeamento contábil manual, CNPJ/integração fiscal
+
+---
+
+## Detalhes técnicos
+
+### Arquivos novos
+```text
 src/components/business/ContextSwitcher.tsx
-src/components/business/BusinessShell.tsx
-src/components/business/BalanceSheetDialog.tsx
-src/components/profile/BusinessEntryCard.tsx   (botão no Perfil)
-
-src/pages/business/BusinessOnboardingPage.tsx
-src/pages/business/BusinessIndex.tsx           (layout + BottomNav próprio)
+src/pages/business/BusinessIndex.tsx
 src/pages/business/BusinessHomePage.tsx
-src/pages/business/BusinessTransactionsPage.tsx
-src/pages/business/BusinessSpreadsheetsPage.tsx
-src/pages/business/BusinessComingSoonPage.tsx  (chat/cursos/metas/orcamentos)
-
-src/lib/businessCategories.ts
-src/lib/balanceSheet.ts
-src/lib/balanceSheetPdf.ts
-
-Atualizações:
-- src/App.tsx: rotas /empresa/*, guard de onboarding empresarial, CompanyProvider
-- src/pages/ProfilePage.tsx: card "🏢 Minha Empresa"
-- hooks de transações/budgets/goals/cards/recurring: filtro por company_id via contexto
-- index.css + tailwind.config.ts: tokens business
 ```
 
-## Confirmações antes de começar
+### Arquivos atualizados
+```text
+src/App.tsx                         → rota /empresa/*
+src/pages/Index.tsx                 → monta <ContextSwitcher /> no topo
+src/components/BottomNav.tsx        → "Início" condicional ao mode
+src/pages/ProfilePage.tsx           → remove banner, simplifica BusinessEntryCard
+src/components/business/BusinessModeBanner.tsx → deletado
+src/components/goals/GoalsSection.tsx → copy/preset condicional ao mode
+src/components/goals/goalPresets.ts   → adiciona presets business
+src/components/spreadsheets/BudgetFormDialog.tsx → categorias por mode
+src/index.css                         → tokens business
+src/components/spreadsheets/BudgetsTab.tsx (se necessário)
+```
 
-Se algo aqui não bater com sua visão (especialmente o switcher, a paleta sóbria ou o escopo do Balanço), me diga antes de eu implementar — depois fica mais caro mudar.
+### Sem migração de banco
+Toda a separação por `company_id` já está implementada na Fase 1. Esta fase é 100% frontend.
+
+### Reuso
+Nenhum componente novo de transações, budgets ou goals — tudo aproveita o que já existe, com filtros vindo do `CompanyContext` que já está em produção.

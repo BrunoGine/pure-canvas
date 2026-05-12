@@ -11,6 +11,10 @@ import {
   HeartPulse,
   PawPrint,
   Target,
+  TrendingUp,
+  Wallet,
+  Wrench,
+  Receipt,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +24,8 @@ export interface GoalPreset {
   icon: LucideIcon;
   /** Tailwind gradient stops (used with `bg-gradient-to-br`). */
   gradient: string;
+  /** If true, only shown in business mode. */
+  business?: boolean;
 }
 
 export const GOAL_PRESETS: GoalPreset[] = [
@@ -34,10 +40,23 @@ export const GOAL_PRESETS: GoalPreset[] = [
   { key: "reserve", label: "Reserva",    icon: PiggyBank,     gradient: "from-emerald-500 to-green-700" },
   { key: "health",  label: "Saúde",      icon: HeartPulse,    gradient: "from-red-400 to-pink-600" },
   { key: "pet",     label: "Pet",        icon: PawPrint,      gradient: "from-yellow-500 to-amber-700" },
+  // Business-only
+  { key: "revenue",   label: "Faturamento",      icon: TrendingUp, gradient: "from-blue-600 to-indigo-800",  business: true },
+  { key: "capital",   label: "Capital de giro",  icon: Wallet,     gradient: "from-cyan-600 to-blue-800",    business: true },
+  { key: "equipment", label: "Equipamento",      icon: Wrench,     gradient: "from-slate-600 to-zinc-800",   business: true },
+  { key: "supplier",  label: "Quitar fornecedor",icon: Receipt,    gradient: "from-amber-600 to-orange-800", business: true },
   { key: "other",   label: "Outro",      icon: Target,        gradient: "from-primary to-purple-700" },
 ];
 
 export const DEFAULT_PRESET = GOAL_PRESETS[GOAL_PRESETS.length - 1];
+
+/** Returns presets visible for the given mode. */
+export function getPresetsForMode(mode: "personal" | "business"): GoalPreset[] {
+  if (mode === "business") {
+    return GOAL_PRESETS.filter((p) => p.business || p.key === "reserve" || p.key === "other");
+  }
+  return GOAL_PRESETS.filter((p) => !p.business);
+}
 
 /**
  * Resolves a goal's `image_url` into a preset.
@@ -50,3 +69,4 @@ export function getGoalPreset(image_url: string | null | undefined): GoalPreset 
 }
 
 export const presetToImageUrl = (key: string) => `preset:${key}`;
+

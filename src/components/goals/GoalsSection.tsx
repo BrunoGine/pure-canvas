@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Target } from "lucide-react";
 import { useGoals, type Goal } from "@/hooks/useGoals";
+import { useCompany } from "@/contexts/CompanyContext";
 import GoalCard from "./GoalCard";
 import GoalFormDialog from "./GoalFormDialog";
 import GoalContributeDialog from "./GoalContributeDialog";
@@ -28,6 +29,8 @@ const GoalsSection = () => {
     justCompleted,
     dismissCompleted,
   } = useGoals();
+  const { mode } = useCompany();
+  const isBusiness = mode === "business";
 
   const [formOpen, setFormOpen] = useState(false);
   const [contribGoal, setContribGoal] = useState<Goal | null>(null);
@@ -38,7 +41,8 @@ const GoalsSection = () => {
     <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-display text-lg font-semibold flex items-center gap-2">
-          <Target size={18} className="text-primary" /> Minhas Metas
+          <Target size={18} className={isBusiness ? "text-[hsl(var(--business-primary))]" : "text-primary"} />
+          {isBusiness ? "Metas da empresa" : "Minhas Metas"}
         </h2>
         <button
           onClick={() => setFormOpen(true)}
@@ -52,7 +56,9 @@ const GoalsSection = () => {
         <div className="glass-card rounded-xl p-6 text-center">
           <Target size={28} className="mx-auto text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">
-            Você ainda não tem metas. Crie sua primeira para começar a guardar dinheiro 🎯
+            {isBusiness
+              ? "Nenhuma meta empresarial ainda. Crie a primeira para acompanhar resultados 📈"
+              : "Você ainda não tem metas. Crie sua primeira para começar a guardar dinheiro 🎯"}
           </p>
         </div>
       ) : (

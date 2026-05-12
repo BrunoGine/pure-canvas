@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { NewGoalInput } from "@/hooks/useGoals";
-import { GOAL_PRESETS, presetToImageUrl } from "./goalPresets";
+import { GOAL_PRESETS, getPresetsForMode, presetToImageUrl } from "./goalPresets";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface Props {
   open: boolean;
@@ -25,6 +26,8 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
   const [target, setTarget] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>();
   const [presetKey, setPresetKey] = useState<string>("other");
+  const { mode } = useCompany();
+  const visiblePresets = getPresetsForMode(mode);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<{ amount: number; rationale: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -185,7 +188,7 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
           <div className="space-y-2">
             <Label>Categoria</Label>
             <div className="grid grid-cols-4 gap-2">
-              {GOAL_PRESETS.map((p) => {
+              {visiblePresets.map((p) => {
                 const Icon = p.icon;
                 const selected = presetKey === p.key;
                 return (

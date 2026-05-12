@@ -1,11 +1,13 @@
 import { useRef } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
+import ContextSwitcher from "@/components/business/ContextSwitcher";
 import HomePage from "./HomePage";
 import SpreadsheetsPage from "./SpreadsheetsPage";
 import CoursesPage from "./CoursesPage";
 import ChatPage from "./ChatPage";
 import ProfilePage from "./ProfilePage";
+import BusinessHomePage from "./business/BusinessHomePage";
 
 const SWIPE_ORDER = ["/planilhas", "/cursos", "/", "/chat", "/perfil"];
 
@@ -59,9 +61,13 @@ const Index = () => {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <main className="w-full max-w-lg px-4 pt-6 relative z-10">
+      <div className="w-full max-w-lg px-4 pt-3 relative z-20">
+        <ContextSwitcher />
+      </div>
+      <main className="w-full max-w-lg px-4 pt-4 relative z-10">
         <Routes>
           <Route index element={<HomePage />} />
+          <Route path="empresa" element={<BusinessHomePage />} />
           <Route path="planilhas" element={<SpreadsheetsPage />} />
           <Route path="cursos/*" element={<CoursesPage />} />
           <Route path="chat" element={<ChatPage />} />
