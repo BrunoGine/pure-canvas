@@ -29,6 +29,8 @@ const GoalsSection = () => {
     justCompleted,
     dismissCompleted,
   } = useGoals();
+  const { mode } = useCompany();
+  const isBusiness = mode === "business";
 
   const [formOpen, setFormOpen] = useState(false);
   const [contribGoal, setContribGoal] = useState<Goal | null>(null);
