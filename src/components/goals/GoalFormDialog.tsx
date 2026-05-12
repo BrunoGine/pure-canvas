@@ -188,7 +188,7 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
           <div className="space-y-2">
             <Label>Categoria</Label>
             <div className="grid grid-cols-4 gap-2">
-              {GOAL_PRESETS.map((p) => {
+              {visiblePresets.map((p) => {
                 const Icon = p.icon;
                 const selected = presetKey === p.key;
                 return (
