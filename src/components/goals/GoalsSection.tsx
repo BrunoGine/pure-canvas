@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Target } from "lucide-react";
 import { useGoals, type Goal } from "@/hooks/useGoals";
+import { useCompany } from "@/contexts/CompanyContext";
 import GoalCard from "./GoalCard";
 import GoalFormDialog from "./GoalFormDialog";
 import GoalContributeDialog from "./GoalContributeDialog";
