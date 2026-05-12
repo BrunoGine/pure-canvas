@@ -26,6 +26,8 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
   const [target, setTarget] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>();
   const [presetKey, setPresetKey] = useState<string>("other");
+  const { mode } = useCompany();
+  const visiblePresets = getPresetsForMode(mode);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<{ amount: number; rationale: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
