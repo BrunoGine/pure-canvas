@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Building2, TrendingUp, TrendingDown, Wallet, Receipt, Target, FileText, Plus, ArrowUpRight, ArrowDownLeft, BarChart3 } from "lucide-react";
+import { Building2, TrendingUp, TrendingDown, Wallet, Receipt, FileText, Plus, ArrowUpRight, ArrowDownLeft, BarChart3 } from "lucide-react";
 import { format, parseISO, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
