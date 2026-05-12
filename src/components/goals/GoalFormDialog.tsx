@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { NewGoalInput } from "@/hooks/useGoals";
-import { GOAL_PRESETS, presetToImageUrl } from "./goalPresets";
+import { GOAL_PRESETS, getPresetsForMode, presetToImageUrl } from "./goalPresets";
+import { useCompany } from "@/contexts/CompanyContext";
 
 interface Props {
   open: boolean;
