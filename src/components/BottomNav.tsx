@@ -1,24 +1,32 @@
-import { Home, Table2, GraduationCap, MessageCircle, User } from "lucide-react";
+import { Home, Table2, GraduationCap, MessageCircle, User, Building2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-
-const tabs = [
-  { path: "/planilhas", icon: Table2, label: "Planilhas" },
-  { path: "/cursos", icon: GraduationCap, label: "Cursos" },
-  { path: "/", icon: Home, label: "Início" },
-  { path: "/chat", icon: MessageCircle, label: "Harp.I.A" },
-  { path: "/perfil", icon: User, label: "Perfil" },
-];
+import { useCompany } from "@/contexts/CompanyContext";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { mode } = useCompany();
+
+  const homePath = mode === "business" ? "/empresa" : "/";
+  const HomeIcon = mode === "business" ? Building2 : Home;
+
+  const tabs = [
+    { path: "/planilhas", icon: Table2, label: "Planilhas" },
+    { path: "/cursos", icon: GraduationCap, label: "Cursos" },
+    { path: homePath, icon: HomeIcon, label: "Início" },
+    { path: "/chat", icon: MessageCircle, label: "Harp.I.A" },
+    { path: "/perfil", icon: User, label: "Perfil" },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t-0">
       <div className="mx-auto flex max-w-lg items-center justify-around py-2 px-2">
         {tabs.map(({ path, icon: Icon, label }) => {
-          const active = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+          const active =
+            path === "/" || path === "/empresa"
+              ? location.pathname === path
+              : location.pathname.startsWith(path);
           return (
             <button
               key={path}
