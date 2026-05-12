@@ -1,11 +1,13 @@
 import { useRef } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
+import ContextSwitcher from "@/components/business/ContextSwitcher";
 import HomePage from "./HomePage";
 import SpreadsheetsPage from "./SpreadsheetsPage";
 import CoursesPage from "./CoursesPage";
 import ChatPage from "./ChatPage";
 import ProfilePage from "./ProfilePage";
+import BusinessHomePage from "./business/BusinessHomePage";
 
 const SWIPE_ORDER = ["/planilhas", "/cursos", "/", "/chat", "/perfil"];
 
