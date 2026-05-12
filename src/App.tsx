@@ -14,7 +14,6 @@ import AuthCallbackPage from "./pages/AuthCallbackPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import OnboardingPage from "./pages/OnboardingPage.tsx";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage.tsx";
-import BusinessModeBanner from "./components/business/BusinessModeBanner.tsx";
 
 const queryClient = new QueryClient();
 
