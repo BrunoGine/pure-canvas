@@ -189,4 +189,16 @@
     pointer-events: none;
     z-index: 0;
   }
+
+  /* Business surface — sober, slightly stronger glass */
+  .business-card {
+    background: hsl(var(--business-surface) / 0.85);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid hsl(var(--business-primary) / 0.18);
+    box-shadow: 0 4px 24px -6px hsl(var(--business-primary) / 0.18);
+  }
+  .gradient-business {
+    background: var(--gradient-business);
+  }
 }
