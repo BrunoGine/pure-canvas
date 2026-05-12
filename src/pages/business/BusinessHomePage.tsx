@@ -53,6 +53,14 @@ const BusinessHomePage = () => {
 
   const fmt = (v: number) => hide ? "••••" : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
+  // Guards (after hooks)
+  if (!loading && companies.length === 0) {
+    return <Navigate to="/empresa/onboarding" replace />;
+  }
+  if (!loading && !activeCompany) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
