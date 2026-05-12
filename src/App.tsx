@@ -52,12 +52,7 @@ const ProtectedRoutes = () => {
   }
   if (location.pathname === "/onboarding") return <OnboardingPage />;
   if (location.pathname === "/empresa/onboarding") return <BusinessOnboardingPage />;
-  return (
-    <>
-      <BusinessModeBanner />
-      <Index />
-    </>
-  );
+  return <Index />;
 };
 
 const AuthPageWrapper = () => {
