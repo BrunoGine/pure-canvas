@@ -15,15 +15,6 @@ const BusinessHomePage = () => {
   const { transactions } = useTransactions();
   const [hide, setHide] = useState(false);
 
-  // Guard: no companies → onboarding
-  if (!loading && companies.length === 0) {
-    return <Navigate to="/empresa/onboarding" replace />;
-  }
-  // No active company selected
-  if (!loading && !activeCompany) {
-    return <Navigate to="/" replace />;
-  }
-
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
