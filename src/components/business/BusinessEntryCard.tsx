@@ -35,14 +35,14 @@ const BusinessEntryCard = () => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold">
-            {isBusiness ? "Sair do Modo Empresa" : "Minha Empresa"}
+            {isBusiness ? "Gerenciar empresa" : hasCompany ? "Minha Empresa" : "Configurar empresa"}
           </p>
           <p className="text-xs text-muted-foreground truncate">
             {isBusiness
-              ? `Voltar para o modo pessoal`
+              ? `Editar dados de ${activeCompany?.name}`
               : hasCompany
-                ? `Entrar como ${companies[0].name}`
-                : "Configure seu ambiente empresarial"}
+                ? `Acessar ${companies[0].name}`
+                : "Crie seu ambiente empresarial"}
           </p>
         </div>
         {isBusiness ? (
