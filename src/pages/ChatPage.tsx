@@ -75,18 +75,27 @@ const ChatPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const activeCompanyId = isBusiness ? activeCompany!.id : null;
+
   const loadConversations = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await (supabase as any)
+    let query = (supabase as any)
       .from("conversations")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
+    query = activeCompanyId
+      ? query.eq("company_id", activeCompanyId)
+      : query.is("company_id", null);
+    const { data, error } = await query;
     if (!error && data) setConversations(data as Conversation[]);
-  }, [user]);
+  }, [user, activeCompanyId]);
 
   useEffect(() => {
     loadConversations();
+    // Reset current view when switching modes/companies
+    setMessages([]);
+    setCurrentConversationId(null);
   }, [loadConversations]);
 
   const loadMessages = async (conversationId: string) => {
@@ -133,7 +142,7 @@ const ChatPage = () => {
         const title = msg.length > 40 ? msg.slice(0, 40) + "..." : msg;
         const { data: conv, error: convErr } = await (supabase as any)
           .from("conversations")
-          .insert({ user_id: user.id, title })
+          .insert({ user_id: user.id, title, company_id: activeCompanyId })
           .select("id")
           .single();
         if (convErr || !conv) throw convErr;
@@ -181,7 +190,7 @@ const ChatPage = () => {
 
   if (showHistory) {
     return (
-      <div className="flex flex-col h-[calc(100vh-5rem)]">
+      <div className="flex flex-col h-[calc(100dvh-10rem)]">
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-4">
           <div className="flex items-center gap-2">
             <button onClick={() => setShowHistory(false)} className="p-1.5 rounded-full hover:bg-secondary transition-colors">
@@ -242,7 +251,7 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)]">
+    <div className="flex flex-col h-[calc(100dvh-10rem)]">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
