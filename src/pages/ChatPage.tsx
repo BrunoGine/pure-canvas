@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, User, Sparkles, Plus, History, ChevronLeft, Trash2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, Plus, History, ChevronLeft, Trash2, Building2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
+import { useBusinessContext } from "@/hooks/useBusinessContext";
 
 interface Message {
   role: "user" | "assistant";
