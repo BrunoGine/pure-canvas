@@ -70,6 +70,17 @@ const CourseEditor = ({
             />
           </div>
           <Input placeholder="Ícone (Lucide name)" value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} />
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Audiência</label>
+            <select
+              className="w-full rounded-md bg-secondary/30 border border-border/50 p-2 text-sm"
+              value={form.audience ?? "personal"}
+              onChange={(e) => setForm({ ...form, audience: e.target.value as "personal" | "business" })}
+            >
+              <option value="personal">Pessoal</option>
+              <option value="business">Empresa</option>
+            </select>
+          </div>
           <div className="flex items-center gap-2">
             <Input placeholder="Cor (hex)" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
             <div className="w-10 h-10 rounded-lg border border-border/50 shrink-0" style={{ background: form.color }} />
