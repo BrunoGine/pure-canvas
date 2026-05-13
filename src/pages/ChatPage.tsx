@@ -149,7 +149,7 @@ const ChatPage = () => {
       });
 
       const { data, error } = await supabase.functions.invoke("harp-ia-chat", {
-        body: { messages: updatedMessages, lessonContext },
+        body: { messages: updatedMessages, lessonContext, businessContext },
       });
 
       if (error) throw error;
