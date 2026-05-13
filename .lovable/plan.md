@@ -1,102 +1,102 @@
-# Minha Empresa — Fase 3
+## Evolução completa da Harp.I.A.
 
-Foco: dar à Harp.IA visão completa do negócio quando o usuário está em modo empresa, e expor uma trilha de cursos voltada a gestão empresarial. Sem nova edge function — o `harp-ia-chat` atual passa a aceitar contexto empresarial.
-
-## 1. Harp.IA empresarial (reuso do `harp-ia-chat`)
-
-### Backend (`supabase/functions/harp-ia-chat/index.ts`)
-- Aceitar novo payload opcional `businessContext` no body, ao lado de `messages` e `lessonContext`:
-  ```ts
-  businessContext?: {
-    company: { name, segment, business_type, monthly_revenue, employees_count, main_goal };
-    kpis: { revenueMonth, expensesMonth, profitMonth, revenue6m, expenses6m };
-    cashFlow: { balance, lastTransactions: Array<{date, description, amount, type, category}> };
-    balanceSheet: { assets, liabilities, equity };
-    goals: Array<{name, target, current, deadline}>;
-    budgets: Array<{category, limit, spent}>;
-  }
-  ```
-- Validação: limites de tamanho (máx ~3KB serializado, máx 10 transações, máx 10 metas/orçamentos) para não estourar contexto.
-- Quando `businessContext` está presente:
-  - Anexar bloco de **system message adicional** com:
-    - Identidade ampliada: "Você também atua como consultora financeira da empresa **{nome}** ({segmento})."
-    - Liberação de escopo: além de finanças pessoais, pode falar de **gestão empresarial, fluxo de caixa, precificação, margem, capital de giro, DRE básico, gestão de fornecedores e tributação simplificada (Simples Nacional, MEI)**.
-    - Resumo executivo serializado em Markdown compacto (faturamento, despesas, lucro, top 5 categorias de gasto, metas em andamento, orçamentos estourados).
-  - **Não** alterar o bloqueio de escopo pessoal — apenas estende a lista permitida.
-- Modelo: manter `google/gemini-2.5-flash` (suficiente para esse contexto).
-
-### Frontend
-- `src/hooks/useBusinessContext.ts` (novo): monta o objeto `businessContext` a partir dos hooks já existentes (`useTransactions`, `useGoals`, `useBudgets`, `useCompany`, `lib/balanceSheet`). Memoizado.
-- `src/pages/ChatPage.tsx`: quando `mode === "business"`, envia `businessContext` no `invoke` do edge function. Exibe badge no topo do chat: "Modo empresa: {nome da empresa}" com ícone `Building2`.
-- Mensagem inicial (placeholder) muda em modo empresa: "Pergunte sobre fluxo de caixa, margem, precificação, fornecedores...".
-- Sugestões rápidas (chips) específicas: "Como melhorar minha margem?", "Estou no azul este mês?", "Devo aumentar o estoque?", "Quanto guardar de capital de giro?".
-
-### Privacidade
-- Os dados da empresa só são serializados client-side e enviados na requisição autenticada do próprio dono (RLS já garante isolamento).
-- Nunca persistir o `businessContext` no banco — é stateless por requisição.
-
-## 2. Cursos empresariais
-
-### Schema
-Adicionar coluna `audience` em `courses`:
-```sql
-alter table public.courses
-  add column audience text not null default 'personal'
-  check (audience in ('personal', 'business'));
-```
-- Seed inicial: criar 1 curso empresarial "Gestão Financeira para Pequenos Negócios" com 3 aulas placeholder (admin pode editar depois). Ou apenas marcar `audience='business'` e deixar o admin popular via painel.
-
-### Frontend
-- `src/hooks/useCourses.ts`: aceitar `audience` opcional; quando `mode === "business"`, filtrar por `audience='business'`, senão `audience='personal'`.
-- `src/components/courses/WorldMap.tsx`: header muda para "Trilha empresarial" quando em modo empresa; estado vazio com CTA "Ainda não há cursos empresariais — volte em breve" caso lista vazia.
-- `src/components/courses/admin/CourseEditor.tsx`: novo campo select **Audience** (Pessoal/Empresa) ao criar/editar curso.
-- `WorldCompleteDialog`, badges e XP continuam compartilhados (mesma conta).
-
-### Sem mudança em
-- `lessons`, `user_progress`, `certificates`, `badges` — todos seguem por curso, então a separação por `audience` já isola tudo.
-
-## 3. Roteamento e UI
-
-- Sem novas rotas. `/cursos` continua único, mas o conteúdo varia conforme `mode`.
-- `/chat` idem — mesmo componente, comportamento condicional.
-
-## 4. Fora do escopo
-
-- Múltiplas empresas / colaboradores
-- Estoque
-- CNPJ / NF-e / fiscal
-- Mapeamento contábil manual
-- Persistência de histórico de chat empresarial separado
+Transformar a Harp em uma assistente financeira realmente inteligente, com contexto pessoal/empresa, respostas mais legíveis, sugestões úteis e baixo custo de tokens.
 
 ---
 
-## Detalhes técnicos
+### 1. Contexto inteligente (pessoal e empresa)
 
-### Arquivos novos
+- Criar `src/hooks/usePersonalContext.ts` análogo ao `useBusinessContext`, retornando **apenas agregados** (não transações cruas):
+  - KPIs do mês: receita, despesa, saldo, taxa de poupança
+  - Top 5 categorias de gasto do mês + variação % vs mês anterior
+  - Orçamentos com % consumido e estourados
+  - Metas em andamento (nome, progresso %)
+  - Gastos recorrentes ativos (total mensal)
+- Reaproveitar `useBusinessContext` (já existe), mas reduzir payload:
+  - Remover `lastTransactions` cru → manter só top 5 categorias + variação
+  - Manter KPIs, balanço, metas, orçamentos
+- O `ChatPage` envia **um único** payload `context` baseado no `mode` ativo (nunca mistura).
+
+### 2. Edge function `harp-ia-chat`
+
+- Aceitar `context: { mode: 'personal' | 'business', data: {...} }` no lugar do atual `businessContext`.
+- Dois system prompts distintos (personal vs business), mais curtos e diretos:
+  - Estilo de resposta obrigatório (ver seção 3)
+  - Regra anti-alucinação: "se não houver dado, diga 'ainda não tenho essa informação'"
+- Limitar payload serializado a ~3 KB (já existe limite, ajustar).
+- Manter histórico curto: enviar apenas as **últimas 8 mensagens** ao gateway (memória leve, economia de créditos).
+- Continuar usando `google/gemini-2.5-flash`.
+
+### 3. Formato de resposta padronizado
+
+System prompt instrui a Harp a usar sempre esta estrutura quando relevante:
+
 ```text
-src/hooks/useBusinessContext.ts
+## 📊 Resumo
+(1-2 frases)
+
+## 💸 Destaques
+- item
+- item
+
+## 📈 Sugestões
+- ação prática
+
+## ⚠️ Atenção (opcional)
+- alerta
 ```
 
-### Arquivos atualizados
-```text
-supabase/functions/harp-ia-chat/index.ts   → aceita businessContext + system prompt estendido
-src/pages/ChatPage.tsx                      → envia contexto + UI condicional
-src/hooks/useCourses.ts                     → filtro por audience
-src/components/courses/WorldMap.tsx         → copy condicional
-src/components/courses/admin/CourseEditor.tsx → campo audience
-```
+Respostas curtas (saudação, definição rápida) podem fugir ao template — sem forçar.
 
-### Migração
-```sql
-alter table public.courses
-  add column audience text not null default 'personal';
-alter table public.courses
-  add constraint courses_audience_check check (audience in ('personal','business'));
-create index idx_courses_audience on public.courses(audience);
-```
+### 4. UI do chat (ChatPage)
 
-### Limites de payload (Harp empresarial)
-- Última 10 transações empresariais (data, descrição, valor, tipo, categoria)
-- Top 5 categorias por gasto no mês
-- Até 10 metas + 10 orçamentos
-- Total serializado < 3KB → cabe folgado no contexto do gemini-2.5-flash
+- **Bolhas**: assistente sem fundo (texto direto sobre a superfície), usuário com `gradient-primary`. Mais respiro: `py-4`, `gap-3` entre mensagens.
+- **Markdown**: aumentar tipografia da prose, espaçamento entre headings (`prose-headings:mt-4 prose-headings:mb-2`), listas com bullets visíveis.
+- **Loading "digitando"**: trocar dots por shimmer "Harp está pensando..." com pulse sutil.
+- **Chips de sugestão rápida** abaixo do input (sempre visíveis, não só na tela vazia):
+  - Pessoal: "Onde gasto mais?", "Resumo do mês", "Como economizar?"
+  - Empresa: "Fluxo de caixa", "Lucro do mês", "Maior despesa"
+- Campo de input mantém foco após enviar mensagem e ao trocar de conversa.
+- Indicador "Modo empresa: {nome}" já existe — manter, melhorar contraste.
+
+### 5. Insights automáticos no contexto
+
+No hook de contexto, pré-calcular comparações para a IA não precisar fazer:
+
+- Variação % de cada categoria top vs mês anterior
+- Categorias com crescimento > 20%
+- Orçamentos estourados
+- Tendência de saldo (3 meses)
+
+A IA recebe esses números prontos e apenas redige.
+
+### 6. Economia de créditos
+
+- Histórico cortado a 8 mensagens
+- Contexto enviado: ~20 linhas de KPIs, nunca transações cruas
+- System prompt enxuto (remover redundâncias do atual)
+- Sem chamada à IA quando não há dado (chips desabilitados se mode business sem company)
+
+### 7. Arquivos afetados
+
+**Criar**
+- `src/hooks/usePersonalContext.ts`
+- `src/components/chat/QuickChips.tsx`
+- `src/components/chat/TypingIndicator.tsx`
+
+**Editar**
+- `src/hooks/useBusinessContext.ts` — payload mais enxuto, com variações
+- `src/pages/ChatPage.tsx` — UI nova, chips persistentes, foco no input, contexto unificado
+- `supabase/functions/harp-ia-chat/index.ts` — dois system prompts, payload `context` unificado, janela de 8 mensagens
+
+**Sem migração de banco** — toda a melhoria é frontend + edge function.
+
+---
+
+### Resultado esperado
+
+- Respostas com hierarquia visual clara (títulos, listas, alertas)
+- Harp responde "quanto gastei com lazer?" usando os agregados reais
+- Sem inventar dados; admite quando falta informação
+- UI mais limpa, premium, com chips úteis sempre à mão
+- Custo por mensagem reduzido (~70% menos contexto enviado)
