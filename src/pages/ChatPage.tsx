@@ -46,6 +46,10 @@ const ChatPage = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { mode, activeCompany } = useCompany();
+  const businessContext = useBusinessContext();
+  const isBusiness = mode === "business" && !!activeCompany;
+  const suggestions = isBusiness ? businessSuggestions : personalSuggestions;
   const location = useLocation();
   const navigate = useNavigate();
   const lessonContext = (location.state as any)?.lessonContext as
