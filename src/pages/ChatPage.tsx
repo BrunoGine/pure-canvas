@@ -22,11 +22,18 @@ interface Conversation {
   updated_at: string;
 }
 
-const suggestions = [
+const personalSuggestions = [
   "Como criar uma reserva de emergência?",
   "O que é renda fixa?",
   "Como sair das dívidas?",
   "Quanto investir por mês?",
+];
+
+const businessSuggestions = [
+  "Como melhorar minha margem?",
+  "Estou no azul este mês?",
+  "Devo aumentar o estoque?",
+  "Quanto guardar de capital de giro?",
 ];
 
 const ChatPage = () => {
