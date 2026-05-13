@@ -305,6 +305,7 @@ export type Database = {
       }
       courses: {
         Row: {
+          audience: string
           color: string
           created_at: string
           description: string | null
@@ -316,6 +317,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audience?: string
           color?: string
           created_at?: string
           description?: string | null
@@ -327,6 +329,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audience?: string
           color?: string
           created_at?: string
           description?: string | null
