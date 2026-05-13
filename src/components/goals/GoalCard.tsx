@@ -22,9 +22,20 @@ const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const GoalCard = ({ goal, onContribute, onWithdraw, onDelete }: Props) => {
-  const target = Number(goal.target_amount);
+  const isMonthly = goal.goal_type === "monthly";
   const current = Number(goal.current_amount);
-  const pct = Math.min(100, Math.round((current / target) * 100));
+  const monthlyTarget = Number(goal.monthly_target_amount || 0);
+  const monthDone = Number(goal.month_contributed || 0);
+  const target = Number(goal.target_amount || 0);
+
+  const pct = isMonthly
+    ? monthlyTarget > 0
+      ? Math.min(100, Math.round((monthDone / monthlyTarget) * 100))
+      : 0
+    : target > 0
+      ? Math.min(100, Math.round((current / target) * 100))
+      : 0;
+
   const preset = getGoalPreset(goal.image_url);
   const PresetIcon = preset.icon;
 
@@ -37,10 +48,16 @@ const GoalCard = ({ goal, onContribute, onWithdraw, onDelete }: Props) => {
       <div className={cn("relative h-28 bg-gradient-to-br flex items-center justify-center", preset.gradient)}>
         <PresetIcon className="text-white/95 drop-shadow-lg" size={44} />
         <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent pointer-events-none" />
-        {goal.is_completed && (
-          <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-semibold px-2 py-1">
-            <CheckCircle2 size={12} /> Concluída
+        {isMonthly ? (
+          <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-background/80 backdrop-blur text-foreground text-[10px] font-semibold px-2 py-1">
+            Mensal
           </div>
+        ) : (
+          goal.is_completed && (
+            <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-primary/90 text-primary-foreground text-[10px] font-semibold px-2 py-1">
+              <CheckCircle2 size={12} /> Concluída
+            </div>
+          )
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -52,7 +69,7 @@ const GoalCard = ({ goal, onContribute, onWithdraw, onDelete }: Props) => {
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="glass-card border-border/30">
-            <DropdownMenuItem onClick={() => onContribute(goal)} disabled={goal.is_completed}>
+            <DropdownMenuItem onClick={() => onContribute(goal)} disabled={!isMonthly && goal.is_completed}>
               <Plus size={14} className="mr-2" /> Adicionar valor
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onWithdraw(goal)} disabled={current <= 0}>
@@ -71,11 +88,23 @@ const GoalCard = ({ goal, onContribute, onWithdraw, onDelete }: Props) => {
           <span className="text-xs font-bold text-primary tabular-nums">{pct}%</span>
         </div>
         <Progress value={pct} className="h-2" />
-        <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
-          <span>R$ {formatBRL(current)}</span>
-          <span>R$ {formatBRL(target)}</span>
-        </div>
-        {!goal.is_completed && (
+        {isMonthly ? (
+          <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+            <span>R$ {formatBRL(monthDone)} este mês</span>
+            <span>Meta: R$ {formatBRL(monthlyTarget)}</span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between text-xs text-muted-foreground tabular-nums">
+            <span>R$ {formatBRL(current)}</span>
+            <span>R$ {formatBRL(target)}</span>
+          </div>
+        )}
+        {isMonthly && current > 0 && (
+          <p className="text-[10px] text-muted-foreground">
+            Acumulado total: R$ {formatBRL(current)}
+          </p>
+        )}
+        {(isMonthly || !goal.is_completed) && (
           <div className="flex gap-2 pt-2">
             <button
               onClick={() => onContribute(goal)}
