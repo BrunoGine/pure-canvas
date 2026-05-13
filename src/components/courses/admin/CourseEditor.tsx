@@ -12,6 +12,7 @@ const empty: CourseInput = {
   order: 1,
   color: "#8A05BE",
   icon: "BookOpen",
+  audience: "personal",
 };
 
 const CourseEditor = ({
