@@ -24,15 +24,24 @@ const WorldMap = () => {
   const navigate = useNavigate();
   const { data: courses, isLoading } = useCourses();
   const { data: isAdmin } = useIsAdmin();
+  const { mode } = useCompany();
+  const isBusiness = mode === "business";
 
   return (
     <div className="space-y-5 pb-24">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-            <GraduationCap size={22} className="text-primary" /> Trilha
+            {isBusiness ? (
+              <Building2 size={22} className="text-[hsl(var(--business-primary))]" />
+            ) : (
+              <GraduationCap size={22} className="text-primary" />
+            )}
+            {isBusiness ? "Trilha empresarial" : "Trilha"}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Aprenda jogando</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {isBusiness ? "Aprenda a gerir seu negócio" : "Aprenda jogando"}
+          </p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
