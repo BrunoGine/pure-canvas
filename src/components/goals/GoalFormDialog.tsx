@@ -129,15 +129,48 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
       <DialogContent className="glass-card border-border/30 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Meta</DialogTitle>
-          <DialogDescription>Defina seu objetivo e quanto quer juntar.</DialogDescription>
+          <DialogDescription>
+            {goalKind === "target"
+              ? "Defina seu objetivo e quanto quer juntar."
+              : "Defina um valor para contribuir todo mês."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2 p-1 rounded-lg bg-secondary/30 border border-border/40">
+            <button
+              type="button"
+              onClick={() => setGoalKind("target")}
+              className={cn(
+                "rounded-md py-2 text-xs font-semibold transition-all",
+                goalKind === "target"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Com objetivo
+            </button>
+            <button
+              type="button"
+              onClick={() => setGoalKind("monthly")}
+              className={cn(
+                "rounded-md py-2 text-xs font-semibold transition-all",
+                goalKind === "monthly"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Mensal (hábito)
+            </button>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="goal-name">Nome da meta</Label>
             <Input
               id="goal-name"
-              placeholder="Ex.: Viagem para a praia"
+              placeholder={
+                goalKind === "target" ? "Ex.: Viagem para a praia" : "Ex.: Investir todo mês"
+              }
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={80}
@@ -145,48 +178,69 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="goal-target">Valor objetivo (R$)</Label>
-            <Input
-              id="goal-target"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="0,00"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              className="bg-secondary/30 border-border/50"
-            />
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleSuggest}
-            disabled={aiLoading || !name.trim()}
-            className="w-full gap-2 border-primary/40 text-primary hover:bg-primary/10"
-          >
-            {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            Me ajude a definir o valor
-          </Button>
-
-          {aiSuggestion && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-              <p className="text-sm">
-                <span className="font-semibold text-primary">Sugestão:</span> R${" "}
-                {aiSuggestion.amount.toLocaleString("pt-BR")}
-              </p>
-              {aiSuggestion.rationale && (
-                <p className="text-xs text-muted-foreground">{aiSuggestion.rationale}</p>
-              )}
-              <div className="flex gap-2">
-                <Button size="sm" onClick={handleAccept} className="gradient-primary text-white border-0 flex-1">
-                  Usar este valor
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setAiSuggestion(null)} className="flex-1">
-                  Recusar
-                </Button>
+          {goalKind === "target" ? (
+            <>
+              <div className="space-y-1.5">
+                <Label htmlFor="goal-target">Valor objetivo (R$)</Label>
+                <Input
+                  id="goal-target"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={target}
+                  onChange={(e) => setTarget(e.target.value)}
+                  className="bg-secondary/30 border-border/50"
+                />
               </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSuggest}
+                disabled={aiLoading || !name.trim()}
+                className="w-full gap-2 border-primary/40 text-primary hover:bg-primary/10"
+              >
+                {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                Me ajude a definir o valor
+              </Button>
+
+              {aiSuggestion && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                  <p className="text-sm">
+                    <span className="font-semibold text-primary">Sugestão:</span> R${" "}
+                    {aiSuggestion.amount.toLocaleString("pt-BR")}
+                  </p>
+                  {aiSuggestion.rationale && (
+                    <p className="text-xs text-muted-foreground">{aiSuggestion.rationale}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleAccept} className="gradient-primary text-white border-0 flex-1">
+                      Usar este valor
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setAiSuggestion(null)} className="flex-1">
+                      Recusar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="goal-monthly">Valor mensal (R$)</Label>
+              <Input
+                id="goal-monthly"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Ex.: 100,00"
+                value={monthly}
+                onChange={(e) => setMonthly(e.target.value)}
+                className="bg-secondary/30 border-border/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Você acompanhará quanto contribuiu a cada mês, sem um valor final.
+              </p>
             </div>
           )}
 
