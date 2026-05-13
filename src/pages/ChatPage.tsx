@@ -248,7 +248,14 @@ const ChatPage = () => {
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
             <Sparkles size={22} className="text-primary" /> Harp.I.A
           </h1>
-          <p className="text-muted-foreground text-sm">Seu assistente de educação financeira</p>
+          <p className="text-muted-foreground text-sm">
+            {isBusiness ? "Consultora financeira da sua empresa" : "Seu assistente de educação financeira"}
+          </p>
+          {isBusiness && (
+            <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[hsl(var(--business-primary))/0.15] text-[hsl(var(--business-primary))]">
+              <Building2 size={11} /> {activeCompany!.name}
+            </div>
+          )}
         </div>
         <div className="flex gap-1.5">
           <button onClick={() => setShowHistory(true)} className="p-2 rounded-xl hover:bg-secondary transition-colors" title="Histórico">
