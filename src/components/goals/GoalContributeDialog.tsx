@@ -21,14 +21,19 @@ const GoalContributeDialog = ({ open, goal, onOpenChange, onConfirm }: Props) =>
   const [recDay, setRecDay] = useState("1");
   const [submitting, setSubmitting] = useState(false);
 
+  const isMonthly = goal?.goal_type === "monthly";
+  const monthlyTarget = Number(goal?.monthly_target_amount || 0);
+  const monthDone = Number(goal?.month_contributed || 0);
+  const monthRemaining = Math.max(0, monthlyTarget - monthDone);
+
   useEffect(() => {
     if (open) {
-      setAmount("");
+      setAmount(isMonthly && monthRemaining > 0 ? String(monthRemaining) : "");
       setRecurring(false);
-      setRecAmount("");
+      setRecAmount(isMonthly && monthlyTarget > 0 ? String(monthlyTarget) : "");
       setRecDay("1");
     }
-  }, [open]);
+  }, [open, isMonthly, monthRemaining, monthlyTarget]);
 
   if (!goal) return null;
 
@@ -57,6 +62,15 @@ const GoalContributeDialog = ({ open, goal, onOpenChange, onConfirm }: Props) =>
           <DialogDescription>Meta: {goal.name}</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          {isMonthly && monthlyTarget > 0 && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs">
+              {monthRemaining > 0 ? (
+                <>Faltam <span className="font-semibold text-primary">R$ {monthRemaining.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span> para bater sua meta deste mês.</>
+              ) : (
+                <span className="text-primary font-semibold">Meta deste mês batida! 🎉 Pode contribuir mais se quiser.</span>
+              )}
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="contrib-amount">Valor (R$)</Label>
             <Input
