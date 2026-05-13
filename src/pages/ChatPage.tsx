@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, User, Sparkles, Plus, History, ChevronLeft, Trash2, Building2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Send, Bot, Sparkles, Plus, History, ChevronLeft, Trash2, Building2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
@@ -8,7 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
-import { useBusinessContext } from "@/hooks/useBusinessContext";
+import { useHarpContext } from "@/hooks/useHarpContext";
+import { QuickChips } from "@/components/chat/QuickChips";
+import { TypingIndicator } from "@/components/chat/TypingIndicator";
 
 interface Message {
   role: "user" | "assistant";
@@ -23,17 +25,19 @@ interface Conversation {
 }
 
 const personalSuggestions = [
-  "Como criar uma reserva de emergência?",
-  "O que é renda fixa?",
-  "Como sair das dívidas?",
-  "Quanto investir por mês?",
+  "Onde gasto mais?",
+  "Resumo do mês",
+  "Como economizar?",
+  "Meu orçamento está saudável?",
+  "Quanto estou guardando em metas?",
 ];
 
 const businessSuggestions = [
+  "Analisar fluxo de caixa",
+  "Lucro do mês",
+  "Maior despesa",
   "Como melhorar minha margem?",
-  "Estou no azul este mês?",
-  "Devo aumentar o estoque?",
-  "Quanto guardar de capital de giro?",
+  "Qual categoria mais cresceu?",
 ];
 
 const ChatPage = () => {
@@ -44,10 +48,11 @@ const ChatPage = () => {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { mode, activeCompany } = useCompany();
-  const businessContext = useBusinessContext();
+  const harpContext = useHarpContext();
   const isBusiness = mode === "business" && !!activeCompany;
   const suggestions = isBusiness ? businessSuggestions : personalSuggestions;
   const location = useLocation();
@@ -59,16 +64,19 @@ const ChatPage = () => {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
-  // When arriving with lesson context, start a new chat with auto-prompt
+  // Manter foco no input
+  useEffect(() => {
+    if (!showHistory && !isTyping) inputRef.current?.focus();
+  }, [showHistory, isTyping, currentConversationId]);
+
   useEffect(() => {
     if (lessonContext && messages.length === 0) {
       const autoMsg = `Vamos aprofundar a aula "${lessonContext.lesson_title}". Pode me explicar os pontos principais?`;
       send(autoMsg);
       navigate(location.pathname, { replace: true, state: {} });
     } else if (initialPrompt && messages.length === 0) {
-      // Pre-fill input (do NOT auto-send — user controls when to spend a credit)
       setInput(initialPrompt);
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -93,7 +101,6 @@ const ChatPage = () => {
 
   useEffect(() => {
     loadConversations();
-    // Reset current view when switching modes/companies
     setMessages([]);
     setCurrentConversationId(null);
   }, [loadConversations]);
@@ -158,13 +165,13 @@ const ChatPage = () => {
       });
 
       const { data, error } = await supabase.functions.invoke("harp-ia-chat", {
-        body: { messages: updatedMessages, lessonContext, businessContext },
+        body: { messages: updatedMessages, lessonContext, context: harpContext },
       });
 
       if (error) throw error;
 
       const reply = data?.reply || "Desculpe, não consegui processar sua pergunta. Tente novamente.";
-      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
 
       await (supabase as any).from("chat_messages").insert({
         conversation_id: convId,
@@ -173,7 +180,10 @@ const ChatPage = () => {
         content: reply,
       });
 
-      await (supabase as any).from("conversations").update({ updated_at: new Date().toISOString() }).eq("id", convId);
+      await (supabase as any)
+        .from("conversations")
+        .update({ updated_at: new Date().toISOString() })
+        .eq("id", convId);
       loadConversations();
     } catch (error) {
       console.error("Error calling Harp.I.A:", error);
@@ -221,7 +231,10 @@ const ChatPage = () => {
                       <p className="text-sm font-medium truncate">{conv.title}</p>
                       <p className="text-xs text-muted-foreground">
                         {new Date(conv.updated_at).toLocaleDateString("pt-BR", {
-                          day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </p>
                     </div>
@@ -252,13 +265,17 @@ const ChatPage = () => {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-10rem)]">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4 flex items-center justify-between"
+      >
         <div>
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
             <Sparkles size={22} className="text-primary" /> Harp.I.A
           </h1>
           <p className="text-muted-foreground text-sm">
-            {isBusiness ? "Consultora financeira da sua empresa" : "Seu assistente de educação financeira"}
+            {isBusiness ? "Consultora financeira da sua empresa" : "Sua assistente financeira pessoal"}
           </p>
           {isBusiness && (
             <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[hsl(var(--business-primary))/0.15] text-[hsl(var(--business-primary))]">
@@ -267,40 +284,39 @@ const ChatPage = () => {
           )}
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => setShowHistory(true)} className="p-2 rounded-xl hover:bg-secondary transition-colors" title="Histórico">
+          <button
+            onClick={() => setShowHistory(true)}
+            className="p-2 rounded-xl hover:bg-secondary transition-colors"
+            title="Histórico"
+          >
             <History size={18} className="text-muted-foreground" />
           </button>
-          <button onClick={startNewChat} className="p-2 rounded-xl hover:bg-secondary transition-colors" title="Nova conversa">
+          <button
+            onClick={startNewChat}
+            className="p-2 rounded-xl hover:bg-secondary transition-colors"
+            title="Nova conversa"
+          >
             <Plus size={18} className="text-muted-foreground" />
           </button>
         </div>
       </motion.div>
 
-      <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+      <div className="flex-1 overflow-y-auto space-y-5 pr-1">
         {messages.length === 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-8">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 pt-6">
             <div className="text-center space-y-2">
               <div className="mx-auto w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center shadow-glow relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent" />
                 <Bot size={28} className="text-white relative z-10" />
               </div>
               <h3 className="font-display font-semibold">Olá! Sou a Harp.I.A 🤖</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground px-4">
                 {isBusiness
-                  ? `Pergunte sobre fluxo de caixa, margem, precificação, fornecedores...`
-                  : "Especialista em educação financeira. Como posso ajudar?"}
+                  ? "Posso analisar fluxo de caixa, margem, despesas e metas da sua empresa."
+                  : harpContext.hasData
+                    ? "Pergunte sobre seus gastos, metas, orçamento ou educação financeira."
+                    : "Adicione transações para que eu possa analisar suas finanças."}
               </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {suggestions.map((s, i) => (
-                <div
-                  key={i}
-                  className="glass-card rounded-xl cursor-pointer hover:glow-border transition-all duration-300 p-3"
-                  onClick={() => send(s)}
-                >
-                  <p className="text-xs font-medium">{s}</p>
-                </div>
-              ))}
             </div>
           </motion.div>
         )}
@@ -308,62 +324,49 @@ const ChatPage = () => {
         {messages.map((msg, i) => (
           <motion.div
             key={i}
-            initial={{ opacity: 0, y: 5 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`flex gap-2 ${msg.role === "user" ? "justify-end" : ""}`}
+            className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "items-start"}`}
           >
             {msg.role === "assistant" && (
-              <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center shrink-0 mt-1 shadow-glow">
-                <Bot size={14} className="text-white" />
+              <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center shrink-0 mt-0.5 shadow-glow">
+                <Bot size={16} className="text-white" />
               </div>
             )}
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                msg.role === "user"
-                  ? "gradient-primary text-white rounded-br-md shadow-glow"
-                  : "glass-card rounded-bl-md"
-              }`}
-            >
-              {msg.role === "assistant" ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none [&_table]:text-xs [&_h2]:text-base [&_h3]:text-sm [&_p]:text-sm [&_li]:text-sm">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                </div>
-              ) : (
-                msg.content
-              )}
-            </div>
-            {msg.role === "user" && (
-              <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center shrink-0 mt-1">
-                <User size={14} className="text-muted-foreground" />
+            {msg.role === "assistant" ? (
+              <div className="flex-1 min-w-0 prose prose-sm dark:prose-invert max-w-none
+                prose-headings:font-display prose-headings:font-semibold
+                prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2 prose-h2:first:mt-0
+                prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1.5
+                prose-p:my-2 prose-p:leading-relaxed prose-p:text-foreground
+                prose-li:my-0.5 prose-li:text-foreground
+                prose-ul:my-2 prose-ol:my-2 prose-ul:pl-5 prose-ol:pl-5
+                prose-strong:text-foreground prose-strong:font-semibold
+                prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground
+                prose-table:text-xs">
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm gradient-primary text-white shadow-glow whitespace-pre-wrap">
+                {msg.content}
               </div>
             )}
           </motion.div>
         ))}
 
-        {isTyping && (
-          <div className="flex gap-2">
-            <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center shrink-0 shadow-glow">
-              <Bot size={14} className="text-white" />
-            </div>
-            <div className="glass-card rounded-2xl rounded-bl-md px-4 py-3">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            </div>
-          </div>
-        )}
+        {isTyping && <TypingIndicator />}
         <div ref={bottomRef} />
       </div>
 
-      <div className="pt-3 pb-1">
+      <div className="pt-3 pb-1 space-y-2">
+        <QuickChips suggestions={suggestions} onPick={send} disabled={isTyping} />
         <div className="flex gap-2">
           <Input
+            ref={inputRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && send()}
-            placeholder={isBusiness ? "Pergunte sobre seu negócio..." : "Pergunte sobre finanças..."}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder={isBusiness ? "Pergunte sobre seu negócio..." : "Pergunte sobre suas finanças..."}
             className="rounded-xl bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all"
           />
           <button
