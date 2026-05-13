@@ -71,6 +71,16 @@ const WorldMap = () => {
 
       <div id="worlds-grid" className="space-y-4">
         {isLoading && <div className="text-center text-sm text-muted-foreground py-8">Carregando mundos...</div>}
+        {!isLoading && courses && courses.length === 0 && (
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <Building2 size={36} className="mx-auto text-muted-foreground mb-2 opacity-60" />
+            <p className="text-sm text-muted-foreground">
+              {isBusiness
+                ? "Ainda não há cursos empresariais — volte em breve 🚀"
+                : "Nenhum curso disponível ainda."}
+            </p>
+          </div>
+        )}
         {courses?.map((c, i) => {
           const Icon = (Icons as any)[c.icon] ?? GraduationCap;
           const pct = c.total_lessons > 0 ? Math.round((c.completed_lessons / c.total_lessons) * 100) : 0;
