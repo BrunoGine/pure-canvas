@@ -391,11 +391,13 @@ export type Database = {
           created_at: string
           current_amount: number
           deadline: string | null
+          goal_type: string
           id: string
           image_url: string | null
           is_completed: boolean
+          monthly_target_amount: number | null
           name: string
-          target_amount: number
+          target_amount: number | null
           updated_at: string
           user_id: string
         }
@@ -405,11 +407,13 @@ export type Database = {
           created_at?: string
           current_amount?: number
           deadline?: string | null
+          goal_type?: string
           id?: string
           image_url?: string | null
           is_completed?: boolean
+          monthly_target_amount?: number | null
           name: string
-          target_amount: number
+          target_amount?: number | null
           updated_at?: string
           user_id: string
         }
@@ -419,11 +423,13 @@ export type Database = {
           created_at?: string
           current_amount?: number
           deadline?: string | null
+          goal_type?: string
           id?: string
           image_url?: string | null
           is_completed?: boolean
+          monthly_target_amount?: number | null
           name?: string
-          target_amount?: number
+          target_amount?: number | null
           updated_at?: string
           user_id?: string
         }

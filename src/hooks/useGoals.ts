@@ -4,11 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompany } from "@/contexts/CompanyContext";
 import { toast } from "sonner";
 
+export type GoalType = "target" | "monthly";
+
 export interface Goal {
   id: string;
   user_id: string;
   name: string;
-  target_amount: number;
+  goal_type: GoalType;
+  target_amount: number | null;
+  monthly_target_amount: number | null;
   current_amount: number;
   deadline: string | null;
   image_url: string | null;
@@ -16,11 +20,15 @@ export interface Goal {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Derived: contributed in current month (only meaningful for monthly goals) */
+  month_contributed?: number;
 }
 
 export interface NewGoalInput {
   name: string;
-  target_amount: number;
+  goal_type: GoalType;
+  target_amount?: number | null;
+  monthly_target_amount?: number | null;
   deadline?: string | null;
   image_url?: string | null;
 }
@@ -51,9 +59,37 @@ export function useGoals() {
     if (error) {
       console.error(error);
       toast.error("Erro ao carregar metas");
-    } else {
-      setGoals((data ?? []) as Goal[]);
+      setLoading(false);
+      return;
     }
+    const rows = (data ?? []) as Goal[];
+
+    // Compute month contribution for monthly goals (single query)
+    const monthlyIds = rows.filter((g) => g.goal_type === "monthly").map((g) => g.id);
+    const monthMap = new Map<string, number>();
+    if (monthlyIds.length > 0) {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split("T")[0];
+      const { data: txs } = await supabase
+        .from("manual_transactions")
+        .select("goal_id, amount, type")
+        .eq("user_id", user.id)
+        .in("goal_id", monthlyIds)
+        .gte("date", start)
+        .lt("date", end);
+      (txs ?? []).forEach((t: any) => {
+        const sign = t.type === "expense" ? 1 : -1; // contributions are expenses; withdrawals are income
+        monthMap.set(t.goal_id, (monthMap.get(t.goal_id) || 0) + sign * Number(t.amount));
+      });
+    }
+
+    setGoals(
+      rows.map((g) => ({
+        ...g,
+        month_contributed: g.goal_type === "monthly" ? Math.max(0, monthMap.get(g.id) || 0) : undefined,
+      })),
+    );
     setLoading(false);
   }, [user, mode, activeCompanyId]);
 
@@ -64,8 +100,19 @@ export function useGoals() {
   const addGoal = useCallback(
     async (input: NewGoalInput) => {
       if (!user) return null;
-      if (!input.name.trim() || input.target_amount <= 0) {
-        toast.error("Preencha nome e valor objetivo válidos");
+      if (!input.name.trim()) {
+        toast.error("Preencha o nome da meta");
+        return null;
+      }
+      if (input.goal_type === "target" && (!input.target_amount || input.target_amount <= 0)) {
+        toast.error("Informe um valor objetivo válido");
+        return null;
+      }
+      if (
+        input.goal_type === "monthly" &&
+        (!input.monthly_target_amount || input.monthly_target_amount <= 0)
+      ) {
+        toast.error("Informe um valor mensal válido");
         return null;
       }
       const { data, error } = await supabase
@@ -74,7 +121,10 @@ export function useGoals() {
           user_id: user.id,
           company_id: mode === "business" ? activeCompanyId : null,
           name: input.name.trim(),
-          target_amount: input.target_amount,
+          goal_type: input.goal_type,
+          target_amount: input.goal_type === "target" ? input.target_amount! : null,
+          monthly_target_amount:
+            input.goal_type === "monthly" ? input.monthly_target_amount! : null,
           deadline: input.deadline || null,
           image_url: input.image_url || null,
         })
@@ -85,25 +135,16 @@ export function useGoals() {
         toast.error("Erro ao criar meta");
         return null;
       }
-      setGoals((prev) => [data as Goal, ...prev]);
+      const newGoal = { ...(data as Goal), month_contributed: data.goal_type === "monthly" ? 0 : undefined };
+      setGoals((prev) => [newGoal, ...prev]);
       toast.success("Meta criada!");
-      return data as Goal;
+      return newGoal;
     },
     [user, mode, activeCompanyId],
   );
 
   const updateGoalRow = (g: Goal) =>
-    setGoals((prev) => prev.map((x) => (x.id === g.id ? g : x)));
-
-  const checkCompletion = (g: Goal) => {
-    if (g.is_completed && !goals.find((x) => x.id === g.id)?.is_completed) {
-      setJustCompleted(g);
-    } else if (g.is_completed) {
-      // also fire if newly transitioned
-      const prev = goals.find((x) => x.id === g.id);
-      if (prev && !prev.is_completed) setJustCompleted(g);
-    }
-  };
+    setGoals((prev) => prev.map((x) => (x.id === g.id ? { ...x, ...g } : x)));
 
   const contributeToGoal = useCallback(
     async (
@@ -117,7 +158,6 @@ export function useGoals() {
         return;
       }
 
-      // 1. Create transaction (expense)
       const today = new Date().toISOString().split("T")[0];
       const { error: txErr } = await supabase.from("manual_transactions").insert({
         user_id: user.id,
@@ -135,7 +175,6 @@ export function useGoals() {
         return;
       }
 
-      // 2. Update goal current_amount
       const newAmount = Number(goal.current_amount) + amount;
       const { data: updated, error: upErr } = await supabase
         .from("goals")
@@ -149,7 +188,6 @@ export function useGoals() {
         return;
       }
 
-      // 3. Optional recurring
       if (recurring && recurring.amount > 0) {
         await supabase.from("recurring_transactions").insert({
           user_id: user.id,
@@ -166,10 +204,14 @@ export function useGoals() {
 
       const u = updated as Goal;
       const wasCompleted = goal.is_completed;
-      updateGoalRow(u);
-      if (!wasCompleted && u.is_completed) {
-        setJustCompleted(u);
-        // Disable recurring when completed
+      const merged: Goal = {
+        ...u,
+        month_contributed:
+          u.goal_type === "monthly" ? (goal.month_contributed || 0) + amount : undefined,
+      };
+      updateGoalRow(merged);
+      if (u.goal_type === "target" && !wasCompleted && u.is_completed) {
+        setJustCompleted(merged);
         await supabase
           .from("recurring_transactions")
           .update({ active: false })
@@ -178,7 +220,7 @@ export function useGoals() {
         toast.success("Valor adicionado!");
       }
     },
-    [user, goals],
+    [user],
   );
 
   const withdrawFromGoal = useCallback(
@@ -219,7 +261,14 @@ export function useGoals() {
         toast.error("Erro ao atualizar meta");
         return;
       }
-      updateGoalRow(updated as Goal);
+      const u = updated as Goal;
+      updateGoalRow({
+        ...u,
+        month_contributed:
+          u.goal_type === "monthly"
+            ? Math.max(0, (goal.month_contributed || 0) - amount)
+            : undefined,
+      });
       toast.success("Valor retirado");
     },
     [user],
@@ -242,7 +291,6 @@ export function useGoals() {
           goal_id: goal.id,
         });
       }
-      // Remove related recurrings then the goal
       await supabase.from("recurring_transactions").delete().eq("goal_id", goal.id);
       const { error } = await supabase.from("goals").delete().eq("id", goal.id);
       if (error) {

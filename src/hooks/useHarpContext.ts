@@ -95,7 +95,17 @@ export function useHarpContext(): HarpContext {
     });
 
     const goalsPayload = goals.slice(0, 6).map((g) => {
-      const target = Number(g.target_amount);
+      if (g.goal_type === "monthly") {
+        const monthly = Number(g.monthly_target_amount || 0);
+        const done = Number(g.month_contributed || 0);
+        return {
+          name: `${g.name} (mensal)`,
+          current: Math.round(done),
+          target: Math.round(monthly),
+          pct: monthly > 0 ? Math.min(100, Math.round((done / monthly) * 100)) : 0,
+        };
+      }
+      const target = Number(g.target_amount || 0);
       const current = Number(g.current_amount);
       return {
         name: g.name,
