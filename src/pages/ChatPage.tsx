@@ -75,18 +75,27 @@ const ChatPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const activeCompanyId = isBusiness ? activeCompany!.id : null;
+
   const loadConversations = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await (supabase as any)
+    let query = (supabase as any)
       .from("conversations")
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
+    query = activeCompanyId
+      ? query.eq("company_id", activeCompanyId)
+      : query.is("company_id", null);
+    const { data, error } = await query;
     if (!error && data) setConversations(data as Conversation[]);
-  }, [user]);
+  }, [user, activeCompanyId]);
 
   useEffect(() => {
     loadConversations();
+    // Reset current view when switching modes/companies
+    setMessages([]);
+    setCurrentConversationId(null);
   }, [loadConversations]);
 
   const loadMessages = async (conversationId: string) => {
