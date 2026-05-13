@@ -49,7 +49,7 @@
     --shadow-glow: 0 0 40px -10px hsla(221, 64%, 43%, 0.3);
 
     /* Business mode tokens */
-    --business-primary: 200 50% 35%;
+    --business-primary: 221 64% 43%;
     --business-accent: 38 70% 50%;
     --business-surface: 200 25% 96%;
     --gradient-business: linear-gradient(135deg, hsl(200, 50%, 35%), hsl(210, 55%, 25%));
@@ -100,7 +100,7 @@
     --shadow-glow: 0 0 60px -10px hsla(221, 74%, 58%, 0.25);
 
     /* Business mode tokens (dark) */
-    --business-primary: 200 65% 55%;
+    --business-primary: 221 74% 58%;
     --business-accent: 38 80% 60%;
     --business-surface: 200 20% 9%;
     --gradient-business: linear-gradient(135deg, hsl(200, 65%, 45%), hsl(210, 70%, 32%));
