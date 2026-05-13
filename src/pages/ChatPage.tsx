@@ -276,7 +276,11 @@ const ChatPage = () => {
                 <Bot size={28} className="text-white relative z-10" />
               </div>
               <h3 className="font-display font-semibold">Olá! Sou a Harp.I.A 🤖</h3>
-              <p className="text-sm text-muted-foreground">Especialista em educação financeira. Como posso ajudar?</p>
+              <p className="text-sm text-muted-foreground">
+                {isBusiness
+                  ? `Pergunte sobre fluxo de caixa, margem, precificação, fornecedores...`
+                  : "Especialista em educação financeira. Como posso ajudar?"}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {suggestions.map((s, i) => (
