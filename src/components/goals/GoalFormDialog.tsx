@@ -21,9 +21,13 @@ interface Props {
   onCreate: (input: NewGoalInput) => Promise<unknown>;
 }
 
+type GoalKind = "target" | "monthly";
+
 const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
+  const [goalKind, setGoalKind] = useState<GoalKind>("target");
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
+  const [monthly, setMonthly] = useState("");
   const [deadline, setDeadline] = useState<Date | undefined>();
   const [presetKey, setPresetKey] = useState<string>("other");
   const { mode } = useCompany();
@@ -33,8 +37,10 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
   const [submitting, setSubmitting] = useState(false);
 
   const reset = () => {
+    setGoalKind("target");
     setName("");
     setTarget("");
+    setMonthly("");
     setDeadline(undefined);
     setPresetKey("other");
     setAiSuggestion(null);
@@ -73,22 +79,48 @@ const GoalFormDialog = ({ open, onOpenChange, onCreate }: Props) => {
   };
 
   const handleSubmit = async () => {
-    const targetNum = parseFloat(target);
-    if (!name.trim() || !Number.isFinite(targetNum) || targetNum <= 0) {
-      toast.error("Preencha nome e valor objetivo");
+    if (!name.trim()) {
+      toast.error("Preencha o nome da meta");
       return;
     }
-    setSubmitting(true);
-    const result = await onCreate({
-      name: name.trim(),
-      target_amount: targetNum,
-      deadline: deadline ? format(deadline, "yyyy-MM-dd") : null,
-      image_url: presetToImageUrl(presetKey),
-    });
-    setSubmitting(false);
-    if (result) {
-      reset();
-      onOpenChange(false);
+    if (goalKind === "target") {
+      const targetNum = parseFloat(target);
+      if (!Number.isFinite(targetNum) || targetNum <= 0) {
+        toast.error("Informe um valor objetivo válido");
+        return;
+      }
+      setSubmitting(true);
+      const result = await onCreate({
+        name: name.trim(),
+        goal_type: "target",
+        target_amount: targetNum,
+        deadline: deadline ? format(deadline, "yyyy-MM-dd") : null,
+        image_url: presetToImageUrl(presetKey),
+      });
+      setSubmitting(false);
+      if (result) {
+        reset();
+        onOpenChange(false);
+      }
+    } else {
+      const monthlyNum = parseFloat(monthly);
+      if (!Number.isFinite(monthlyNum) || monthlyNum <= 0) {
+        toast.error("Informe um valor mensal válido");
+        return;
+      }
+      setSubmitting(true);
+      const result = await onCreate({
+        name: name.trim(),
+        goal_type: "monthly",
+        monthly_target_amount: monthlyNum,
+        deadline: deadline ? format(deadline, "yyyy-MM-dd") : null,
+        image_url: presetToImageUrl(presetKey),
+      });
+      setSubmitting(false);
+      if (result) {
+        reset();
+        onOpenChange(false);
+      }
     }
   };
 
