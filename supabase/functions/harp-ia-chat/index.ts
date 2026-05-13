@@ -27,7 +27,7 @@ Você SOMENTE pode responder sobre os seguintes temas:
 - Crédito, financiamento e consórcios
 
 ### Escopo Proibido
-Para QUALQUER pergunta que NÃO esteja relacionada aos temas acima, você DEVE responder EXATAMENTE com:
+Para QUALQUER pergunta que NÃO esteja relacionada aos temas acima (ou aos temas adicionais quando estiver no modo empresa), você DEVE responder EXATAMENTE com:
 
 "🚫 Desculpe, essa pergunta está fora do meu escopo. Sou a Harp.I.A, especializada exclusivamente em **educação financeira e economia pessoal**. Posso te ajudar com temas como investimentos, planejamento financeiro, controle de gastos, dívidas e muito mais! Faça uma pergunta sobre finanças e terei prazer em ajudar. 💰"
 
@@ -51,7 +51,86 @@ Para QUALQUER pergunta que NÃO esteja relacionada aos temas acima, você DEVE r
 
 const MAX_MESSAGES = 50;
 const MAX_CONTENT_LENGTH = 4000;
+const MAX_BUSINESS_CONTEXT_LENGTH = 5000;
 const ALLOWED_ROLES = new Set(["user", "assistant"]);
+
+const fmtBRL = (v: number) =>
+  Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+function buildBusinessSystemMessage(ctx: any): string {
+  const c = ctx.company || {};
+  const k = ctx.kpis || {};
+  const cf = ctx.cashFlow || {};
+  const bs = ctx.balanceSheet || {};
+  const goals = Array.isArray(ctx.goals) ? ctx.goals.slice(0, 10) : [];
+  const budgets = Array.isArray(ctx.budgets) ? ctx.budgets.slice(0, 10) : [];
+  const txs = Array.isArray(cf.lastTransactions) ? cf.lastTransactions.slice(0, 10) : [];
+
+  const lines: string[] = [];
+  lines.push(`## Modo Empresa Ativado`);
+  lines.push(
+    `Você também atua agora como **consultora financeira da empresa "${c.name ?? "(sem nome)"}"** (segmento: ${c.segment ?? "não informado"}, tipo: ${c.business_type ?? "não informado"}).`,
+  );
+  lines.push(``);
+  lines.push(`### Escopo adicional permitido (somente neste modo)`);
+  lines.push(`- Gestão financeira de pequenos negócios e MEI`);
+  lines.push(`- Fluxo de caixa, DRE básico, balanço patrimonial`);
+  lines.push(`- Precificação, margem de contribuição, ponto de equilíbrio`);
+  lines.push(`- Capital de giro e gestão de fornecedores`);
+  lines.push(`- Tributação simplificada (Simples Nacional, MEI)`);
+  lines.push(`- Estratégias de crescimento e investimento empresarial`);
+  lines.push(``);
+  lines.push(`### Resumo executivo da empresa`);
+  if (c.monthly_revenue) lines.push(`- Faturamento esperado: ${fmtBRL(Number(c.monthly_revenue))}`);
+  if (c.employees_count != null) lines.push(`- Funcionários: ${c.employees_count}`);
+  if (c.main_goal) lines.push(`- Objetivo principal: ${c.main_goal}`);
+  lines.push(``);
+  lines.push(`**KPIs do mês corrente**`);
+  lines.push(`- Faturamento: ${fmtBRL(k.revenueMonth ?? 0)}`);
+  lines.push(`- Despesas: ${fmtBRL(k.expensesMonth ?? 0)}`);
+  lines.push(`- Lucro: ${fmtBRL(k.profitMonth ?? 0)}`);
+  if (k.revenue6m != null && k.expenses6m != null) {
+    lines.push(`- Últimos 6 meses → Receita: ${fmtBRL(k.revenue6m)} | Despesa: ${fmtBRL(k.expenses6m)}`);
+  }
+  lines.push(``);
+  lines.push(`**Balanço (ano atual)**`);
+  lines.push(`- Ativo: ${fmtBRL(bs.assets ?? 0)} | Passivo: ${fmtBRL(bs.liabilities ?? 0)} | Patrimônio: ${fmtBRL(bs.equity ?? 0)}`);
+
+  if (goals.length) {
+    lines.push(``);
+    lines.push(`**Metas em andamento**`);
+    goals.forEach((g: any) =>
+      lines.push(
+        `- ${g.name}: ${fmtBRL(g.current ?? 0)} de ${fmtBRL(g.target ?? 0)}${g.deadline ? ` (até ${g.deadline})` : ""}`,
+      ),
+    );
+  }
+
+  if (budgets.length) {
+    lines.push(``);
+    lines.push(`**Orçamentos**`);
+    budgets.forEach((b: any) => {
+      const overBudget = (b.spent ?? 0) > (b.limit ?? 0);
+      lines.push(
+        `- ${b.category}: ${fmtBRL(b.spent ?? 0)} / ${fmtBRL(b.limit ?? 0)}${overBudget ? " ⚠️ ESTOURADO" : ""}`,
+      );
+    });
+  }
+
+  if (txs.length) {
+    lines.push(``);
+    lines.push(`**Últimas transações**`);
+    txs.forEach((t: any) => {
+      const sign = t.type === "income" ? "+" : "-";
+      lines.push(`- ${t.date} | ${t.description} | ${sign}${fmtBRL(Math.abs(Number(t.amount)))} | ${t.category}`);
+    });
+  }
+
+  lines.push(``);
+  lines.push(`> Use estes dados ao responder perguntas sobre a empresa. Sugira ações concretas baseadas nos números acima quando relevante.`);
+
+  return lines.join("\n");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,7 +138,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Authentication
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -83,7 +161,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { messages, lessonContext } = await req.json();
+    const { messages, lessonContext, businessContext } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -92,7 +170,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Input validation
     if (messages.length === 0 || messages.length > MAX_MESSAGES) {
       return new Response(
         JSON.stringify({ error: `Messages count must be between 1 and ${MAX_MESSAGES}` }),
@@ -119,9 +196,26 @@ Deno.serve(async (req) => {
     const systemMessages: { role: string; content: string }[] = [
       { role: "system", content: SYSTEM_PROMPT },
     ];
+
     if (lessonContext && typeof lessonContext === "object") {
       const ctx = `Contexto: o usuário acabou de assistir à aula "${lessonContext.lesson_title ?? ""}" (vídeo: ${lessonContext.youtube_url ?? ""}). Aprofunde o tema e responda dúvidas relacionadas a essa aula.`;
       systemMessages.push({ role: "system", content: ctx });
+    }
+
+    if (businessContext && typeof businessContext === "object") {
+      try {
+        const serialized = JSON.stringify(businessContext);
+        if (serialized.length <= MAX_BUSINESS_CONTEXT_LENGTH) {
+          systemMessages.push({
+            role: "system",
+            content: buildBusinessSystemMessage(businessContext),
+          });
+        } else {
+          console.warn("businessContext too large, ignoring", serialized.length);
+        }
+      } catch (e) {
+        console.warn("invalid businessContext", e);
+      }
     }
 
     const apiMessages = [

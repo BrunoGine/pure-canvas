@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { GraduationCap, ChevronRight, Settings, BarChart3 } from "lucide-react";
+import { GraduationCap, ChevronRight, Settings, BarChart3, Building2 } from "lucide-react";
 import StatsHeader from "./StatsHeader";
 import ContinueCard from "./ContinueCard";
 import MentorCard from "./MentorCard";
@@ -9,6 +9,7 @@ import QuickActions from "./QuickActions";
 import PendingReviewsCard from "./PendingReviewsCard";
 import { useCourses } from "@/hooks/useCourses";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useCompany } from "@/contexts/CompanyContext";
 
 const LEVEL_LABEL: Record<string, string> = {
   beginner: "Iniciante",
@@ -23,15 +24,24 @@ const WorldMap = () => {
   const navigate = useNavigate();
   const { data: courses, isLoading } = useCourses();
   const { data: isAdmin } = useIsAdmin();
+  const { mode } = useCompany();
+  const isBusiness = mode === "business";
 
   return (
     <div className="space-y-5 pb-24">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-            <GraduationCap size={22} className="text-primary" /> Trilha
+            {isBusiness ? (
+              <Building2 size={22} className="text-[hsl(var(--business-primary))]" />
+            ) : (
+              <GraduationCap size={22} className="text-primary" />
+            )}
+            {isBusiness ? "Trilha empresarial" : "Trilha"}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Aprenda jogando</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            {isBusiness ? "Aprenda a gerir seu negócio" : "Aprenda jogando"}
+          </p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -61,6 +71,16 @@ const WorldMap = () => {
 
       <div id="worlds-grid" className="space-y-4">
         {isLoading && <div className="text-center text-sm text-muted-foreground py-8">Carregando mundos...</div>}
+        {!isLoading && courses && courses.length === 0 && (
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <Building2 size={36} className="mx-auto text-muted-foreground mb-2 opacity-60" />
+            <p className="text-sm text-muted-foreground">
+              {isBusiness
+                ? "Ainda não há cursos empresariais — volte em breve 🚀"
+                : "Nenhum curso disponível ainda."}
+            </p>
+          </div>
+        )}
         {courses?.map((c, i) => {
           const Icon = (Icons as any)[c.icon] ?? GraduationCap;
           const pct = c.total_lessons > 0 ? Math.round((c.completed_lessons / c.total_lessons) * 100) : 0;

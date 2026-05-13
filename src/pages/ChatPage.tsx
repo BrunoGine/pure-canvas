@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, User, Sparkles, Plus, History, ChevronLeft, Trash2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, Plus, History, ChevronLeft, Trash2, Building2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
+import { useBusinessContext } from "@/hooks/useBusinessContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -20,11 +22,18 @@ interface Conversation {
   updated_at: string;
 }
 
-const suggestions = [
+const personalSuggestions = [
   "Como criar uma reserva de emergência?",
   "O que é renda fixa?",
   "Como sair das dívidas?",
   "Quanto investir por mês?",
+];
+
+const businessSuggestions = [
+  "Como melhorar minha margem?",
+  "Estou no azul este mês?",
+  "Devo aumentar o estoque?",
+  "Quanto guardar de capital de giro?",
 ];
 
 const ChatPage = () => {
@@ -37,6 +46,10 @@ const ChatPage = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { mode, activeCompany } = useCompany();
+  const businessContext = useBusinessContext();
+  const isBusiness = mode === "business" && !!activeCompany;
+  const suggestions = isBusiness ? businessSuggestions : personalSuggestions;
   const location = useLocation();
   const navigate = useNavigate();
   const lessonContext = (location.state as any)?.lessonContext as
@@ -136,7 +149,7 @@ const ChatPage = () => {
       });
 
       const { data, error } = await supabase.functions.invoke("harp-ia-chat", {
-        body: { messages: updatedMessages, lessonContext },
+        body: { messages: updatedMessages, lessonContext, businessContext },
       });
 
       if (error) throw error;
@@ -235,7 +248,14 @@ const ChatPage = () => {
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
             <Sparkles size={22} className="text-primary" /> Harp.I.A
           </h1>
-          <p className="text-muted-foreground text-sm">Seu assistente de educação financeira</p>
+          <p className="text-muted-foreground text-sm">
+            {isBusiness ? "Consultora financeira da sua empresa" : "Seu assistente de educação financeira"}
+          </p>
+          {isBusiness && (
+            <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[hsl(var(--business-primary))/0.15] text-[hsl(var(--business-primary))]">
+              <Building2 size={11} /> {activeCompany!.name}
+            </div>
+          )}
         </div>
         <div className="flex gap-1.5">
           <button onClick={() => setShowHistory(true)} className="p-2 rounded-xl hover:bg-secondary transition-colors" title="Histórico">
@@ -256,7 +276,11 @@ const ChatPage = () => {
                 <Bot size={28} className="text-white relative z-10" />
               </div>
               <h3 className="font-display font-semibold">Olá! Sou a Harp.I.A 🤖</h3>
-              <p className="text-sm text-muted-foreground">Especialista em educação financeira. Como posso ajudar?</p>
+              <p className="text-sm text-muted-foreground">
+                {isBusiness
+                  ? `Pergunte sobre fluxo de caixa, margem, precificação, fornecedores...`
+                  : "Especialista em educação financeira. Como posso ajudar?"}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {suggestions.map((s, i) => (
@@ -330,7 +354,7 @@ const ChatPage = () => {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Pergunte sobre finanças..."
+            placeholder={isBusiness ? "Pergunte sobre seu negócio..." : "Pergunte sobre finanças..."}
             className="rounded-xl bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all"
           />
           <button

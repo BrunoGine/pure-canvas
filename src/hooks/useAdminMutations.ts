@@ -16,6 +16,7 @@ export interface CourseInput {
   order: number;
   color: string;
   icon: string;
+  audience?: "personal" | "business";
 }
 
 export interface LessonInput {
