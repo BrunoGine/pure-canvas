@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompany } from "@/contexts/CompanyContext";
 
 export interface Course {
   id: string;
@@ -10,6 +11,7 @@ export interface Course {
   order: number;
   icon: string;
   color: string;
+  audience: "personal" | "business";
 }
 
 export interface CourseWithProgress extends Course {
@@ -19,12 +21,15 @@ export interface CourseWithProgress extends Course {
 
 export const useCourses = () => {
   const { user } = useAuth();
+  const { mode } = useCompany();
+  const audience = mode === "business" ? "business" : "personal";
   return useQuery<CourseWithProgress[]>({
-    queryKey: ["courses", user?.id],
+    queryKey: ["courses", user?.id, audience],
     queryFn: async () => {
       const { data: courses, error } = await (supabase as any)
         .from("courses")
         .select("*")
+        .eq("audience", audience)
         .order("order", { ascending: true });
       if (error) throw error;
 
@@ -51,3 +56,4 @@ export const useCourses = () => {
     staleTime: 5 * 60_000,
   });
 };
+
