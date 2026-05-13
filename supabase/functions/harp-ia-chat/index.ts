@@ -6,129 +6,106 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYSTEM_PROMPT = `Você é a Harp.I.A, uma assistente virtual especializada EXCLUSIVAMENTE em educação financeira e economia pessoal.
+const STYLE_GUIDE = `
+## Estilo de resposta (OBRIGATÓRIO)
+- Responda em português brasileiro, com tom claro, humano e objetivo.
+- Para análises ou perguntas sobre as finanças do usuário, use esta estrutura em Markdown:
 
-## Regras de Comportamento
+## 📊 Resumo
+(1-2 frases diretas)
 
-### Escopo Permitido
-Você SOMENTE pode responder sobre os seguintes temas:
-- Planejamento financeiro pessoal e familiar
-- Investimentos (renda fixa, renda variável, fundos, criptomoedas, etc.)
-- Controle de gastos e orçamento
-- Reserva de emergência
-- Dívidas e como sair delas
-- Impostos e declaração de imposto de renda
-- Aposentadoria e previdência
-- Economia doméstica
-- Empreendedorismo financeiro
-- Conceitos econômicos (inflação, taxa de juros, câmbio, PIB, etc.)
-- Produtos financeiros (CDB, LCI, LCA, Tesouro Direto, ações, FIIs, etc.)
-- Educação financeira para crianças e jovens
-- Crédito, financiamento e consórcios
+## 💸 Destaques
+- itens curtos, com números quando houver
 
-### Escopo Proibido
-Para QUALQUER pergunta que NÃO esteja relacionada aos temas acima (ou aos temas adicionais quando estiver no modo empresa), você DEVE responder EXATAMENTE com:
+## 📈 Sugestões
+- ações práticas e específicas
 
-"🚫 Desculpe, essa pergunta está fora do meu escopo. Sou a Harp.I.A, especializada exclusivamente em **educação financeira e economia pessoal**. Posso te ajudar com temas como investimentos, planejamento financeiro, controle de gastos, dívidas e muito mais! Faça uma pergunta sobre finanças e terei prazer em ajudar. 💰"
+## ⚠️ Atenção
+(opcional, só se houver alerta real)
 
-### Estilo de Comunicação
-- Seja profissional, clara e didática
-- Use linguagem acessível, evitando jargões desnecessários
-- Quando usar termos técnicos, explique-os brevemente
-- Formate suas respostas em Markdown com títulos, listas e destaques
-- Use emojis com moderação para tornar a leitura agradável
-- Cite fontes ou referências quando relevante
-- Sempre incentive o usuário a buscar orientação profissional para decisões importantes
-- Responda sempre em português brasileiro
+- Para perguntas curtas (definição, saudação, dúvida pontual), responda em 1-3 parágrafos sem forçar o template.
+- Use **negrito** para números e conceitos-chave. Evite parágrafos longos.
+- NUNCA invente números. Se faltar dado no contexto, diga: "Ainda não tenho essa informação registrada."
+- Não repita os dados brutos do contexto — interprete-os.
+`;
 
-### Formato de Resposta
-- Use títulos (##) para organizar a resposta
-- Use listas para enumerar passos ou opções
-- Use **negrito** para destacar conceitos importantes
-- Use tabelas quando comparações forem úteis
-- Use citações (>) para dicas e avisos importantes
-- Mantenha as respostas concisas mas completas`;
+const PERSONAL_PROMPT = `Você é a Harp.I.A, assistente de finanças pessoais.
 
-const MAX_MESSAGES = 50;
+Escopo: educação financeira, investimentos, orçamento, dívidas, metas, impostos pessoais, consumo consciente.
+Para perguntas claramente fora desse escopo, responda:
+"🚫 Sou especializada em finanças pessoais. Posso ajudar com investimentos, orçamento, dívidas, metas e mais. Faça uma pergunta sobre suas finanças! 💰"
+${STYLE_GUIDE}`;
+
+const BUSINESS_PROMPT = `Você é a Harp.I.A em modo empresarial: consultora financeira de pequenos negócios.
+
+Escopo adicional: fluxo de caixa, DRE, margem, precificação, capital de giro, fornecedores, tributação simplificada (Simples/MEI), crescimento.
+Para perguntas claramente fora de finanças/negócios, responda:
+"🚫 Sou consultora financeira da sua empresa. Posso ajudar com fluxo de caixa, margem, despesas, metas e mais."
+${STYLE_GUIDE}`;
+
+const MAX_MESSAGES_HISTORY = 8;
 const MAX_CONTENT_LENGTH = 4000;
-const MAX_BUSINESS_CONTEXT_LENGTH = 5000;
+const MAX_CONTEXT_LENGTH = 4000;
 const ALLOWED_ROLES = new Set(["user", "assistant"]);
 
 const fmtBRL = (v: number) =>
-  Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-function buildBusinessSystemMessage(ctx: any): string {
-  const c = ctx.company || {};
-  const k = ctx.kpis || {};
-  const cf = ctx.cashFlow || {};
-  const bs = ctx.balanceSheet || {};
-  const goals = Array.isArray(ctx.goals) ? ctx.goals.slice(0, 10) : [];
-  const budgets = Array.isArray(ctx.budgets) ? ctx.budgets.slice(0, 10) : [];
-  const txs = Array.isArray(cf.lastTransactions) ? cf.lastTransactions.slice(0, 10) : [];
-
+function buildContextMessage(ctx: any): string {
+  if (!ctx || typeof ctx !== "object") return "";
   const lines: string[] = [];
-  lines.push(`## Modo Empresa Ativado`);
-  lines.push(
-    `Você também atua agora como **consultora financeira da empresa "${c.name ?? "(sem nome)"}"** (segmento: ${c.segment ?? "não informado"}, tipo: ${c.business_type ?? "não informado"}).`,
-  );
-  lines.push(``);
-  lines.push(`### Escopo adicional permitido (somente neste modo)`);
-  lines.push(`- Gestão financeira de pequenos negócios e MEI`);
-  lines.push(`- Fluxo de caixa, DRE básico, balanço patrimonial`);
-  lines.push(`- Precificação, margem de contribuição, ponto de equilíbrio`);
-  lines.push(`- Capital de giro e gestão de fornecedores`);
-  lines.push(`- Tributação simplificada (Simples Nacional, MEI)`);
-  lines.push(`- Estratégias de crescimento e investimento empresarial`);
-  lines.push(``);
-  lines.push(`### Resumo executivo da empresa`);
-  if (c.monthly_revenue) lines.push(`- Faturamento esperado: ${fmtBRL(Number(c.monthly_revenue))}`);
-  if (c.employees_count != null) lines.push(`- Funcionários: ${c.employees_count}`);
-  if (c.main_goal) lines.push(`- Objetivo principal: ${c.main_goal}`);
-  lines.push(``);
-  lines.push(`**KPIs do mês corrente**`);
-  lines.push(`- Faturamento: ${fmtBRL(k.revenueMonth ?? 0)}`);
-  lines.push(`- Despesas: ${fmtBRL(k.expensesMonth ?? 0)}`);
-  lines.push(`- Lucro: ${fmtBRL(k.profitMonth ?? 0)}`);
-  if (k.revenue6m != null && k.expenses6m != null) {
-    lines.push(`- Últimos 6 meses → Receita: ${fmtBRL(k.revenue6m)} | Despesa: ${fmtBRL(k.expenses6m)}`);
-  }
-  lines.push(``);
-  lines.push(`**Balanço (ano atual)**`);
-  lines.push(`- Ativo: ${fmtBRL(bs.assets ?? 0)} | Passivo: ${fmtBRL(bs.liabilities ?? 0)} | Patrimônio: ${fmtBRL(bs.equity ?? 0)}`);
+  const isBiz = ctx.mode === "business";
 
-  if (goals.length) {
-    lines.push(``);
-    lines.push(`**Metas em andamento**`);
-    goals.forEach((g: any) =>
-      lines.push(
-        `- ${g.name}: ${fmtBRL(g.current ?? 0)} de ${fmtBRL(g.target ?? 0)}${g.deadline ? ` (até ${g.deadline})` : ""}`,
-      ),
+  lines.push(`## Contexto financeiro do usuário (${isBiz ? "EMPRESA" : "PESSOAL"})`);
+  if (isBiz && ctx.company) {
+    lines.push(
+      `Empresa: **${ctx.company.name}** (${ctx.company.segment ?? "segmento n/d"} · ${ctx.company.business_type ?? "tipo n/d"})`,
+    );
+  }
+  if (!ctx.hasData) {
+    lines.push("");
+    lines.push("⚠️ O usuário ainda não tem transações/orçamentos/metas registradas.");
+    return lines.join("\n");
+  }
+
+  const k = ctx.kpis || {};
+  lines.push("");
+  lines.push("**Mês atual**");
+  lines.push(`- Receita: ${fmtBRL(k.revenueMonth)} | Despesa: ${fmtBRL(k.expensesMonth)} | Saldo: ${fmtBRL(k.balanceMonth)}`);
+  lines.push(`- Taxa de poupança: ${k.savingsRate}% | Saldo vs mês anterior: ${k.balanceVsPrevPct >= 0 ? "+" : ""}${k.balanceVsPrevPct}%`);
+  lines.push(`- Mês anterior → Receita ${fmtBRL(k.revenuePrev)} · Despesa ${fmtBRL(k.expensesPrev)}`);
+
+  if (Array.isArray(ctx.topCategories) && ctx.topCategories.length) {
+    lines.push("");
+    lines.push("**Top categorias de gasto (mês)**");
+    ctx.topCategories.forEach((c: any) => {
+      const arrow = c.changePct > 0 ? "↑" : c.changePct < 0 ? "↓" : "→";
+      lines.push(`- ${c.category}: ${fmtBRL(c.amount)} (${arrow} ${Math.abs(c.changePct)}% vs mês anterior)`);
+    });
+  }
+
+  if (Array.isArray(ctx.budgets) && ctx.budgets.length) {
+    lines.push("");
+    lines.push("**Orçamentos**");
+    ctx.budgets.forEach((b: any) =>
+      lines.push(`- ${b.category}: ${fmtBRL(b.spent)} / ${fmtBRL(b.limit)} (${b.pct}%)${b.over ? " ⚠️ estourado" : ""}`),
     );
   }
 
-  if (budgets.length) {
-    lines.push(``);
-    lines.push(`**Orçamentos**`);
-    budgets.forEach((b: any) => {
-      const overBudget = (b.spent ?? 0) > (b.limit ?? 0);
-      lines.push(
-        `- ${b.category}: ${fmtBRL(b.spent ?? 0)} / ${fmtBRL(b.limit ?? 0)}${overBudget ? " ⚠️ ESTOURADO" : ""}`,
-      );
-    });
+  if (Array.isArray(ctx.goals) && ctx.goals.length) {
+    lines.push("");
+    lines.push("**Metas**");
+    ctx.goals.forEach((g: any) => lines.push(`- ${g.name}: ${fmtBRL(g.current)} / ${fmtBRL(g.target)} (${g.pct}%)`));
   }
 
-  if (txs.length) {
-    lines.push(``);
-    lines.push(`**Últimas transações**`);
-    txs.forEach((t: any) => {
-      const sign = t.type === "income" ? "+" : "-";
-      lines.push(`- ${t.date} | ${t.description} | ${sign}${fmtBRL(Math.abs(Number(t.amount)))} | ${t.category}`);
-    });
+  if (Array.isArray(ctx.alerts) && ctx.alerts.length) {
+    lines.push("");
+    lines.push("**Alertas pré-calculados**");
+    ctx.alerts.forEach((a: string) => lines.push(`- ${a}`));
   }
 
-  lines.push(``);
-  lines.push(`> Use estes dados ao responder perguntas sobre a empresa. Sugira ações concretas baseadas nos números acima quando relevante.`);
-
+  lines.push("");
+  lines.push("> Use APENAS os números acima. Se a pergunta exigir dados ausentes, diga que ainda não tem essa informação.");
   return lines.join("\n");
 }
 
@@ -140,41 +117,34 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: authError } = await supabase.auth.getUser(token);
     if (authError || !userData?.user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const { messages, lessonContext, businessContext } = await req.json();
+    const { messages, lessonContext, context } = await req.json();
 
-    if (!messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: "Messages array is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (messages.length === 0 || messages.length > MAX_MESSAGES) {
-      return new Response(
-        JSON.stringify({ error: `Messages count must be between 1 and ${MAX_MESSAGES}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "Messages array is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     for (const m of messages) {
@@ -186,41 +156,38 @@ Deno.serve(async (req) => {
         m.content.length === 0 ||
         m.content.length > MAX_CONTENT_LENGTH
       ) {
-        return new Response(
-          JSON.stringify({ error: "Invalid message format or length" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Invalid message format" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
+    // Janela curta de memória (economia de créditos)
+    const recentMessages = messages.slice(-MAX_MESSAGES_HISTORY);
+
+    const isBusiness = context?.mode === "business";
     const systemMessages: { role: string; content: string }[] = [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: isBusiness ? BUSINESS_PROMPT : PERSONAL_PROMPT },
     ];
 
     if (lessonContext && typeof lessonContext === "object") {
-      const ctx = `Contexto: o usuário acabou de assistir à aula "${lessonContext.lesson_title ?? ""}" (vídeo: ${lessonContext.youtube_url ?? ""}). Aprofunde o tema e responda dúvidas relacionadas a essa aula.`;
-      systemMessages.push({ role: "system", content: ctx });
+      systemMessages.push({
+        role: "system",
+        content: `O usuário acabou de assistir à aula "${lessonContext.lesson_title ?? ""}". Aprofunde esse tema.`,
+      });
     }
 
-    if (businessContext && typeof businessContext === "object") {
-      try {
-        const serialized = JSON.stringify(businessContext);
-        if (serialized.length <= MAX_BUSINESS_CONTEXT_LENGTH) {
-          systemMessages.push({
-            role: "system",
-            content: buildBusinessSystemMessage(businessContext),
-          });
-        } else {
-          console.warn("businessContext too large, ignoring", serialized.length);
-        }
-      } catch (e) {
-        console.warn("invalid businessContext", e);
+    if (context && typeof context === "object") {
+      const built = buildContextMessage(context);
+      if (built && built.length <= MAX_CONTEXT_LENGTH) {
+        systemMessages.push({ role: "system", content: built });
       }
     }
 
     const apiMessages = [
       ...systemMessages,
-      ...messages.map((msg: { role: string; content: string }) => ({
+      ...recentMessages.map((msg: { role: string; content: string }) => ({
         role: msg.role,
         content: msg.content,
       })),
@@ -229,7 +196,7 @@ Deno.serve(async (req) => {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -241,24 +208,32 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI API error:", response.status, errorText);
+      const status = response.status === 429 ? 429 : response.status === 402 ? 402 : 500;
       return new Response(
-        JSON.stringify({ error: "Failed to get AI response" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error:
+            status === 429
+              ? "Limite de requisições atingido. Tente novamente em instantes."
+              : status === 402
+                ? "Créditos esgotados. Adicione créditos no workspace."
+                : "Falha ao obter resposta da IA",
+        }),
+        { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua pergunta. Tente novamente.";
+    const reply =
+      data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua pergunta. Tente novamente.";
 
-    return new Response(
-      JSON.stringify({ reply }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ reply }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
