@@ -354,7 +354,7 @@ const ChatPage = () => {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Pergunte sobre finanças..."
+            placeholder={isBusiness ? "Pergunte sobre seu negócio..." : "Pergunte sobre finanças..."}
             className="rounded-xl bg-secondary/30 border-border/50 focus:border-primary/50 focus:shadow-glow transition-all"
           />
           <button
