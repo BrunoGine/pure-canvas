@@ -142,7 +142,7 @@ const ChatPage = () => {
         const title = msg.length > 40 ? msg.slice(0, 40) + "..." : msg;
         const { data: conv, error: convErr } = await (supabase as any)
           .from("conversations")
-          .insert({ user_id: user.id, title })
+          .insert({ user_id: user.id, title, company_id: activeCompanyId })
           .select("id")
           .single();
         if (convErr || !conv) throw convErr;
