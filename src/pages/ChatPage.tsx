@@ -190,7 +190,7 @@ const ChatPage = () => {
 
   if (showHistory) {
     return (
-      <div className="flex flex-col h-[calc(100vh-5rem)]">
+      <div className="flex flex-col h-[calc(100dvh-10rem)]">
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="mb-4">
           <div className="flex items-center gap-2">
             <button onClick={() => setShowHistory(false)} className="p-1.5 rounded-full hover:bg-secondary transition-colors">
@@ -251,7 +251,7 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)]">
+    <div className="flex flex-col h-[calc(100dvh-10rem)]">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold flex items-center gap-2">
