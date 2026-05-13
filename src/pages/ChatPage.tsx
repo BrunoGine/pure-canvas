@@ -336,14 +336,15 @@ const ChatPage = () => {
             {msg.role === "assistant" ? (
               <div className="flex-1 min-w-0 prose prose-sm dark:prose-invert max-w-none
                 prose-headings:font-display prose-headings:font-semibold
-                prose-h2:text-base prose-h2:mt-4 prose-h2:mb-2 prose-h2:first:mt-0
-                prose-h3:text-sm prose-h3:mt-3 prose-h3:mb-1.5
-                prose-p:my-2 prose-p:leading-relaxed prose-p:text-foreground
-                prose-li:my-0.5 prose-li:text-foreground
-                prose-ul:my-2 prose-ol:my-2 prose-ul:pl-5 prose-ol:pl-5
+                prose-h2:text-base prose-h2:mt-6 prose-h2:mb-3 prose-h2:first:mt-0
+                prose-h3:text-sm prose-h3:mt-5 prose-h3:mb-2
+                prose-p:my-3 prose-p:leading-relaxed prose-p:text-foreground
+                prose-li:my-1 prose-li:text-foreground
+                prose-ul:my-3 prose-ol:my-3 prose-ul:pl-5 prose-ol:pl-5
                 prose-strong:text-foreground prose-strong:font-semibold
-                prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground
-                prose-table:text-xs">
+                prose-blockquote:border-l-primary prose-blockquote:text-muted-foreground prose-blockquote:my-3
+                prose-hr:my-5 prose-table:text-xs
+                space-y-1">
                 <ReactMarkdown>{msg.content}</ReactMarkdown>
               </div>
             ) : (
