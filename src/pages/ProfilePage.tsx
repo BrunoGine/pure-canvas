@@ -48,10 +48,34 @@ const ProfilePage = () => {
 
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setAvatar(reader.result as string);
-    reader.readAsDataURL(file);
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo de 5MB.", variant: "destructive" });
+      return;
+    }
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (upErr) {
+      console.error(upErr);
+      toast({ title: "Erro", description: "Não foi possível enviar a foto.", variant: "destructive" });
+      return;
+    }
+    const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+    const url = pub.publicUrl;
+    const { error: dbErr } = await supabase
+      .from("profiles")
+      .update({ avatar_url: url })
+      .eq("id", user.id);
+    if (dbErr) {
+      toast({ title: "Erro", description: "Não foi possível salvar a foto.", variant: "destructive" });
+      return;
+    }
+    setAvatar(url);
+    toast({ title: "Foto atualizada!" });
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const menuItems = [
