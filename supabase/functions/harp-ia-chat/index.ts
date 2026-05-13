@@ -25,6 +25,8 @@ const STYLE_GUIDE = `
 
 - Para perguntas curtas (definição, saudação, dúvida pontual), responda em 1-3 parágrafos sem forçar o template.
 - Use **negrito** para números e conceitos-chave. Evite parágrafos longos.
+- Sempre deixe **uma linha em branco** entre cada seção (antes de cada título ##) e entre parágrafos, para o texto respirar.
+- Após cada lista, deixe uma linha em branco antes do próximo tópico.
 - NUNCA invente números. Se faltar dado no contexto, diga: "Ainda não tenho essa informação registrada."
 - Não repita os dados brutos do contexto — interprete-os.
 `;
