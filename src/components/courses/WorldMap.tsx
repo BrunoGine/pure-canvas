@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import * as Icons from "lucide-react";
-import { GraduationCap, ChevronRight, Settings, BarChart3 } from "lucide-react";
+import { GraduationCap, ChevronRight, Settings, BarChart3, Building2 } from "lucide-react";
 import StatsHeader from "./StatsHeader";
 import ContinueCard from "./ContinueCard";
 import MentorCard from "./MentorCard";
@@ -9,6 +9,7 @@ import QuickActions from "./QuickActions";
 import PendingReviewsCard from "./PendingReviewsCard";
 import { useCourses } from "@/hooks/useCourses";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { useCompany } from "@/contexts/CompanyContext";
 
 const LEVEL_LABEL: Record<string, string> = {
   beginner: "Iniciante",
