@@ -1,80 +1,48 @@
 ## Objetivo
 
-Permitir dois tipos de meta:
+Permitir que o usuário exclua uma empresa criada, com confirmação obrigatória avisando que a ação é permanente. O perfil pessoal nunca pode ser excluído — apenas empresas.
 
-1. **Meta com objetivo** (atual): valor total a alcançar, ex: "Viagem R$ 5.000".
-2. **Meta mensal/hábito** (novo): sem valor objetivo total, apenas um valor a contribuir todo mês, ex: "Investir R$ 100/mês".
+## Onde aparece o botão
 
----
+No card **"Minha Empresa" / "Gerenciar empresa"** (`BusinessEntryCard`) na página de Perfil. Quando o usuário tiver pelo menos uma empresa, exibir um pequeno ícone de lixeira (`Trash2`) à direita do card, separado da ação principal de entrar/sair do modo empresa. O botão só aparece quando `companies.length > 0`.
 
-## 1. Banco de dados (migração)
+Não haverá botão equivalente para o perfil pessoal — ele é intrínseco à conta.
 
-Tabela `goals`:
+## Fluxo de confirmação
 
-- Tornar `target_amount` **nullable** (hoje é `NOT NULL`).
-- Adicionar coluna `monthly_target_amount numeric` (nullable) — valor mensal desejado para metas-hábito.
-- Adicionar coluna `goal_type text NOT NULL DEFAULT 'target'` com valores `'target'` (com objetivo) ou `'monthly'` (hábito mensal).
+Ao clicar na lixeira, abrir um `AlertDialog` (shadcn) com:
 
-Atualizar a função `validate_goal()`:
+- **Título:** "Excluir empresa?"
+- **Descrição:** "Esta ação é permanente. Todos os dados vinculados a **{nome da empresa}** serão perdidos, incluindo transações, orçamentos, cartões, lançamentos recorrentes e metas associadas. Essa ação não pode ser desfeita."
+- **Botões:** "Cancelar" e "Excluir definitivamente" (variante destrutiva).
 
-- Para `goal_type = 'target'`: manter regra atual (exige `target_amount > 0`, marca `is_completed` quando `current_amount >= target_amount`).
-- Para `goal_type = 'monthly'`: exigir `monthly_target_amount > 0`, **nunca** marcar como concluída automaticamente, ignorar `target_amount`.
+Se houver mais de uma empresa, mostrar um seletor para escolher qual excluir antes da confirmação. Se só houver uma, ir direto para a confirmação dela.
 
----
+## Lógica de exclusão
 
-## 2. Hook `useGoals.ts`
+Ao confirmar:
 
-- Estender `Goal` com `monthly_target_amount: number | null` e `goal_type: 'target' | 'monthly'`.
-- `NewGoalInput`: aceitar `goal_type`, `target_amount` opcional e `monthly_target_amount` opcional. Validar conforme o tipo.
-- `addGoal`: gravar os novos campos. Para `monthly`, salvar `target_amount = null`.
-- Em metas mensais, a contribuição não tem "fim" — não disparar `justCompleted`.
+1. Se a empresa a excluir for a `activeCompanyId`, sair do modo empresa (`exitBusinessMode`) e limpar `active_company_id` em `profiles`.
+2. Apagar dados relacionados em ordem (filtrando por `user_id = auth.uid()` e `company_id = X`):
+   - `manual_transactions`
+   - `recurring_transactions`
+   - `budgets`
+   - `credit_cards`
+   - `conversations` (e suas `chat_messages` via `conversation_id`)
+   - `goals` com `company_id = X`
+3. Apagar a linha em `companies`.
+4. `refreshCompanies()` no contexto.
+5. Toast de sucesso.
 
----
+Tudo é feito via cliente Supabase usando as RLS já existentes (`auth.uid() = user_id`). Nenhuma migração é necessária.
 
-## 3. Formulário `GoalFormDialog.tsx`
+## Arquivos a editar
 
-- Adicionar um seletor no topo (2 abas/segmented):
-  - **Com objetivo** (padrão) — fluxo atual.
-  - **Meta mensal** — esconde "Valor objetivo" e "Me ajude a definir o valor"; mostra campo "Valor mensal (R$)" e mantém prazo opcional.
-- Categoria/preset e nome continuam iguais para os dois tipos.
-- Validação e `onCreate` adaptados ao tipo selecionado.
+- `src/components/business/BusinessEntryCard.tsx` — adicionar botão lixeira, AlertDialog e função `handleDelete`.
+- `src/contexts/CompanyContext.tsx` — expor helper `deleteCompany(companyId)` que executa as exclusões em cascata e limpa `activeCompanyId` se necessário.
 
----
+## Detalhes técnicos
 
-## 4. Card `GoalCard.tsx`
-
-- **Meta com objetivo**: layout atual (progress bar, `current/target`, %).
-- **Meta mensal**: substituir a barra de progresso por um indicador do mês corrente:
-  - Calcular `contribuídoEsteMês` somando `manual_transactions` do mês atual com `goal_id = goal.id` e `category = 'Meta'` (entradas/saídas).
-  - Mostrar `R$ X / R$ Y este mês` + barra do progresso mensal.
-  - Badge "Mensal" no canto, sem estado "Concluída".
-- Botões Adicionar/Retirar mantidos.
-
-Para evitar N consultas, calcular o `contribuídoEsteMês` em `useGoals` (uma query agregada por meta mensal) e expor no objeto `Goal` em runtime (campo derivado `month_contributed`).
-
----
-
-## 5. Diálogo de contribuição
-
-- Para meta mensal, sugerir como valor padrão o `monthly_target_amount` restante do mês.
-- Texto auxiliar: "Faltam R$ X para bater sua meta deste mês".
-- Recorrência segue funcionando igual (já cria `recurring_transactions`).
-
----
-
-## 6. Integração com Harp.IA / contexto
-
-- `useHarpContext` passa a incluir resumo de metas mensais (quantas existem, total comprometido/mês, % batido no mês atual) para que a Harp possa comentar.
-
----
-
-## Arquivos afetados
-
-- `supabase/migrations/<nova>.sql` (schema + função)
-- `src/hooks/useGoals.ts`
-- `src/components/goals/GoalFormDialog.tsx`
-- `src/components/goals/GoalCard.tsx`
-- `src/components/goals/GoalContributeDialog.tsx`
-- `src/hooks/useHarpContext.ts` (pequeno ajuste)
-
-Sem alterações em `GoalsSection`, exceto que ele passa a renderizar os dois tipos no mesmo grid.
+- Usar `AlertDialog` de `@/components/ui/alert-dialog`.
+- Para `chat_messages`, primeiro buscar `conversation.id` por `company_id`, depois deletar mensagens, depois conversas.
+- Estado de loading no botão de confirmação para evitar duplo clique.
