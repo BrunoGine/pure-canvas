@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LogOut, Pencil, Check, X } from "lucide-react";
+import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LifeBuoy, ShieldCheck, LogOut, Pencil, Check, X } from "lucide-react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
