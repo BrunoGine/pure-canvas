@@ -36,6 +36,7 @@ const Ctx = createContext<CompanyContextValue>({
   enterBusinessMode: async () => {},
   exitBusinessMode: async () => {},
   refreshCompanies: async () => {},
+  deleteCompany: async () => {},
 });
 
 export const useCompany = () => useContext(Ctx);
