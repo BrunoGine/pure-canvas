@@ -109,6 +109,43 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     setMode("personal");
   }, []);
 
+  const deleteCompany = useCallback(async (companyId: string) => {
+    if (!user) return;
+
+    // Exit business mode if deleting the active one
+    if (activeCompanyId === companyId) {
+      setMode("personal");
+      setActiveCompanyId(null);
+      await supabase.from("profiles").update({ active_company_id: null }).eq("id", user.id);
+    }
+
+    // Delete chat messages tied to conversations of this company
+    const { data: convs } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("company_id", companyId);
+    const convIds = (convs || []).map((c) => c.id);
+    if (convIds.length > 0) {
+      await supabase.from("chat_messages").delete().in("conversation_id", convIds);
+    }
+
+    // Delete related data scoped by user_id + company_id
+    await Promise.all([
+      supabase.from("manual_transactions").delete().eq("user_id", user.id).eq("company_id", companyId),
+      supabase.from("recurring_transactions").delete().eq("user_id", user.id).eq("company_id", companyId),
+      supabase.from("budgets").delete().eq("user_id", user.id).eq("company_id", companyId),
+      supabase.from("credit_cards").delete().eq("user_id", user.id).eq("company_id", companyId),
+      supabase.from("goals").delete().eq("user_id", user.id).eq("company_id", companyId),
+      supabase.from("conversations").delete().eq("user_id", user.id).eq("company_id", companyId),
+    ]);
+
+    // Finally delete the company
+    await supabase.from("companies").delete().eq("id", companyId).eq("user_id", user.id);
+
+    await refreshCompanies();
+  }, [user, activeCompanyId, refreshCompanies]);
+
   const activeCompany = companies.find((c) => c.id === activeCompanyId) || null;
   const effectiveMode: AppMode = mode === "business" && activeCompany ? "business" : "personal";
   const effectiveActiveId = effectiveMode === "business" ? activeCompanyId : null;
