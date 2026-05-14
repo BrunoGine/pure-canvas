@@ -24,6 +24,7 @@ interface CompanyContextValue {
   enterBusinessMode: (companyId: string) => Promise<void>;
   exitBusinessMode: () => Promise<void>;
   refreshCompanies: () => Promise<void>;
+  deleteCompany: (companyId: string) => Promise<void>;
 }
 
 const Ctx = createContext<CompanyContextValue>({
