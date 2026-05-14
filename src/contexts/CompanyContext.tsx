@@ -161,6 +161,7 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
         enterBusinessMode,
         exitBusinessMode,
         refreshCompanies,
+        deleteCompany,
       }}
     >
       {children}
