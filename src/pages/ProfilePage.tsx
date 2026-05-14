@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LogOut, Pencil, Check, X } from "lucide-react";
+import { User, Camera, Moon, Sun, ChevronRight, Shield, Bell, HelpCircle, LifeBuoy, ShieldCheck, LogOut, Pencil, Check, X } from "lucide-react";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -11,9 +13,11 @@ import FinancialProfileSection from "@/components/profile/FinancialProfileSectio
 import BusinessEntryCard from "@/components/business/BusinessEntryCard";
 
 const ProfilePage = () => {
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { signOut, user } = useAuth();
   const { toast } = useToast();
+  const { data: isAdmin } = useIsAdmin();
   const [name, setName] = useState("");
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState("");
@@ -79,9 +83,11 @@ const ProfilePage = () => {
   };
 
   const menuItems = [
+    { icon: LifeBuoy, label: "Suporte", action: () => navigate("/suporte") },
     { icon: Bell, label: "Notificações", action: () => {} },
     { icon: Shield, label: "Privacidade", action: () => {} },
-    { icon: HelpCircle, label: "Ajuda & Suporte", action: () => {} },
+    { icon: HelpCircle, label: "Ajuda", action: () => navigate("/suporte") },
+    ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin: Suporte", action: () => navigate("/admin/suporte") }] : []),
   ];
 
   return (
