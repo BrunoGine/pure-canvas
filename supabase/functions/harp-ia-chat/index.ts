@@ -1,5 +1,12 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  getDefaultProvider,
+  RateLimitError,
+  AuthError,
+  ProviderError,
+  type ChatMessage,
+} from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -195,38 +202,48 @@ Deno.serve(async (req) => {
       })),
     ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: apiMessages,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", response.status, errorText);
-      const status = response.status === 429 ? 429 : response.status === 402 ? 402 : 500;
-      return new Response(
-        JSON.stringify({
-          error:
-            status === 429
-              ? "Limite de requisições atingido. Tente novamente em instantes."
-              : status === 402
-                ? "Créditos esgotados. Adicione créditos no workspace."
-                : "Falha ao obter resposta da IA",
-        }),
-        { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    let reply: string;
+    let usedModel = "unknown";
+    try {
+      const provider = getDefaultProvider();
+      usedModel = provider.model;
+      const result = await provider.generate(apiMessages as ChatMessage[], { temperature: 0.7 });
+      reply = result.text;
+    } catch (err) {
+      console.error("[harp-ia-chat] provider error:", err);
+      let status = 500;
+      let message = "Estamos com instabilidade temporária. Tente novamente em instantes.";
+      if (err instanceof RateLimitError) {
+        status = 429;
+        message = "Limite de requisições atingido. Tente novamente em instantes.";
+      } else if (err instanceof AuthError) {
+        status = 500; // não exponha detalhe ao cliente
+      } else if (err instanceof ProviderError) {
+        status = err.status >= 500 ? 502 : err.status;
+      }
+      return new Response(JSON.stringify({ error: message }), {
+        status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const data = await response.json();
-    const reply =
-      data.choices?.[0]?.message?.content || "Desculpe, não consegui processar sua pergunta. Tente novamente.";
+    // Log de uso (best-effort, nunca quebra o chat)
+    try {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const promptChars = apiMessages.reduce((n, m) => n + (m.content?.length || 0), 0);
+      await admin.from("ai_usage_log").insert({
+        user_id: userData.user.id,
+        feature: "harp_chat",
+        model: usedModel,
+        prompt_chars: promptChars,
+        response_chars: reply.length,
+      });
+    } catch (e) {
+      console.warn("[harp-ia-chat] usage log failed", e);
+    }
 
     return new Response(JSON.stringify({ reply }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
