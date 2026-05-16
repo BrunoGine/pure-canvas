@@ -572,6 +572,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          created_at: string
+          currency: string
+          features: Json
+          gateway_price_id_monthly: string | null
+          gateway_price_id_yearly: string | null
+          highlight: boolean
+          key: Database["public"]["Enums"]["subscription_plan"]
+          name: string
+          price_monthly_cents: number
+          price_yearly_cents: number
+          sort_order: number
+          tagline: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          features?: Json
+          gateway_price_id_monthly?: string | null
+          gateway_price_id_yearly?: string | null
+          highlight?: boolean
+          key: Database["public"]["Enums"]["subscription_plan"]
+          name: string
+          price_monthly_cents?: number
+          price_yearly_cents?: number
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          features?: Json
+          gateway_price_id_monthly?: string | null
+          gateway_price_id_yearly?: string | null
+          highlight?: boolean
+          key?: Database["public"]["Enums"]["subscription_plan"]
+          name?: string
+          price_monthly_cents?: number
+          price_yearly_cents?: number
+          sort_order?: number
+          tagline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           active_company_id: string | null
@@ -830,6 +878,72 @@ export type Database = {
           preset_key?: string
           target_amount?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          billing_interval:
+            | Database["public"]["Enums"]["billing_interval"]
+            | null
+          cancel_at_period_end: boolean
+          coupon_code: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          gateway: Database["public"]["Enums"]["payment_gateway"]
+          gateway_customer_id: string | null
+          gateway_subscription_id: string | null
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          price_cents: number | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
+          trial_started_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_interval?:
+            | Database["public"]["Enums"]["billing_interval"]
+            | null
+          cancel_at_period_end?: boolean
+          coupon_code?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          gateway?: Database["public"]["Enums"]["payment_gateway"]
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          price_cents?: number | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_interval?:
+            | Database["public"]["Enums"]["billing_interval"]
+            | null
+          cancel_at_period_end?: boolean
+          coupon_code?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          gateway?: Database["public"]["Enums"]["payment_gateway"]
+          gateway_customer_id?: string | null
+          gateway_subscription_id?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          price_cents?: number | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
+          trial_started_at?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1155,8 +1269,17 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      billing_interval: "month" | "year"
+      payment_gateway: "stripe" | "mercadopago" | "none"
       shared_goal_role: "admin" | "member"
       shared_request_status: "pending" | "approved" | "rejected"
+      subscription_plan: "free" | "premium" | "enterprise"
+      subscription_status:
+        | "active"
+        | "trialing"
+        | "expired"
+        | "canceled"
+        | "past_due"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1285,8 +1408,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      billing_interval: ["month", "year"],
+      payment_gateway: ["stripe", "mercadopago", "none"],
       shared_goal_role: ["admin", "member"],
       shared_request_status: ["pending", "approved", "rejected"],
+      subscription_plan: ["free", "premium", "enterprise"],
+      subscription_status: [
+        "active",
+        "trialing",
+        "expired",
+        "canceled",
+        "past_due",
+      ],
     },
   },
 } as const
