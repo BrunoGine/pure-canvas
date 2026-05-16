@@ -14,6 +14,8 @@ import AuthCallbackPage from "./pages/AuthCallbackPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import OnboardingPage from "./pages/OnboardingPage.tsx";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage.tsx";
+import PricingPage from "./pages/PricingPage.tsx";
+import { PaywallProvider } from "@/contexts/PaywallContext";
 
 const queryClient = new QueryClient();
 
