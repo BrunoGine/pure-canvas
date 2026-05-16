@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import FinancialProfileSection from "@/components/profile/FinancialProfileSection";
 import BusinessEntryCard from "@/components/business/BusinessEntryCard";
+import PlanStatusCard from "@/components/billing/PlanStatusCard";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -148,6 +149,8 @@ const ProfilePage = () => {
           )}
         </div>
       </motion.div>
+
+      <PlanStatusCard />
 
       <BusinessEntryCard />
 

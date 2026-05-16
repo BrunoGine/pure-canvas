@@ -14,6 +14,8 @@ import AuthCallbackPage from "./pages/AuthCallbackPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import OnboardingPage from "./pages/OnboardingPage.tsx";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage.tsx";
+import PricingPage from "./pages/PricingPage.tsx";
+import { PaywallProvider } from "@/contexts/PaywallContext";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +54,7 @@ const ProtectedRoutes = () => {
   }
   if (location.pathname === "/onboarding") return <OnboardingPage />;
   if (location.pathname === "/empresa/onboarding") return <BusinessOnboardingPage />;
+  if (location.pathname === "/planos") return <PricingPage />;
   return <Index />;
 };
 
@@ -71,13 +74,15 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<AuthPageWrapper />} />
-              <Route path="/auth/callback" element={<AuthCallbackPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/*" element={<ProtectedRoutes />} />
-            </Routes>
-          </BrowserRouter>
+              <PaywallProvider>
+                <Routes>
+                  <Route path="/auth" element={<AuthPageWrapper />} />
+                  <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/*" element={<ProtectedRoutes />} />
+                </Routes>
+              </PaywallProvider>
+            </BrowserRouter>
           </TooltipProvider>
         </CompanyProvider>
       </AuthProvider>

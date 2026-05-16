@@ -1,1 +1,4 @@
 project_id = "lwgaktusfaawrzkeerkn"
+
+[functions.start-trial]
+verify_jwt = true

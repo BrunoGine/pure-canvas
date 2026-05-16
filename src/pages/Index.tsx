@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import ContextSwitcher from "@/components/business/ContextSwitcher";
+import TrialBanner from "@/components/billing/TrialBanner";
 import HomePage from "./HomePage";
 import SpreadsheetsPage from "./SpreadsheetsPage";
 import CoursesPage from "./CoursesPage";
@@ -66,6 +67,7 @@ const Index = () => {
       <div className="w-full max-w-lg px-4 pt-3 relative z-20">
         <ContextSwitcher />
       </div>
+      <TrialBanner />
       <main className="w-full max-w-lg px-4 pt-4 relative z-10">
         <Routes>
           <Route index element={<HomePage />} />
