@@ -8,12 +8,19 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { useCompany } from "@/contexts/CompanyContext";
 import { useTransactions } from "@/hooks/useTransactions";
 import GoalsSection from "@/components/goals/GoalsSection";
+import { useSubscription } from "@/hooks/useSubscription";
+import EnterprisePromo from "@/components/billing/EnterprisePromo";
 
 const BusinessHomePage = () => {
   const navigate = useNavigate();
   const { activeCompany, companies, loading } = useCompany();
   const { transactions } = useTransactions();
+  const { can, loading: subLoading } = useSubscription();
   const [hide, setHide] = useState(false);
+
+  if (!subLoading && !can("enterprise.access")) {
+    return <EnterprisePromo />;
+  }
 
   const now = new Date();
   const month = now.getMonth();
