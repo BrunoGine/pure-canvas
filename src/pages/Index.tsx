@@ -67,6 +67,7 @@ const Index = () => {
       <div className="w-full max-w-lg px-4 pt-3 relative z-20">
         <ContextSwitcher />
       </div>
+      <TrialBanner />
       <main className="w-full max-w-lg px-4 pt-4 relative z-10">
         <Routes>
           <Route index element={<HomePage />} />
