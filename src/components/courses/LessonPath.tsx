@@ -4,16 +4,24 @@ import { ChevronLeft, Lock, Check, Play } from "lucide-react";
 import { useCourseLessons, type LessonWithProgress } from "@/hooks/useCourseLessons";
 import StatsHeader from "./StatsHeader";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
+import { usePaywall } from "@/contexts/PaywallContext";
 
 const LessonPath = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { can } = useSubscription();
+  const paywall = usePaywall();
   const { data, isLoading } = useCourseLessons(courseId);
 
   const handleClick = (l: LessonWithProgress) => {
     if (!l.unlocked) {
       toast({ title: "Aula bloqueada", description: "Complete a aula anterior para desbloquear." });
+      return;
+    }
+    if (!can("courses.watch")) {
+      paywall.open("courses");
       return;
     }
     navigate(`/cursos/aula/${l.id}`);
