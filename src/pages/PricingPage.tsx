@@ -279,20 +279,32 @@ const PricingPage = () => {
                     </button>
                   ) : (
                     <button
-                      onClick={() => handleSubscribe(p.key)}
-                      disabled={isCurrent && !isTrialing}
+                      onClick={() => (isCurrent && !isTrialing ? handleManage() : handleSubscribe(p.key))}
+                      disabled={checkoutLoading === `${p.key}_${interval}` || checkoutLoading === "portal"}
                       className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-primary to-primary-glow text-primary-foreground font-bold shadow-glow disabled:opacity-60"
                     >
-                      {isCurrent && !isTrialing ? "Plano atual" : "Assinar Premium"}
+                      {checkoutLoading === `${p.key}_${interval}` || (checkoutLoading === "portal" && isCurrent) ? (
+                        <Loader2 size={18} className="animate-spin mx-auto" />
+                      ) : isCurrent && !isTrialing ? (
+                        "Gerenciar assinatura"
+                      ) : (
+                        "Assinar Premium"
+                      )}
                     </button>
                   )
                 ) : (
                   <button
-                    onClick={() => handleSubscribe(p.key)}
-                    disabled={isCurrent}
+                    onClick={() => (isCurrent ? handleManage() : handleSubscribe(p.key))}
+                    disabled={checkoutLoading === `${p.key}_${interval}` || checkoutLoading === "portal"}
                     className="w-full py-3 rounded-2xl bg-[hsl(var(--business-primary))] text-primary-foreground font-semibold disabled:opacity-60"
                   >
-                    {isCurrent ? "Plano atual" : "Gerenciar minha empresa"}
+                    {checkoutLoading === `${p.key}_${interval}` || (checkoutLoading === "portal" && isCurrent) ? (
+                      <Loader2 size={18} className="animate-spin mx-auto" />
+                    ) : isCurrent ? (
+                      "Gerenciar assinatura"
+                    ) : (
+                      "Gerenciar minha empresa"
+                    )}
                   </button>
                 )}
 
