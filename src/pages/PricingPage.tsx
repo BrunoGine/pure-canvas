@@ -65,12 +65,43 @@ const PricingPage = () => {
     }
   };
 
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
   const handleSubscribe = async (planKey: PlanKey) => {
-    // Stripe checkout will be wired in next step.
-    toast({
-      title: "Checkout em preparação",
-      description: "Estamos finalizando a integração de pagamento. Em breve!",
-    });
+    const key = `${planKey}_${interval}`;
+    setCheckoutLoading(key);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan: planKey, interval },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      throw new Error("URL de checkout não recebida");
+    } catch (e: any) {
+      toast({
+        title: "Não foi possível abrir o checkout",
+        description: e?.message ?? "Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleManage = async () => {
+    setCheckoutLoading("portal");
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (e: any) {
+      toast({ title: "Erro", description: e?.message ?? "Tente novamente.", variant: "destructive" });
+    } finally {
+      setCheckoutLoading(null);
+    }
   };
 
   if (loading) {
