@@ -43,6 +43,12 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const { ticketId, messageId, message } = body ?? {};
+    console.log("notify-ticket-reply: received", {
+      authUser: callerId,
+      ticket_id: ticketId ?? null,
+      support_message_id: messageId ?? null,
+      hasMessage: typeof message === "string" && message.length > 0,
+    });
     if (!ticketId || !messageId) {
       return new Response(JSON.stringify({ error: "ticketId and messageId required" }), { status: 400, headers: corsHeaders });
     }
@@ -67,18 +73,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Recipient email not found" }), { status: 404, headers: corsHeaders });
     }
 
-    // send-transactional-email has gateway JWT verification enabled. In the
-    // current Supabase signing-keys setup the service role secret may be opaque,
-    // so use the anon JWT at the gateway boundary and keep service privileges
-    // inside each function via SUPABASE_SERVICE_ROLE_KEY from Deno.env.
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    // send-transactional-email has gateway JWT verification enabled. Forward
+    // the original authenticated user JWT at the gateway boundary; service
+    // privileges remain server-side only inside each function via Deno.env.
+    const publicKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const resp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${anonKey}`,
-        apikey: anonKey,
+        Authorization: authHeader,
+        apikey: publicKey,
       },
       body: JSON.stringify({
         templateName: "ticket-reply",
@@ -95,7 +100,10 @@ Deno.serve(async (req) => {
     if (!resp.ok) {
       const errText = await resp.text();
       console.error("send-transactional-email failed", resp.status, errText);
-      return new Response(JSON.stringify({ error: errText }), { status: 502, headers: corsHeaders });
+      return new Response(JSON.stringify({ ok: false, notificationError: errText }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ ok: true }), {
