@@ -18,12 +18,12 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claims?.claims) {
+    const { data: userData, error: userAuthErr } = await userClient.auth.getUser();
+    if (userAuthErr || !userData?.user) {
+      console.error("auth.getUser failed", userAuthErr);
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
-    const callerId = claims.claims.sub as string;
+    const callerId = userData.user.id;
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    console.error("notify-ticket-reply error", e);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
