@@ -38,7 +38,7 @@ export const useSupportTickets = (opts?: { admin?: boolean }) => {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`tickets-${opts?.admin ? "admin" : user.id}`)
+      .channel(`tickets-${opts?.admin ? "admin" : user.id}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, () => fetchTickets())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
