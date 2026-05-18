@@ -56,30 +56,11 @@ export const useSupportMessages = (ticketId: string | undefined, opts?: { isAdmi
         .single();
       if (error) throw error;
 
-      // If admin replied → notify ticket owner
+      // If admin replied → notify ticket owner (email lookup happens server-side)
       if (opts?.isAdmin) {
-        const { data: ticket } = await (supabase as any)
-          .from("support_tickets")
-          .select("user_id, subject")
-          .eq("id", ticketId)
-          .single();
-        if (ticket) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("display_name")
-            .eq("id", ticket.user_id)
-            .maybeSingle();
-          // Get user email via auth (admin only via RPC would be needed; skip if unavailable).
-          // Frontend cannot read auth.users directly; rely on edge function to look up via service role if needed.
-          supabase.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "ticket-reply",
-              recipientUserId: ticket.user_id,
-              idempotencyKey: `ticket-reply-${msg.id}`,
-              templateData: { subject: ticket.subject, ticketId, userName: profile?.display_name || "Usuário", message: message.trim() },
-            },
-          }).catch(() => {});
-        }
+        supabase.functions.invoke("notify-ticket-reply", {
+          body: { ticketId, messageId: msg.id, message: message.trim() },
+        }).catch(() => {});
       }
     } finally {
       setSending(false);
