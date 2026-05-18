@@ -67,14 +67,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Recipient email not found" }), { status: 404, headers: corsHeaders });
     }
 
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    // send-transactional-email has gateway JWT verification enabled. In the
+    // current Supabase signing-keys setup the service role secret may be opaque,
+    // so use the anon JWT at the gateway boundary and keep service privileges
+    // inside each function via SUPABASE_SERVICE_ROLE_KEY from Deno.env.
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const resp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
-        apikey: serviceKey,
+        Authorization: `Bearer ${anonKey}`,
+        apikey: anonKey,
       },
       body: JSON.stringify({
         templateName: "ticket-reply",
