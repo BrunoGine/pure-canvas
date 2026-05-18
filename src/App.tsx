@@ -12,6 +12,7 @@ import Index from "./pages/Index.tsx";
 import AuthPage from "./pages/AuthPage.tsx";
 import AuthCallbackPage from "./pages/AuthCallbackPage.tsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
+import UnsubscribePage from "./pages/UnsubscribePage.tsx";
 import OnboardingPage from "./pages/OnboardingPage.tsx";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage.tsx";
 import PricingPage from "./pages/PricingPage.tsx";
