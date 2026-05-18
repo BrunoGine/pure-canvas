@@ -67,8 +67,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Recipient email not found" }), { status: 404, headers: corsHeaders });
     }
 
-    const { error: invokeErr } = await admin.functions.invoke("send-transactional-email", {
-      body: {
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const resp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+      },
+      body: JSON.stringify({
         templateName: "ticket-reply",
         recipientEmail: userInfo.user.email,
         idempotencyKey: `ticket-reply-${messageId}`,
@@ -78,10 +86,12 @@ Deno.serve(async (req) => {
           userName: profile?.display_name || "Usuário",
           message: message ?? "",
         },
-      },
+      }),
     });
-    if (invokeErr) {
-      return new Response(JSON.stringify({ error: invokeErr.message }), { status: 500, headers: corsHeaders });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error("send-transactional-email failed", resp.status, errText);
+      return new Response(JSON.stringify({ error: errText }), { status: 502, headers: corsHeaders });
     }
 
     return new Response(JSON.stringify({ ok: true }), {
