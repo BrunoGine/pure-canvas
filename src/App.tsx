@@ -79,6 +79,7 @@ const App = () => (
                   <Route path="/auth" element={<AuthPageWrapper />} />
                   <Route path="/auth/callback" element={<AuthCallbackPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/unsubscribe" element={<UnsubscribePage />} />
                   <Route path="/*" element={<ProtectedRoutes />} />
                 </Routes>
               </PaywallProvider>
