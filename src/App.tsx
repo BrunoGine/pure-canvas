@@ -27,25 +27,31 @@ const Spinner = () => (
 );
 
 const ProtectedRoutes = () => {
-  const { session, loading } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!session) {
+    if (!user) {
       setOnboardingDone(null);
       return;
     }
+    let cancelled = false;
     supabase
       .from("profiles")
       .select("onboarding_completed")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .maybeSingle()
-      .then(({ data }) => setOnboardingDone(!!data?.onboarding_completed));
-  }, [session, location.pathname]);
+      .then(({ data }) => {
+        if (!cancelled) setOnboardingDone(!!data?.onboarding_completed);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, location.pathname]);
 
   if (loading) return <Spinner />;
-  if (!session) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/auth" replace />;
   if (onboardingDone === null) return <Spinner />;
   if (!onboardingDone && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
