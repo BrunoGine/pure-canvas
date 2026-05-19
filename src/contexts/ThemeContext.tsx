@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Theme = "light" | "dark";
 
@@ -15,39 +16,36 @@ function getSystemTheme(): Theme {
 }
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem("finapp-theme");
     return (saved as Theme) || getSystemTheme();
   });
-  const [userId, setUserId] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
 
-  // Listen for auth changes to load saved preference from DB
+  // Load saved preference from DB only when the authenticated user actually changes.
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const uid = session?.user?.id ?? null;
-      setUserId(uid);
-      if (uid) {
-        // Load theme preference from profiles
-        supabase
-          .from("profiles")
-          .select("theme_preference")
-          .eq("id", uid)
-          .single()
-          .then(({ data }) => {
-            const pref = (data as any)?.theme_preference as string | null;
-            if (pref === "light" || pref === "dark") {
-              setTheme(pref);
-              localStorage.setItem("finapp-theme", pref);
-            }
-            setLoaded(true);
+    if (!user?.id) return;
+    let cancelled = false;
+    supabase
+      .from("profiles")
+      .select("theme_preference")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (cancelled) return;
+        const pref = (data as any)?.theme_preference as string | null;
+        if (pref === "light" || pref === "dark") {
+          setTheme((current) => {
+            if (current === pref) return current;
+            localStorage.setItem("finapp-theme", pref);
+            return pref;
           });
-      } else {
-        setLoaded(true);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   // Listen for system theme changes (only if no saved preference)
   useEffect(() => {
@@ -71,16 +69,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       const next = prev === "light" ? "dark" : "light";
       localStorage.setItem("finapp-theme", next);
       // Save to DB if logged in
-      if (userId) {
+      if (user?.id) {
         (supabase as any)
           .from("profiles")
           .update({ theme_preference: next })
-          .eq("id", userId)
+          .eq("id", user.id)
           .then(() => {});
       }
       return next;
     });
-  }, [userId]);
+  }, [user?.id]);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
