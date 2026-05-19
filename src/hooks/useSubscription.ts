@@ -24,12 +24,12 @@ interface UseSubscriptionResult {
 }
 
 export function useSubscription(): UseSubscriptionResult {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchSub = useCallback(async () => {
-    if (!session?.user?.id) {
+    if (!user?.id) {
       setSubscription(null);
       setLoading(false);
       return;
@@ -39,20 +39,20 @@ export function useSubscription(): UseSubscriptionResult {
       .select(
         "plan,status,trial_started_at,trial_ends_at,current_period_end,cancel_at_period_end,billing_interval"
       )
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .maybeSingle();
     setSubscription((data as SubscriptionRecord | null) ?? null);
     setLoading(false);
-  }, [session?.user?.id]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchSub();
   }, [fetchSub]);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
+    if (!user?.id) return;
     const channel = supabase.channel(
-      `subscriptions:${session.user.id}:${Math.random().toString(36).slice(2)}`
+      `subscriptions:${user.id}`
     );
     channel
       .on(
@@ -61,7 +61,7 @@ export function useSubscription(): UseSubscriptionResult {
           event: "*",
           schema: "public",
           table: "subscriptions",
-          filter: `user_id=eq.${session.user.id}`,
+          filter: `user_id=eq.${user.id}`,
         },
         () => fetchSub()
       )
@@ -69,7 +69,7 @@ export function useSubscription(): UseSubscriptionResult {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.user?.id, fetchSub]);
+  }, [user?.id, fetchSub]);
 
   const effectivePlan = getEffectivePlan(subscription);
   const isTrialing =
