@@ -74,8 +74,8 @@ const AuthPageWrapper = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <CompanyProvider>
           <TooltipProvider>
             <Toaster />
@@ -93,8 +93,8 @@ const App = () => (
             </BrowserRouter>
           </TooltipProvider>
         </CompanyProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
