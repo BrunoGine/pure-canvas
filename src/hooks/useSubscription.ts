@@ -23,6 +23,15 @@ interface UseSubscriptionResult {
   refresh: () => Promise<void>;
 }
 
+const isSameSubscription = (a: SubscriptionRecord | null, b: SubscriptionRecord | null) =>
+  a?.plan === b?.plan &&
+  a?.status === b?.status &&
+  a?.trial_started_at === b?.trial_started_at &&
+  a?.trial_ends_at === b?.trial_ends_at &&
+  a?.current_period_end === b?.current_period_end &&
+  a?.cancel_at_period_end === b?.cancel_at_period_end &&
+  a?.billing_interval === b?.billing_interval;
+
 export function useSubscription(): UseSubscriptionResult {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionRecord | null>(null);
@@ -41,7 +50,8 @@ export function useSubscription(): UseSubscriptionResult {
       )
       .eq("user_id", user.id)
       .maybeSingle();
-    setSubscription((data as SubscriptionRecord | null) ?? null);
+    const next = (data as SubscriptionRecord | null) ?? null;
+    setSubscription((current) => (isSameSubscription(current, next) ? current : next));
     setLoading(false);
   }, [user?.id]);
 
