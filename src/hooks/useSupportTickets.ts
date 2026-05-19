@@ -24,25 +24,29 @@ export const useSupportTickets = (opts?: { admin?: boolean }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchTickets = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setTickets([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     let q = (supabase as any).from("support_tickets").select("*").order("last_message_at", { ascending: false });
     if (!opts?.admin) q = q.eq("user_id", user.id);
     const { data, error } = await q;
     if (!error) setTickets((data || []) as SupportTicket[]);
     setLoading(false);
-  }, [user, opts?.admin]);
+  }, [user?.id, opts?.admin]);
 
   useEffect(() => { fetchTickets(); }, [fetchTickets]);
 
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`tickets-${opts?.admin ? "admin" : user.id}-${Math.random().toString(36).slice(2)}`)
+      .channel(`tickets-${opts?.admin ? "admin" : user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, () => fetchTickets())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, opts?.admin, fetchTickets]);
+  }, [user?.id, opts?.admin, fetchTickets]);
 
   const createTicket = async (input: { subject: string; category: TicketCategory; message: string }) => {
     if (!user) throw new Error("Not authenticated");
