@@ -1,10 +1,21 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, ArrowLeft, Trash2, CreditCard, Receipt, Pencil } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CreditCard, Receipt, Pencil, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Sector } from "recharts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { Transaction } from "@/hooks/useTransactions";
 import CardVisual from "./CardVisual";
@@ -16,7 +27,9 @@ interface Props {
   transactions: Transaction[];
   onRemoveTransaction: (id: string) => void;
   onEditTransaction?: (tx: Transaction) => void;
+  onPayInvoice?: (tx: Omit<Transaction, "id">) => Promise<unknown> | unknown;
 }
+
 
 const COLORS = ["#6366F1", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6", "#06B6D4", "#F97316", "#14B8A6"];
 
