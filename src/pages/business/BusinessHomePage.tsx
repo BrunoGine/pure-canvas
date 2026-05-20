@@ -58,6 +58,9 @@ const BusinessHomePage = () => {
   const fmt = (v: number) => hide ? "••••" : v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
 
   // Guards (after hooks)
+  if (!subLoading && !can("enterprise.access")) {
+    return <EnterprisePromo />;
+  }
   if (!loading && companies.length === 0) {
     return <Navigate to="/empresa/onboarding" replace />;
   }
