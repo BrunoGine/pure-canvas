@@ -63,6 +63,7 @@ const KEY = "business_onboarding_draft_v1";
 const BusinessOnboardingPage = () => {
   const { user } = useAuth();
   const { enterBusinessMode, refreshCompanies } = useCompany();
+  const { can, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(empty);
