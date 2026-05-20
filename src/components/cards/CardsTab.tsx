@@ -33,7 +33,7 @@ interface Props {
 
 const COLORS = ["#6366F1", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6", "#06B6D4", "#F97316", "#14B8A6"];
 
-const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Props) => {
+const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayInvoice }: Props) => {
   const { cards, addCard, updateCard, removeCard } = useCreditCards();
   const [formOpen, setFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardFormValues | null>(null);
@@ -41,7 +41,11 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payMethod, setPayMethod] = useState<"pix" | "debito" | "transferencia" | "dinheiro">("pix");
   const categoryCardRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     setSelectedCategory(null);
