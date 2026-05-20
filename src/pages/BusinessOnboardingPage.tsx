@@ -87,6 +87,10 @@ const BusinessOnboardingPage = () => {
 
   const finish = async () => {
     if (!user) return;
+    if (!can("enterprise.access")) {
+      toast.error("Disponível apenas no plano Empresa");
+      return;
+    }
     setSaving(true);
     try {
       const { data, error } = await supabase
