@@ -373,9 +373,68 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
             else addCard(values);
           }}
         />
+
+        <AlertDialog open={payOpen} onOpenChange={(v) => !paying && setPayOpen(v)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Pagar fatura do {selected.name}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Será registrada uma despesa de{" "}
+                <strong className="text-foreground">{formatBRL(invoices?.current ?? 0)}</strong>{" "}
+                como pagamento desta fatura. Escolha como o pagamento foi feito:
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-2">
+              <Select value={payMethod} onValueChange={(v) => setPayMethod(v as typeof payMethod)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="debito">Débito</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={paying}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={paying || !onPayInvoice || !invoices?.current}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (!onPayInvoice || !invoices?.current) return;
+                  try {
+                    setPaying(true);
+                    await onPayInvoice({
+                      description: `Pagamento de fatura - ${selected.name}`,
+                      amount: invoices.current,
+                      type: "expense",
+                      category: "Pagamento de fatura",
+                      date: new Date().toISOString().slice(0, 10),
+                      payment_method: payMethod,
+                      card_id: null,
+                      notes: null,
+                    });
+                    toast.success("Fatura paga com sucesso");
+                    setPayOpen(false);
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Não foi possível registrar o pagamento");
+                  } finally {
+                    setPaying(false);
+                  }
+                }}
+              >
+                {paying ? "Registrando..." : "Confirmar pagamento"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     );
   }
+
 
   return (
     <div className="space-y-4">
