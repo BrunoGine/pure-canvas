@@ -76,7 +76,11 @@ const PricingPage = () => {
       });
       if (error) throw error;
       if (data?.url) {
-        window.location.href = data.url;
+        const w = window.open(data.url, "_blank", "noopener,noreferrer");
+        if (!w) {
+          // Fallback if popup blocked: navigate the top-most window out of the iframe
+          (window.top ?? window).location.href = data.url;
+        }
         return;
       }
       throw new Error("URL de checkout não recebida");
@@ -96,7 +100,10 @@ const PricingPage = () => {
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal");
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) {
+        const w = window.open(data.url, "_blank", "noopener,noreferrer");
+        if (!w) (window.top ?? window).location.href = data.url;
+      }
     } catch (e: any) {
       toast({ title: "Erro", description: e?.message ?? "Tente novamente.", variant: "destructive" });
     } finally {
