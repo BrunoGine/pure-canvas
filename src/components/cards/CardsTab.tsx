@@ -185,9 +185,20 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
                   </p>
                 </div>
               </div>
+
+              {onPayInvoice && invoices.current > 0 && (
+                <Button
+                  onClick={() => setPayOpen(true)}
+                  className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all gap-1.5"
+                  size="sm"
+                >
+                  <Wallet size={14} /> Pagar fatura ({formatBRL(invoices.current)})
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
+
 
         <div className="grid grid-cols-2 gap-3">
           <div className="glass-card rounded-xl p-4 text-center min-w-0">
