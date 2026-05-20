@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import StepLayout from "@/components/onboarding/StepLayout";
 import { cn } from "@/lib/utils";
+import { useSubscription } from "@/hooks/useSubscription";
+import EnterprisePromo from "@/components/billing/EnterprisePromo";
 
 const TOTAL = 6;
 
