@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
 import StepLayout from "@/components/onboarding/StepLayout";
 import { cn } from "@/lib/utils";
+import { useSubscription } from "@/hooks/useSubscription";
+import EnterprisePromo from "@/components/billing/EnterprisePromo";
 
 const TOTAL = 6;
 
@@ -61,6 +63,7 @@ const KEY = "business_onboarding_draft_v1";
 const BusinessOnboardingPage = () => {
   const { user } = useAuth();
   const { enterBusinessMode, refreshCompanies } = useCompany();
+  const { can, loading: subLoading } = useSubscription();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(empty);
@@ -84,6 +87,10 @@ const BusinessOnboardingPage = () => {
 
   const finish = async () => {
     if (!user) return;
+    if (!can("enterprise.access")) {
+      toast.error("Disponível apenas no plano Empresa");
+      return;
+    }
     setSaving(true);
     try {
       const { data, error } = await supabase
@@ -111,6 +118,10 @@ const BusinessOnboardingPage = () => {
       setSaving(false);
     }
   };
+
+  if (!subLoading && !can("enterprise.access")) {
+    return <EnterprisePromo />;
+  }
 
   return (
     <OnboardingShell step={step} total={TOTAL} onBack={step > 0 ? back : undefined}>
