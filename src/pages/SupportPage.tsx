@@ -20,14 +20,6 @@ const SupportPage = () => {
   const markResolved = async () => {
     if (!current) return;
     await updateStatus(current.id, "resolved");
-    supabase.functions.invoke("send-transactional-email", {
-      body: {
-        templateName: "ticket-resolved",
-        recipientUserId: current.user_id,
-        idempotencyKey: `ticket-resolved-${current.id}-${Date.now()}`,
-        templateData: { subject: current.subject, ticketId: current.id },
-      },
-    }).catch(() => {});
   };
 
   if (ticketId && current) {
