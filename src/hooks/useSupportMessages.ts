@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,11 +11,19 @@ export interface SupportMessage {
   created_at: string;
 }
 
+let messagesChannelInstance = 0;
+
 export const useSupportMessages = (ticketId: string | undefined, opts?: { isAdmin?: boolean }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const channelInstanceRef = useRef<string>("");
+
+  if (!channelInstanceRef.current) {
+    messagesChannelInstance += 1;
+    channelInstanceRef.current = String(messagesChannelInstance);
+  }
 
   const fetchMessages = useCallback(async () => {
     if (!ticketId) return;
@@ -34,7 +42,7 @@ export const useSupportMessages = (ticketId: string | undefined, opts?: { isAdmi
   useEffect(() => {
     if (!ticketId) return;
     const channel = supabase
-      .channel(`ticket-msgs-${ticketId}`)
+      .channel(`ticket-msgs-${ticketId}:${channelInstanceRef.current}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${ticketId}` },

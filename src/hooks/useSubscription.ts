@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -32,10 +32,18 @@ const isSameSubscription = (a: SubscriptionRecord | null, b: SubscriptionRecord 
   a?.cancel_at_period_end === b?.cancel_at_period_end &&
   a?.billing_interval === b?.billing_interval;
 
+let subscriptionChannelInstance = 0;
+
 export function useSubscription(): UseSubscriptionResult {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const channelInstanceRef = useRef<string>("");
+
+  if (!channelInstanceRef.current) {
+    subscriptionChannelInstance += 1;
+    channelInstanceRef.current = String(subscriptionChannelInstance);
+  }
 
   const fetchSub = useCallback(async () => {
     if (!user?.id) {
@@ -61,9 +69,7 @@ export function useSubscription(): UseSubscriptionResult {
 
   useEffect(() => {
     if (!user?.id) return;
-    const channel = supabase.channel(
-      `subscriptions:${user.id}`
-    );
+    const channel = supabase.channel(`subscriptions:${user.id}:${channelInstanceRef.current}`);
     channel
       .on(
         "postgres_changes",
