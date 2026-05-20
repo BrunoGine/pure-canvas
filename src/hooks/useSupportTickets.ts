@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -18,10 +18,18 @@ export interface SupportTicket {
   updated_at: string;
 }
 
+let ticketsChannelInstance = 0;
+
 export const useSupportTickets = (opts?: { admin?: boolean }) => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
+  const channelInstanceRef = useRef<string>("");
+
+  if (!channelInstanceRef.current) {
+    ticketsChannelInstance += 1;
+    channelInstanceRef.current = String(ticketsChannelInstance);
+  }
 
   const fetchTickets = useCallback(async () => {
     if (!user) {
@@ -42,7 +50,7 @@ export const useSupportTickets = (opts?: { admin?: boolean }) => {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel(`tickets-${opts?.admin ? "admin" : user.id}`)
+      .channel(`tickets-${opts?.admin ? "admin" : user.id}:${channelInstanceRef.current}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "support_tickets" }, () => fetchTickets())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
