@@ -119,6 +119,10 @@ const BusinessOnboardingPage = () => {
     }
   };
 
+  if (!subLoading && !can("enterprise.access")) {
+    return <EnterprisePromo />;
+  }
+
   return (
     <OnboardingShell step={step} total={TOTAL} onBack={step > 0 ? back : undefined}>
       {step === 0 && (
