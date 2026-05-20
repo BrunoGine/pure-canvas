@@ -1,10 +1,21 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, ArrowLeft, Trash2, CreditCard, Receipt, Pencil } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, CreditCard, Receipt, Pencil, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Sector } from "recharts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { Transaction } from "@/hooks/useTransactions";
 import CardVisual from "./CardVisual";
@@ -16,11 +27,13 @@ interface Props {
   transactions: Transaction[];
   onRemoveTransaction: (id: string) => void;
   onEditTransaction?: (tx: Transaction) => void;
+  onPayInvoice?: (tx: Omit<Transaction, "id">) => Promise<unknown> | unknown;
 }
+
 
 const COLORS = ["#6366F1", "#EC4899", "#F59E0B", "#10B981", "#8B5CF6", "#06B6D4", "#F97316", "#14B8A6"];
 
-const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Props) => {
+const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayInvoice }: Props) => {
   const { cards, addCard, updateCard, removeCard } = useCreditCards();
   const [formOpen, setFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CardFormValues | null>(null);
@@ -28,7 +41,11 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryMethodFilter, setCategoryMethodFilter] = useState<"all" | "credito" | "debito">("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payMethod, setPayMethod] = useState<"pix" | "debito" | "transferencia" | "dinheiro">("pix");
   const categoryCardRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     setSelectedCategory(null);
@@ -168,9 +185,20 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
                   </p>
                 </div>
               </div>
+
+              {onPayInvoice && invoices.current > 0 && (
+                <Button
+                  onClick={() => setPayOpen(true)}
+                  className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all gap-1.5"
+                  size="sm"
+                >
+                  <Wallet size={14} /> Pagar fatura ({formatBRL(invoices.current)})
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
+
 
         <div className="grid grid-cols-2 gap-3">
           <div className="glass-card rounded-xl p-4 text-center min-w-0">
@@ -345,9 +373,68 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction }: Prop
             else addCard(values);
           }}
         />
+
+        <AlertDialog open={payOpen} onOpenChange={(v) => !paying && setPayOpen(v)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Pagar fatura do {selected.name}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Será registrada uma despesa de{" "}
+                <strong className="text-foreground">{formatBRL(invoices?.current ?? 0)}</strong>{" "}
+                como pagamento desta fatura. Escolha como o pagamento foi feito:
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-2">
+              <Select value={payMethod} onValueChange={(v) => setPayMethod(v as typeof payMethod)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">Pix</SelectItem>
+                  <SelectItem value="debito">Débito</SelectItem>
+                  <SelectItem value="transferencia">Transferência</SelectItem>
+                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={paying}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={paying || !onPayInvoice || !invoices?.current}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (!onPayInvoice || !invoices?.current) return;
+                  try {
+                    setPaying(true);
+                    await onPayInvoice({
+                      description: `Pagamento de fatura - ${selected.name}`,
+                      amount: invoices.current,
+                      type: "expense",
+                      category: "Pagamento de fatura",
+                      date: new Date().toISOString().slice(0, 10),
+                      payment_method: payMethod,
+                      card_id: null,
+                      notes: null,
+                    });
+                    toast.success("Fatura paga com sucesso");
+                    setPayOpen(false);
+                  } catch (err) {
+                    console.error(err);
+                    toast.error("Não foi possível registrar o pagamento");
+                  } finally {
+                    setPaying(false);
+                  }
+                }}
+              >
+                {paying ? "Registrando..." : "Confirmar pagamento"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     );
   }
+
 
   return (
     <div className="space-y-4">

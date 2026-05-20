@@ -571,6 +571,8 @@ const SpreadsheetsPage = () => {
           <CardsTab
             transactions={transactions}
             onRemoveTransaction={remove}
+            onPayInvoice={(tx) => addTx(tx)}
+
             onEditTransaction={(tx) => {
               setEditTxId(tx.id);
               setEditTxInitial({
