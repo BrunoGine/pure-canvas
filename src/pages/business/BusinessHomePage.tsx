@@ -18,9 +18,6 @@ const BusinessHomePage = () => {
   const { can, loading: subLoading } = useSubscription();
   const [hide, setHide] = useState(false);
 
-  if (!subLoading && !can("enterprise.access")) {
-    return <EnterprisePromo />;
-  }
 
   const now = new Date();
   const month = now.getMonth();
