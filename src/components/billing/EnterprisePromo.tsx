@@ -73,6 +73,16 @@ const EnterprisePromo = () => {
       <p className="text-center text-[11px] text-muted-foreground -mt-3">
         A partir de R$ 34,90/mês • cancele quando quiser
       </p>
+
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        onClick={() => navigate(-1)}
+        className="w-full py-3 rounded-2xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+      >
+        Agora não
+      </motion.button>
     </div>
   );
 };
