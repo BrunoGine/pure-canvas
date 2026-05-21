@@ -465,6 +465,36 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_documents: {
+        Row: {
+          content_md: string
+          created_at: string
+          id: string
+          is_current: boolean
+          kind: string
+          published_at: string
+          version: string
+        }
+        Insert: {
+          content_md: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          kind: string
+          published_at?: string
+          version: string
+        }
+        Update: {
+          content_md?: string
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          kind?: string
+          published_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           course_id: string
@@ -617,6 +647,60 @@ export type Database = {
           sort_order?: number
           tagline?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      privacy_settings: {
+        Row: {
+          ai_use_business_data: boolean
+          ai_use_financial_data: boolean
+          created_at: string
+          disable_social_recommendations: boolean
+          email_essential: boolean
+          email_financial_tips: boolean
+          email_marketing: boolean
+          email_product_updates: boolean
+          hide_avatar_in_shared_goals: boolean
+          hide_contribution_amount: boolean
+          hide_profile_in_public_lists: boolean
+          hide_recent_activity: boolean
+          require_invite_approval: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_use_business_data?: boolean
+          ai_use_financial_data?: boolean
+          created_at?: string
+          disable_social_recommendations?: boolean
+          email_essential?: boolean
+          email_financial_tips?: boolean
+          email_marketing?: boolean
+          email_product_updates?: boolean
+          hide_avatar_in_shared_goals?: boolean
+          hide_contribution_amount?: boolean
+          hide_profile_in_public_lists?: boolean
+          hide_recent_activity?: boolean
+          require_invite_approval?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_use_business_data?: boolean
+          ai_use_financial_data?: boolean
+          created_at?: string
+          disable_social_recommendations?: boolean
+          email_essential?: boolean
+          email_financial_tips?: boolean
+          email_marketing?: boolean
+          email_product_updates?: boolean
+          hide_avatar_in_shared_goals?: boolean
+          hide_contribution_amount?: boolean
+          hide_profile_in_public_lists?: boolean
+          hide_recent_activity?: boolean
+          require_invite_approval?: boolean
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1048,6 +1132,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_legal_acceptances: {
+        Row: {
+          accepted_at: string
+          document_id: string
+          id: string
+          ip: string | null
+          kind: string
+          user_agent: string | null
+          user_id: string
+          version: string
+        }
+        Insert: {
+          accepted_at?: string
+          document_id: string
+          id?: string
+          ip?: string | null
+          kind: string
+          user_agent?: string | null
+          user_id: string
+          version: string
+        }
+        Update: {
+          accepted_at?: string
+          document_id?: string
+          id?: string
+          ip?: string | null
+          kind?: string
+          user_agent?: string | null
+          user_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_legal_acceptances_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "legal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_progress: {
         Row: {
           completed: boolean
@@ -1216,6 +1341,7 @@ export type Database = {
           id: string
         }[]
       }
+      has_accepted_current_legal: { Args: { _uid: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
