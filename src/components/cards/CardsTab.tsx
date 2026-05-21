@@ -102,6 +102,20 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
     [transactions, selected]
   );
 
+  const invoicePaidMarker = useMemo(() => {
+    if (!selected || !invoices) return null;
+    const cycleKey = invoices.cycles.currentCycleEnd.toISOString().slice(0, 10);
+    return `card:${selected.id}|cycle:${cycleKey}`;
+  }, [selected, invoices]);
+
+  const isInvoicePaid = useMemo(() => {
+    if (!invoicePaidMarker) return false;
+    return transactions.some(
+      (t) => t.category === "Pagamento de fatura" && (t.notes || "").includes(invoicePaidMarker)
+    );
+  }, [transactions, invoicePaidMarker]);
+
+
   if (selected) {
     return (
       <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
