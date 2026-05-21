@@ -201,14 +201,21 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
               </div>
 
               {onPayInvoice && invoices.current > 0 && (
-                <Button
-                  onClick={() => setPayOpen(true)}
-                  className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all gap-1.5"
-                  size="sm"
-                >
-                  <Wallet size={14} /> Pagar fatura ({formatBRL(invoices.current)})
-                </Button>
+                isInvoicePaid ? (
+                  <div className="w-full rounded-md border border-primary/30 bg-primary/10 text-primary text-sm font-medium py-2 text-center">
+                    Fatura paga
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setPayOpen(true)}
+                    className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all gap-1.5"
+                    size="sm"
+                  >
+                    <Wallet size={14} /> Pagar fatura ({formatBRL(invoices.current)})
+                  </Button>
+                )
               )}
+
             </CardContent>
           </Card>
         )}
