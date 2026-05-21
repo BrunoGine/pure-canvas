@@ -102,6 +102,20 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
     [transactions, selected]
   );
 
+  const invoicePaidMarker = useMemo(() => {
+    if (!selected || !invoices) return null;
+    const cycleKey = invoices.cycles.currentCycleEnd.toISOString().slice(0, 10);
+    return `card:${selected.id}|cycle:${cycleKey}`;
+  }, [selected, invoices]);
+
+  const isInvoicePaid = useMemo(() => {
+    if (!invoicePaidMarker) return false;
+    return transactions.some(
+      (t) => t.category === "Pagamento de fatura" && (t.notes || "").includes(invoicePaidMarker)
+    );
+  }, [transactions, invoicePaidMarker]);
+
+
   if (selected) {
     return (
       <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
@@ -187,14 +201,21 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
               </div>
 
               {onPayInvoice && invoices.current > 0 && (
-                <Button
-                  onClick={() => setPayOpen(true)}
-                  className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all gap-1.5"
-                  size="sm"
-                >
-                  <Wallet size={14} /> Pagar fatura ({formatBRL(invoices.current)})
-                </Button>
+                isInvoicePaid ? (
+                  <div className="w-full rounded-md border border-primary/30 bg-primary/10 text-primary text-sm font-medium py-2 text-center">
+                    Fatura paga
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => setPayOpen(true)}
+                    className="w-full gradient-primary border-0 text-white shadow-glow hover:shadow-elevated transition-all gap-1.5"
+                    size="sm"
+                  >
+                    <Wallet size={14} /> Pagar fatura ({formatBRL(invoices.current)})
+                  </Button>
+                )
               )}
+
             </CardContent>
           </Card>
         )}
@@ -414,8 +435,9 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
                       date: new Date().toISOString().slice(0, 10),
                       payment_method: payMethod,
                       card_id: null,
-                      notes: null,
+                      notes: invoicePaidMarker,
                     });
+
                     toast.success("Fatura paga com sucesso");
                     setPayOpen(false);
                   } catch (err) {
