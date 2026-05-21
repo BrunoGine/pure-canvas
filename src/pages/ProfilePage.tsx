@@ -84,7 +84,7 @@ const ProfilePage = () => {
   };
 
   const menuItems = [
-    { icon: LifeBuoy, label: "Suporte", action: () => navigate("/suporte") },
+    
     { icon: Bell, label: "Notificações", action: () => {} },
     { icon: Shield, label: "Privacidade", action: () => {} },
     { icon: HelpCircle, label: "Ajuda", action: () => navigate("/suporte") },
