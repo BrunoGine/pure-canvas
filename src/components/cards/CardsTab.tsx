@@ -435,8 +435,9 @@ const CardsTab = ({ transactions, onRemoveTransaction, onEditTransaction, onPayI
                       date: new Date().toISOString().slice(0, 10),
                       payment_method: payMethod,
                       card_id: null,
-                      notes: null,
+                      notes: invoicePaidMarker,
                     });
+
                     toast.success("Fatura paga com sucesso");
                     setPayOpen(false);
                   } catch (err) {
