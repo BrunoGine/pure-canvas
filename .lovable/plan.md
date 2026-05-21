@@ -1,173 +1,207 @@
-## Visão geral
 
-Monetização em 3 planos com arquitetura desacoplada de gateway, trial de 1 mês do Premium sem cartão, paywall moderno (estilo Duolingo Super / Notion AI) e bloqueios contextuais — cursos visíveis com cadeado, Empresa apresentada via card promocional.
+# Sistema de Privacidade + Termos de Uso
 
-**Decisões confirmadas**
-- Gateway: **Stripe (Lovable Payments)** — checkout seamless
-- Preços BRL: Premium R$ 14,90/mês • R$ 143/ano · Empresa R$ 34,90/mês • R$ 335/ano
-- Trial: 1 mês de Premium sem cartão; ao expirar abre paywall
-- Bloqueios: cursos visíveis com 🔒 · Empresa via card promo dedicado
+Implementação completa, persistente e funcional — sem UI fake. Cada toggle afeta de verdade UI, queries, IA e vaquinhas.
 
 ---
 
-## 1. Modelo de dados (migration)
+## 1. Banco de dados (migration única)
 
-**Enum** `subscription_plan`: `free | premium | enterprise`
-**Enum** `subscription_status`: `active | trialing | expired | canceled | past_due`
+### Tabela `legal_documents`
+Armazena versões publicadas de Termos e Política.
+- `kind` ('terms' | 'privacy')
+- `version` (text, ex: "1.0.0")
+- `content_md` (markdown)
+- `published_at`
+- `is_current` (boolean)
 
-**Tabela `subscriptions`** (1 por usuário, fonte da verdade)
-- user_id (uuid, unique), plan, status
-- trial_started_at, trial_ends_at
-- current_period_end, cancel_at_period_end (bool)
-- billing_interval (`month`|`year`), price_cents, currency (default `BRL`)
-- gateway (`stripe`|`mercadopago`|`none`), gateway_customer_id, gateway_subscription_id
-- coupon_code (nullable — futuro)
-- created_at, updated_at
+RLS: leitura pública autenticada; escrita só admin.
 
-RLS: usuário lê o próprio registro; só edge functions (service role) escrevem.
+### Tabela `user_legal_acceptances`
+Histórico de aceites (preserva auditoria).
+- `user_id`, `document_id`, `kind`, `version`, `accepted_at`, `ip` (opcional), `user_agent` (opcional)
 
-**Tabela `plans`** (catálogo declarativo, seedada via migration)
-- key (pk: `free`/`premium`/`enterprise`), name, tagline
-- price_monthly_cents, price_yearly_cents, currency
-- features (jsonb — array de benefícios para o paywall)
-- highlight (bool — "Mais Popular" no Premium)
-- gateway_price_id_monthly, gateway_price_id_yearly (preenchidos depois)
+RLS: usuário insere/lê o próprio; admin lê tudo.
 
-Leitura pública (authenticated).
+### Tabela `privacy_settings` (1:1 com usuário, colunas tipadas — sem JSON bagunçado)
+Colunas booleanas com default seguro:
+- `hide_avatar_in_shared_goals` (default false)
+- `hide_contribution_amount` (default false)
+- `hide_profile_in_public_lists` (default false)
+- `require_invite_approval` (default false)
+- `disable_social_recommendations` (default false)
+- `hide_recent_activity` (default false)
+- `ai_use_financial_data` (default true)
+- `ai_use_business_data` (default true)
+- `email_essential` (default true, sempre true — não desativável)
+- `email_marketing` (default false)
+- `email_product_updates` (default true)
+- `email_financial_tips` (default true)
+- `created_at`, `updated_at`
 
-**Trigger**: ao criar profile (`handle_new_user`), inserir `subscriptions` com `plan=free, status=active`.
+RLS: SELECT/INSERT/UPDATE próprio (`auth.uid() = user_id`).
 
----
+Trigger: criar linha automática no `handle_new_user()` (estender função existente).
 
-## 2. Lógica de permissões
+### Função RPC `has_accepted_current_legal(uid)`
+Retorna boolean — compara aceite mais recente com versão `is_current`. Usada no gate de reaceite.
 
-**Arquivo** `src/lib/plans.ts` — single source of truth no front:
-- `PlanKey`, `Feature` (`courses.watch`, `enterprise.access`, `harpia.advanced`, `reports.advanced`, `badge.premium`)
-- `FEATURE_MATRIX: Record<PlanKey, Feature[]>`
-- `hasFeature(plan, feature)`, `getEffectivePlan(subscription)` (considera trial ativo como `premium`)
-
-**Hook** `src/hooks/useSubscription.ts`
-- Carrega `subscriptions` do user + escuta realtime
-- Retorna `{ plan, effectivePlan, isTrialing, trialDaysLeft, isPremium, isEnterprise, can(feature) }`
-
-**Componente** `<FeatureGate feature="..." fallback={<LockedCard/>}>` para envolver áreas pagas.
-
-**Hook** `useUpgradeModal()` — abre o paywall contextualmente com `{ trigger: 'courses'|'enterprise'|'harpia'|... }` para copy dinâmica.
-
----
-
-## 3. Paywall premium (`src/pages/PricingPage.tsx`)
-
-Rota `/planos`. Layout inspirado em Duolingo Super + Notion AI:
-
-- **Hero**: headline transformacional ("Domine seu dinheiro com a Harp.I.A.") + toggle Mensal/Anual com badge "economize 20%"
-- **3 cards** lado a lado (mobile: stack), liquid glass com gradiente sutil:
-  - Free: outline discreto, CTA "Continuar grátis"
-  - **Premium**: card maior, badge "💎 Mais Popular", glow leve, gradiente primary→primary-glow, CTA gigante **"Começar 1 mês grátis"**, microcopy "sem cartão • cancele quando quiser"
-  - Empresa: visual corporativo (tons mais sóbrios + ícone 🏢), CTA "Gerenciar minha empresa"
-- **Tabela comparativa** abaixo (mobile: accordion) — copy focada em transformação ("Entenda para onde seu dinheiro está indo" em vez de "10 relatórios")
-- **FAQ** + selo de segurança
-- Animações: framer-motion no card destacado (subtle scale/glow), entrada stagger
-
-**Componentes novos**
-- `PlanCard`, `PricingToggle`, `FeatureComparison`, `PaywallDialog` (modal reutilizável p/ triggers contextuais)
-- `TrialBanner` (topo do app quando `isTrialing`, mostra dias restantes + CTA upgrade)
+### Seed
+Inserir versão "1.0.0" dos dois documentos com `is_current=true`.
 
 ---
 
-## 4. Trial e checkout
+## 2. Conteúdo dos documentos
 
-**Edge function `start-trial`**
-- Valida usuário, exige `subscriptions.trial_started_at IS NULL` (1× só)
-- Define `plan=premium, status=trialing, trial_started_at=now, trial_ends_at=now+30d`
-- Log em `ai_usage_log`-style audit (opcional)
+Escrever Termos e Política em PT-BR, tom Pierre/Nubank — claro, humano, profissional. Markdown salvo no banco (renderizado com `react-markdown` já comum no stack ou simples parser).
 
-**Edge function `create-checkout`** (Stripe)
-- Input: `{ plan: 'premium'|'enterprise', interval: 'month'|'year' }`
-- Cria Stripe Checkout Session com price_id correspondente
-- Retorna `url` para redirect
+Seções obrigatórias da Política:
+- Quais dados coletamos (cadastro, financeiros, uso)
+- Uso da IA Harp (Gemini) e o que ela acessa
+- Dados financeiros e segurança
+- Armazenamento (Supabase) e retenção
+- Suporte
+- Assinaturas e pagamentos (Stripe)
+- Modo empresa
+- Vaquinhas e metas compartilhadas
+- Cookies/session/localStorage
+- LGPD: direitos do titular, DPO contato
+- Exclusão de conta
+- Responsabilidade do usuário
+- Limitações de responsabilidade
+- Como notificamos mudanças (reaceite)
 
-**Edge function `stripe-webhook`**
-- Eventos: `checkout.session.completed`, `customer.subscription.updated/deleted`, `invoice.payment_failed`
-- Atualiza `subscriptions` (service role)
-
-**Edge function `customer-portal`** (gerenciar/cancelar)
-
-**Job de expiração** (edge function `expire-trials` chamada por cron diário ou checada client-side no `useSubscription`): se `trial_ends_at < now` e ainda `trialing` → `plan=free, status=expired`.
-
----
-
-## 5. Bloqueios contextuais
-
-- **Cursos** (`/cursos`, lista): cards continuam visíveis. Ao clicar em curso sem acesso (free, não-trial), abre `PaywallDialog` com trigger `courses` em vez de navegar. Ícone 🔒 + badge "Premium" no card.
-- **Minha Empresa**: na sidebar/menu, item visível. Se não tem `enterprise.access`, rota `/empresa` renderiza `<EnterprisePromo />` (apresentação dedicada: mockup do dashboard, balanço, IA empresarial, fluxo de caixa) com CTA "Desbloquear Empresa".
-- **Harp.I.A. avançada**: free tem N perguntas/dia (limite preparado via `ai_usage_log` já existente — não bloqueia agora, só estrutura `checkAIQuota()`).
-- **TrialBanner** dispensável (localStorage) para não irritar.
+Termos: contrato de uso, conta, conduta, propriedade intelectual, assinatura/cancelamento, foro.
 
 ---
 
-## 6. Integração Stripe (Lovable Payments)
+## 3. Aceite no cadastro
 
-Fluxo de ativação:
-1. Rodar `recommend_payment_provider` para validar fit
-2. Confirmar com usuário e chamar `enable_stripe_payments`
-3. Após enable: definir estratégia de impostos (provavelmente `automatic_tax` para BR ou nenhuma)
-4. Criar 4 produtos via `batch_create_product`: Premium mensal/anual + Empresa mensal/anual
-5. Salvar price_ids na tabela `plans`
-6. Implementar `create-checkout`, `customer-portal`, `stripe-webhook`
+Editar `src/components/auth/SignupCredentialsStep.tsx`:
+- Adicionar checkbox obrigatório: "Li e aceito os [Termos de Uso] e a [Política de Privacidade]"
+- Links abrem `Dialog` (ou nova rota `/legal/termos` e `/legal/privacidade`) que carregam o markdown do banco
+- Botão "Continuar" desabilitado até marcar
+- Após signup bem-sucedido: inserir 2 linhas em `user_legal_acceptances` (terms + privacy versão atual)
 
----
-
-## 7. Estrutura futura (apenas preparar)
-
-- Coluna `coupon_code` em `subscriptions` + tabela `coupons` (não criar agora, deixar comentado)
-- Campo `gateway` permite alternar provider sem refactor
-- `FEATURE_MATRIX` permite criar tiers intermediários (ex: Premium Pro) só editando o map
+OAuth/callback: no `AuthCallbackPage`, se primeiro login e sem aceite, redirecionar para tela de aceite antes do onboarding.
 
 ---
 
-## 8. Detalhes técnicos
+## 4. Gate de reaceite
 
-**Arquivos novos**
-```
-src/lib/plans.ts
-src/hooks/useSubscription.ts
-src/hooks/useUpgradeModal.ts
-src/components/billing/PlanCard.tsx
-src/components/billing/PricingToggle.tsx
-src/components/billing/FeatureComparison.tsx
-src/components/billing/PaywallDialog.tsx
-src/components/billing/TrialBanner.tsx
-src/components/billing/FeatureGate.tsx
-src/components/billing/EnterprisePromo.tsx
-src/pages/PricingPage.tsx
-supabase/functions/start-trial/index.ts
-supabase/functions/create-checkout/index.ts
-supabase/functions/customer-portal/index.ts
-supabase/functions/stripe-webhook/index.ts
-supabase/functions/expire-trials/index.ts
-```
-
-**Arquivos editados**
-- `src/App.tsx` — rota `/planos`, `TrialBanner` global
-- `src/pages/CoursesPage.tsx` (ou equivalente) — wrap clique com `PaywallDialog`
-- `src/pages/Empresa*.tsx` — gate com `<EnterprisePromo />`
-- `src/pages/ProfilePage.tsx` — seção "Meu plano" com CTA portal/upgrade
-- `supabase/functions/harp-ia-chat/index.ts` — passar a chamar `checkAIQuota()` (estrutura, sem bloquear ainda)
-
-**Migration única** cria: enums, `subscriptions`, `plans`, seed dos 3 planos, RLS, trigger no `handle_new_user`.
-
-**Segredos**: Stripe Lovable Payments cuida das chaves; apenas confirmar no enable.
+Novo componente `LegalGate` em `App.tsx` (dentro de `ProtectedRoutes`, antes do onboarding check):
+- Chama RPC `has_accepted_current_legal`
+- Se falso → redireciona para `/legal/aceite` com checkbox + botões
+- Bloqueia o resto do app até aceitar a nova versão
 
 ---
 
-## 9. Ordem de implementação
+## 5. Tela de Privacidade
 
-1. Migration (tabelas + seed) → aprovação
-2. `plans.ts` + `useSubscription` + `FeatureGate` + `PaywallDialog`
-3. `PricingPage` + `PlanCard` + `TrialBanner`
-4. Edge function `start-trial` + ligação no CTA do paywall
-5. Bloqueios contextuais (cursos + Empresa promo)
-6. Ativar Stripe Lovable Payments + criar produtos + price_ids
-7. Checkout + webhook + customer portal
-8. Job de expiração de trial
+Nova rota `/privacidade` (adicionar em `App.tsx` e `ProtectedRoutes`).
+Editar `ProfilePage.tsx`: trocar `action: () => {}` do item "Privacidade" por `navigate("/privacidade")`.
+
+### `src/pages/PrivacyPage.tsx`
+- Header com voltar
+- Hook `usePrivacySettings()` (novo) com React Query: fetch + mutation com debounce 400ms e optimistic update
+- Seções agrupadas:
+  1. **Vaquinhas e metas compartilhadas** — hide_avatar, hide_contribution_amount, require_invite_approval
+  2. **Perfil público** — hide_profile_in_public_lists, hide_recent_activity, disable_social_recommendations
+  3. **Harp.I.A** — ai_use_financial_data, ai_use_business_data
+  4. **E-mails** — marketing, product_updates, financial_tips (essential bloqueado/explicado)
+- Cada item: `<PrivacyToggleRow title description checked onChange loading />`
+- Feedback: micro-spinner inline + toast "Preferência salva"
+- Design: glass-card, mesmo padrão de `ProfilePage`
+
+---
+
+## 6. Aplicação REAL das preferências
+
+Esta é a parte crítica — cada toggle precisa ter efeito.
+
+### Vaquinhas (`SharedGoalCard`, `SharedGoalDetailDialog`, `useSharedGoals`)
+- Criar RPC `get_shared_goal_members_safe(goal_id)` que retorna membros respeitando a privacidade de cada um:
+  - se `hide_avatar_in_shared_goals` → `avatar_url = null`
+  - se `hide_profile_in_public_lists` → `display_name = "Membro"`
+  - se `hide_contribution_amount` → `total_contributed = null`
+- Substituir chamadas atuais a `get_shared_goal_profiles` por essa nova RPC com join em `privacy_settings`
+- UI: quando `total_contributed = null`, mostrar "—" no ranking
+
+### Convite aprovado (`require_invite_approval`)
+- Em `JoinSharedGoalDialog` / fluxo de join: se admin tem flag, request entra como `pending` em `shared_goal_join_requests` (já existe a tabela). Caso contrário, fluxo direto atual.
+- Trigger ou lógica no hook que verifica `privacy_settings.require_invite_approval` do **criador** antes de adicionar membro.
+
+### Harp.I.A (`supabase/functions/harp-ia-chat/index.ts`)
+- No início da função, ler `privacy_settings` do usuário (via service role)
+- Se `ai_use_financial_data = false` → não anexar transações/metas/orçamentos ao prompt; system prompt instrui resposta genérica
+- Se `ai_use_business_data = false` e contexto é empresarial → idem para dados de `companies`
+- Adicionar nota no system prompt: "O usuário restringiu acesso aos dados financeiros pessoais; responda de forma genérica e educativa."
+
+### Atividade recente / badges / certificados públicos
+- Hoje são privados por RLS. Documentar que `hide_recent_activity` afetará futuras telas públicas; aplicar já em qualquer listagem cross-user existente (revisar `SharedGoalDetailDialog` para não mostrar badges de outros membros se flag ligada).
+
+### E-mails (`send-transactional-email`)
+- Antes de enviar, checar categoria vs `privacy_settings`:
+  - `marketing` → respeita `email_marketing`
+  - `product-updates` → respeita `email_product_updates`
+  - `financial-tips` → respeita `email_financial_tips`
+  - transacionais essenciais (payment-failed, support-reply, subscription-confirmed) → sempre enviam
+- Mapear templates existentes em `transactional-email-templates/registry.ts` para categorias.
+
+### Recomendações sociais
+- Sem feature ativa hoje — apenas reservar a flag. Documentar no código com TODO claro.
+
+---
+
+## 7. Hooks/utilitários
+
+- `src/hooks/usePrivacySettings.ts` — React Query, cache global, optimistic updates
+- `src/hooks/useLegalDocuments.ts` — fetch documento atual por kind
+- `src/lib/privacy.ts` — helpers `applyMemberPrivacy(member, settings)` para uso client-side onde necessário
+
+---
+
+## 8. Estabilidade e performance
+
+- `privacy_settings` lidas uma vez por sessão e mantidas em React Query (`staleTime: 5min`)
+- Mutations com debounce evitam spam de UPDATE
+- Edge functions leem direto do Postgres (não chamam o app)
+- RLS testada com linter após migration
+
+---
+
+## 9. Arquivos a criar / editar
+
+**Criar:**
+- Migration (tabelas + RPC + seed + trigger update no handle_new_user)
+- `src/pages/PrivacyPage.tsx`
+- `src/pages/LegalPage.tsx` (visualização de termos/privacidade)
+- `src/pages/LegalAcceptPage.tsx` (gate de reaceite)
+- `src/components/privacy/PrivacyToggleRow.tsx`
+- `src/components/legal/LegalAcceptCheckbox.tsx`
+- `src/hooks/usePrivacySettings.ts`
+- `src/hooks/useLegalDocuments.ts`
+- `src/hooks/useLegalAcceptance.ts`
+- `src/lib/privacy.ts`
+
+**Editar:**
+- `src/App.tsx` (rotas + LegalGate)
+- `src/components/auth/SignupCredentialsStep.tsx` (checkbox + registro de aceite)
+- `src/pages/ProfilePage.tsx` (link Privacidade real)
+- `src/pages/AuthCallbackPage.tsx` (verificar aceite pós-OAuth)
+- `src/hooks/useSharedGoals.ts` + componentes de vaquinha (aplicar privacidade)
+- `src/components/goals/JoinSharedGoalDialog.tsx` (fluxo de aprovação)
+- `supabase/functions/harp-ia-chat/index.ts` (respeitar flags de IA)
+- `supabase/functions/send-transactional-email/index.ts` (respeitar opt-ins)
+
+---
+
+## 10. Entrega em fases (numa única implementação, mas verificável por etapa)
+
+1. Migration + seed + RPCs
+2. Aceite no signup + gate de reaceite + páginas legais
+3. Tela de Privacidade + hook + persistência
+4. Aplicação real: vaquinhas, IA, e-mails
+5. QA: alternar cada toggle e validar efeito
+
+Pronto para implementar quando você aprovar.
