@@ -1341,6 +1341,17 @@ export type Database = {
           id: string
         }[]
       }
+      get_shared_goal_profiles_v2: {
+        Args: { _user_ids: string[] }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          hide_avatar: boolean
+          hide_contribution: boolean
+          hide_profile: boolean
+          id: string
+        }[]
+      }
       has_accepted_current_legal: { Args: { _uid: string }; Returns: boolean }
       has_role: {
         Args: {
