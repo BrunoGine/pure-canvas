@@ -330,7 +330,7 @@ const SharedGoalDetailDialog = ({ goal, onOpenChange, actions, refreshKey }: Pro
                       <p className="text-sm font-medium">{m.display_name}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-bold tabular-nums">R$ {formatBRL(Number(m.total_contributed))}</span>
+                  <span className="text-sm font-bold tabular-nums">{m.total_contributed === null ? "—" : `R$ ${formatBRL(Number(m.total_contributed))}`}</span>
                 </div>
               ))}
             </TabsContent>
