@@ -202,7 +202,7 @@ const SharedGoalDetailDialog = ({ goal, onOpenChange, actions, refreshKey }: Pro
                           {m.display_name}
                           {m.role === "admin" && <Crown size={12} className="text-primary" />}
                         </p>
-                        <p className="text-xs text-muted-foreground">R$ {formatBRL(Number(m.total_contributed))}</p>
+                        <p className="text-xs text-muted-foreground">{m.total_contributed === null ? "Valor privado" : `R$ ${formatBRL(Number(m.total_contributed))}`}</p>
                       </div>
                     </div>
                     {isAdmin && m.user_id !== fresh.created_by && (
