@@ -53,9 +53,11 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
       });
       return;
     }
-    if (data.session) {
+    if (data.session && data.user) {
+      await recordLegalAcceptance(data.user.id);
       onSuccess();
     } else {
+      if (data.user) await recordLegalAcceptance(data.user.id);
       toast({
         title: "Confirme seu e-mail",
         description: "Enviamos um link de confirmação. Após confirmar, faça login.",
