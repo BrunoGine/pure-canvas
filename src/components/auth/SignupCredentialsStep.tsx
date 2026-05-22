@@ -29,9 +29,15 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [openDoc, setOpenDoc] = useState<LegalKind | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptedLegal) {
+      toast({ title: "Aceite necessário", description: "Você precisa aceitar os Termos e a Política de Privacidade.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
