@@ -86,7 +86,7 @@ const SharedGoalDetailDialog = ({ goal, onOpenChange, actions, refreshKey }: Pro
   const pendingTotal = detail.joinRequests.length + pendingContribs.length;
 
   const ranking = [...detail.members].sort(
-    (a, b) => Number(b.total_contributed) - Number(a.total_contributed),
+    (a, b) => (Number(b.total_contributed ?? -1)) - (Number(a.total_contributed ?? -1)),
   );
 
   const copyCode = () => {
