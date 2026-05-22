@@ -434,30 +434,43 @@ export async function loadSharedGoalDetail(goalId: string) {
       .eq("shared_goal_id", goalId)
       .order("created_at", { ascending: false }),
   ]);
-  // Fetch profiles for all referenced users
+  // Fetch privacy-aware profiles for all referenced users
   const userIds = new Set<string>();
   membersRes.data?.forEach((m) => userIds.add(m.user_id));
   joinRes.data?.forEach((j) => userIds.add(j.user_id));
   contribRes.data?.forEach((c) => userIds.add(c.user_id));
-  let profilesMap = new Map<string, { display_name: string | null; avatar_url: string | null }>();
+  type ProfileRow = {
+    id: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    hide_contribution: boolean;
+  };
+  const profilesMap = new Map<string, ProfileRow>();
   if (userIds.size > 0) {
-    const { data: profiles } = await supabase.rpc("get_shared_goal_profiles", {
+    const { data: profiles } = await supabase.rpc("get_shared_goal_profiles_v2", {
       _user_ids: Array.from(userIds),
     });
-    profiles?.forEach((p: { id: string; display_name: string | null; avatar_url: string | null }) =>
-      profilesMap.set(p.id, { display_name: p.display_name, avatar_url: p.avatar_url }),
-    );
+    (profiles as ProfileRow[] | null)?.forEach((p) => profilesMap.set(p.id, p));
   }
   const enrich = <T extends { user_id: string }>(rows: T[] | null) =>
-    (rows ?? []).map((r) => ({
-      ...r,
-      display_name: profilesMap.get(r.user_id)?.display_name ?? "Usuário",
-      avatar_url: profilesMap.get(r.user_id)?.avatar_url ?? null,
-    }));
+    (rows ?? []).map((r) => {
+      const p = profilesMap.get(r.user_id);
+      return {
+        ...r,
+        display_name: p?.display_name ?? "Usuário",
+        avatar_url: p?.avatar_url ?? null,
+        hide_contribution: p?.hide_contribution ?? false,
+      };
+    });
+
+  const members = enrich(membersRes.data as SharedGoalMember[] | null).map((m) => ({
+    ...m,
+    total_contributed: m.hide_contribution ? null : m.total_contributed,
+  })) as SharedGoalMember[];
 
   return {
     goal: goalRes.data as SharedGoal | null,
-    members: enrich(membersRes.data as SharedGoalMember[] | null) as SharedGoalMember[],
+    members,
     joinRequests: enrich(joinRes.data as SharedJoinRequest[] | null) as SharedJoinRequest[],
     contributions: enrich(contribRes.data as SharedContribution[] | null) as SharedContribution[],
   };
