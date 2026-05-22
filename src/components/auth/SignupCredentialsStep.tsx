@@ -132,9 +132,28 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
             </div>
           </div>
 
+          <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+            <Checkbox
+              checked={acceptedLegal}
+              onCheckedChange={(v) => setAcceptedLegal(!!v)}
+              className="mt-0.5"
+            />
+            <span className="text-xs text-muted-foreground leading-relaxed">
+              Li e aceito os{" "}
+              <button type="button" onClick={() => setOpenDoc("terms")} className="text-primary hover:underline">
+                Termos de Uso
+              </button>{" "}
+              e a{" "}
+              <button type="button" onClick={() => setOpenDoc("privacy")} className="text-primary hover:underline">
+                Política de Privacidade
+              </button>
+              .
+            </span>
+          </label>
+
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !acceptedLegal}
             className="w-full h-11 gradient-primary border-0 text-white shadow-glow"
           >
             {loading ? (
@@ -147,6 +166,15 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
             )}
           </Button>
         </form>
+
+        <Dialog open={!!openDoc} onOpenChange={(o) => !o && setOpenDoc(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{openDoc === "terms" ? "Termos de Uso" : "Política de Privacidade"}</DialogTitle>
+            </DialogHeader>
+            {openDoc && <LegalDocumentView kind={openDoc} />}
+          </DialogContent>
+        </Dialog>
 
         <p className="text-center text-sm text-muted-foreground">
           Já tem conta?{" "}
