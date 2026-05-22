@@ -176,9 +176,43 @@ Deno.serve(async (req) => {
     const recentMessages = messages.slice(-MAX_MESSAGES_HISTORY);
 
     const isBusiness = context?.mode === "business";
+
+    // Read privacy preferences (service role bypasses RLS)
+    let aiUseFinancial = true;
+    let aiUseBusiness = true;
+    try {
+      const admin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      );
+      const { data: pref } = await admin
+        .from("privacy_settings")
+        .select("ai_use_financial_data, ai_use_business_data")
+        .eq("user_id", userData.user.id)
+        .maybeSingle();
+      if (pref) {
+        aiUseFinancial = pref.ai_use_financial_data !== false;
+        aiUseBusiness = pref.ai_use_business_data !== false;
+      }
+    } catch (e) {
+      console.warn("[harp-ia-chat] privacy read failed", e);
+    }
+
+    const contextAllowed = isBusiness ? aiUseBusiness : aiUseFinancial;
+
     const systemMessages: { role: string; content: string }[] = [
       { role: "system", content: isBusiness ? BUSINESS_PROMPT : PERSONAL_PROMPT },
     ];
+
+    if (!contextAllowed) {
+      systemMessages.push({
+        role: "system",
+        content:
+          "O usuário restringiu o acesso aos dados " +
+          (isBusiness ? "da empresa" : "financeiros pessoais") +
+          ". Responda de forma genérica e educativa, SEM tentar inferir números, transações ou padrões pessoais. Sugira que ele ative a permissão em Perfil → Privacidade caso queira respostas personalizadas.",
+      });
+    }
 
     if (lessonContext && typeof lessonContext === "object") {
       systemMessages.push({
@@ -187,7 +221,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (context && typeof context === "object") {
+    if (contextAllowed && context && typeof context === "object") {
       const built = buildContextMessage(context);
       if (built && built.length <= MAX_CONTEXT_LENGTH) {
         systemMessages.push({ role: "system", content: built });

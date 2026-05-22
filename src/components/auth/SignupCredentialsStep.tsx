@@ -4,8 +4,13 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { recordLegalAcceptance } from "@/hooks/useLegalAcceptance";
+import LegalDocumentView from "@/components/legal/LegalDocumentView";
+import type { LegalKind } from "@/hooks/useLegalDocuments";
 
 
 interface Props {
@@ -24,9 +29,15 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [openDoc, setOpenDoc] = useState<LegalKind | null>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!acceptedLegal) {
+      toast({ title: "Aceite necessário", description: "Você precisa aceitar os Termos e a Política de Privacidade.", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -42,9 +53,11 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
       });
       return;
     }
-    if (data.session) {
+    if (data.session && data.user) {
+      await recordLegalAcceptance(data.user.id);
       onSuccess();
     } else {
+      if (data.user) await recordLegalAcceptance(data.user.id);
       toast({
         title: "Confirme seu e-mail",
         description: "Enviamos um link de confirmação. Após confirmar, faça login.",
@@ -119,9 +132,28 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
             </div>
           </div>
 
+          <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+            <Checkbox
+              checked={acceptedLegal}
+              onCheckedChange={(v) => setAcceptedLegal(!!v)}
+              className="mt-0.5"
+            />
+            <span className="text-xs text-muted-foreground leading-relaxed">
+              Li e aceito os{" "}
+              <button type="button" onClick={() => setOpenDoc("terms")} className="text-primary hover:underline">
+                Termos de Uso
+              </button>{" "}
+              e a{" "}
+              <button type="button" onClick={() => setOpenDoc("privacy")} className="text-primary hover:underline">
+                Política de Privacidade
+              </button>
+              .
+            </span>
+          </label>
+
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !acceptedLegal}
             className="w-full h-11 gradient-primary border-0 text-white shadow-glow"
           >
             {loading ? (
@@ -134,6 +166,15 @@ const SignupCredentialsStep = ({ onBack, onLogin, onSuccess }: Props) => {
             )}
           </Button>
         </form>
+
+        <Dialog open={!!openDoc} onOpenChange={(o) => !o && setOpenDoc(null)}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{openDoc === "terms" ? "Termos de Uso" : "Política de Privacidade"}</DialogTitle>
+            </DialogHeader>
+            {openDoc && <LegalDocumentView kind={openDoc} />}
+          </DialogContent>
+        </Dialog>
 
         <p className="text-center text-sm text-muted-foreground">
           Já tem conta?{" "}

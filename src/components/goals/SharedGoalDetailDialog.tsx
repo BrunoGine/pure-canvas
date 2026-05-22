@@ -86,7 +86,7 @@ const SharedGoalDetailDialog = ({ goal, onOpenChange, actions, refreshKey }: Pro
   const pendingTotal = detail.joinRequests.length + pendingContribs.length;
 
   const ranking = [...detail.members].sort(
-    (a, b) => Number(b.total_contributed) - Number(a.total_contributed),
+    (a, b) => (Number(b.total_contributed ?? -1)) - (Number(a.total_contributed ?? -1)),
   );
 
   const copyCode = () => {
@@ -202,7 +202,7 @@ const SharedGoalDetailDialog = ({ goal, onOpenChange, actions, refreshKey }: Pro
                           {m.display_name}
                           {m.role === "admin" && <Crown size={12} className="text-primary" />}
                         </p>
-                        <p className="text-xs text-muted-foreground">R$ {formatBRL(Number(m.total_contributed))}</p>
+                        <p className="text-xs text-muted-foreground">{m.total_contributed === null ? "Valor privado" : `R$ ${formatBRL(Number(m.total_contributed))}`}</p>
                       </div>
                     </div>
                     {isAdmin && m.user_id !== fresh.created_by && (
@@ -330,7 +330,7 @@ const SharedGoalDetailDialog = ({ goal, onOpenChange, actions, refreshKey }: Pro
                       <p className="text-sm font-medium">{m.display_name}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-bold tabular-nums">R$ {formatBRL(Number(m.total_contributed))}</span>
+                  <span className="text-sm font-bold tabular-nums">{m.total_contributed === null ? "—" : `R$ ${formatBRL(Number(m.total_contributed))}`}</span>
                 </div>
               ))}
             </TabsContent>

@@ -16,6 +16,9 @@ import UnsubscribePage from "./pages/UnsubscribePage.tsx";
 import OnboardingPage from "./pages/OnboardingPage.tsx";
 import BusinessOnboardingPage from "./pages/BusinessOnboardingPage.tsx";
 import PricingPage from "./pages/PricingPage.tsx";
+import PrivacyPage from "./pages/PrivacyPage.tsx";
+import LegalPage from "./pages/LegalPage.tsx";
+import LegalAcceptPage from "./pages/LegalAcceptPage.tsx";
 import { PaywallProvider } from "@/contexts/PaywallContext";
 
 const queryClient = new QueryClient();
@@ -30,21 +33,23 @@ const ProtectedRoutes = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+  const [legalAccepted, setLegalAccepted] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!user) {
       setOnboardingDone(null);
+      setLegalAccepted(null);
       return;
     }
     let cancelled = false;
-    supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setOnboardingDone(!!data?.onboarding_completed);
-      });
+    Promise.all([
+      supabase.from("profiles").select("onboarding_completed").eq("id", user.id).maybeSingle(),
+      supabase.rpc("has_accepted_current_legal", { _uid: user.id }),
+    ]).then(([profileRes, legalRes]) => {
+      if (cancelled) return;
+      setOnboardingDone(!!profileRes.data?.onboarding_completed);
+      setLegalAccepted(!!legalRes.data);
+    });
     return () => {
       cancelled = true;
     };
@@ -52,7 +57,17 @@ const ProtectedRoutes = () => {
 
   if (loading) return <Spinner />;
   if (!user) return <Navigate to="/auth" replace />;
-  if (onboardingDone === null) return <Spinner />;
+  if (onboardingDone === null || legalAccepted === null) return <Spinner />;
+
+  // Legal gate has highest priority
+  if (!legalAccepted && location.pathname !== "/legal/aceite") {
+    return <Navigate to="/legal/aceite" replace />;
+  }
+  if (legalAccepted && location.pathname === "/legal/aceite") {
+    return <Navigate to="/" replace />;
+  }
+  if (location.pathname === "/legal/aceite") return <LegalAcceptPage />;
+
   if (!onboardingDone && location.pathname !== "/onboarding") {
     return <Navigate to="/onboarding" replace />;
   }
@@ -62,6 +77,8 @@ const ProtectedRoutes = () => {
   if (location.pathname === "/onboarding") return <OnboardingPage />;
   if (location.pathname === "/empresa/onboarding") return <BusinessOnboardingPage />;
   if (location.pathname === "/planos") return <PricingPage />;
+  if (location.pathname === "/privacidade") return <PrivacyPage />;
+  if (location.pathname.startsWith("/legal/")) return <LegalPage />;
   return <Index />;
 };
 

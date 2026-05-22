@@ -12,6 +12,7 @@ const AuthCallbackPage = () => {
         navigate("/auth", { replace: true });
         return;
       }
+      // Onboarding/legal gates run inside ProtectedRoutes; just route based on profile state.
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_completed")
@@ -23,7 +24,6 @@ const AuthCallbackPage = () => {
         navigate("/onboarding", { replace: true });
       }
     };
-    // Give Supabase a tick to parse hash params
     const t = setTimeout(finish, 100);
     return () => clearTimeout(t);
   }, [navigate]);
