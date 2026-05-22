@@ -28,10 +28,11 @@ export interface SharedGoalMember {
   shared_goal_id: string;
   user_id: string;
   role: "admin" | "member";
-  total_contributed: number;
+  total_contributed: number | null;
   joined_at: string;
   display_name?: string | null;
   avatar_url?: string | null;
+  hide_contribution?: boolean;
 }
 
 export interface SharedJoinRequest {
