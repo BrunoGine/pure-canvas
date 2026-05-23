@@ -4,8 +4,11 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { setRememberMe } from "@/lib/secureStorage";
+
 
 
 interface Props {
