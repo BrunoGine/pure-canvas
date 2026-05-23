@@ -15,7 +15,12 @@ const LegalAcceptPage = () => {
 
   const handleAccept = () => {
     if (!accepted) return;
-    accept.mutate();
+    accept.mutate(undefined, {
+      onSuccess: () => {
+        // Force a full reload so ProtectedRoutes re-evaluates the legal gate
+        window.location.replace("/");
+      },
+    });
   };
 
   return (
