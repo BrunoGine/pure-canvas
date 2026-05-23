@@ -20,8 +20,12 @@ import PrivacyPage from "./pages/PrivacyPage.tsx";
 import LegalPage from "./pages/LegalPage.tsx";
 import LegalAcceptPage from "./pages/LegalAcceptPage.tsx";
 import { PaywallProvider } from "@/contexts/PaywallContext";
+import { SecurityProvider, useSecurity } from "@/contexts/SecurityContext";
+import BiometricLockScreen from "@/components/security/BiometricLockScreen";
+import EnableBiometricSheet from "@/components/security/EnableBiometricSheet";
 
 const queryClient = new QueryClient();
+
 
 const Spinner = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
@@ -82,6 +86,25 @@ const ProtectedRoutes = () => {
   return <Index />;
 };
 
+const SecurityGate = ({ children }: { children: React.ReactNode }) => {
+  const { locked } = useSecurity();
+  if (locked) return <BiometricLockScreen />;
+  return (
+    <>
+      {children}
+      <EnableBiometricSheet />
+    </>
+  );
+};
+
+const AuthedShell = () => (
+  <SecurityProvider>
+    <SecurityGate>
+      <ProtectedRoutes />
+    </SecurityGate>
+  </SecurityProvider>
+);
+
 const AuthPageWrapper = () => {
   const { session, loading } = useAuth();
   if (loading) return <Spinner />;
@@ -104,7 +127,7 @@ const App = () => (
                   <Route path="/auth/callback" element={<AuthCallbackPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                  <Route path="/*" element={<ProtectedRoutes />} />
+                  <Route path="/*" element={<AuthedShell />} />
                 </Routes>
               </PaywallProvider>
             </BrowserRouter>

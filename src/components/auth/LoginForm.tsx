@@ -4,8 +4,11 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { setRememberMe } from "@/lib/secureStorage";
+
 
 
 interface Props {
@@ -23,11 +26,14 @@ const LoginForm = ({ onBack, onForgot, onSignup }: Props) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    // Set the storage mode BEFORE sign-in so Supabase persists tokens correctly
+    setRememberMe(remember);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
@@ -111,6 +117,15 @@ const LoginForm = ({ onBack, onForgot, onSignup }: Props) => {
               Esqueci minha senha
             </button>
           </div>
+
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <Checkbox checked={remember} onCheckedChange={(v) => setRemember(!!v)} />
+            <span className="text-xs text-muted-foreground">
+              Manter conectado neste dispositivo
+            </span>
+          </label>
+
+
 
           <Button
             type="submit"

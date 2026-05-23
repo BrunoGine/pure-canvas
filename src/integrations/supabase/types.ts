@@ -414,6 +414,39 @@ export type Database = {
         }
         Relationships: []
       }
+      device_credentials: {
+        Row: {
+          created_at: string
+          credential_id: string
+          device_label: string
+          id: string
+          last_used_at: string
+          public_key: string
+          sign_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id: string
+          device_label?: string
+          id?: string
+          last_used_at?: string
+          public_key: string
+          sign_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string
+          device_label?: string
+          id?: string
+          last_used_at?: string
+          public_key?: string
+          sign_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       goals: {
         Row: {
           company_id: string | null
