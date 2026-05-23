@@ -127,7 +127,7 @@ const App = () => (
                   <Route path="/auth/callback" element={<AuthCallbackPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                  <Route path="/*" element={<ProtectedRoutes />} />
+                  <Route path="/*" element={<AuthedShell />} />
                 </Routes>
               </PaywallProvider>
             </BrowserRouter>
