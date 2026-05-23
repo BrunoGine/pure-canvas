@@ -123,7 +123,7 @@ export const verifyCredential = async (credentialId: string): Promise<boolean> =
         allowCredentials: [
           {
             type: "public-key",
-            id: dec(credentialId),
+            id: toBuffer(dec(credentialId)),
             transports: ["internal"],
           },
         ],
