@@ -26,11 +26,14 @@ const LoginForm = ({ onBack, onForgot, onSignup }: Props) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    // Set the storage mode BEFORE sign-in so Supabase persists tokens correctly
+    setRememberMe(remember);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
