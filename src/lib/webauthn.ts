@@ -26,11 +26,14 @@ const dec = (s: string): Uint8Array => {
   return bytes;
 };
 
-const randomChallenge = (): Uint8Array => {
+const randomChallenge = (): ArrayBuffer => {
   const buf = new Uint8Array(32);
   crypto.getRandomValues(buf);
-  return buf;
+  return buf.buffer.slice(0) as ArrayBuffer;
 };
+
+const toBuffer = (u: Uint8Array): ArrayBuffer =>
+  u.buffer.slice(u.byteOffset, u.byteOffset + u.byteLength) as ArrayBuffer;
 
 export const isBiometricSupported = async (): Promise<boolean> => {
   try {
