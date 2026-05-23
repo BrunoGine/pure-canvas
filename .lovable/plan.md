@@ -1,207 +1,137 @@
+## Visão geral
 
-# Sistema de Privacidade + Termos de Uso
+O app hoje é web/PWA (sem Capacitor instalado). O Supabase já mantém sessão em `localStorage` com refresh automático — não há perda de sessão. Falta:
 
-Implementação completa, persistente e funcional — sem UI fake. Cada toggle afeta de verdade UI, queries, IA e vaquinhas.
+1. Um toggle real de **"Manter conectado"** que controle se a sessão persiste entre fechamentos.
+2. **Biometria via WebAuthn** (Face ID, Touch ID, Windows Hello, digital Android) — funciona nativamente em navegadores modernos, em PWA instalado e dentro de wrapper Capacitor sem dependência extra.
+3. Uma **tela de bloqueio biométrica** que protege o app na reabertura/inatividade, sem deslogar do Supabase.
+4. Uma seção **"Segurança e acesso"** no Perfil com toggles funcionais e botão "Esquecer este dispositivo".
 
----
+A biometria **não substitui** a autenticação do Supabase — ela apenas desbloqueia uma sessão já válida (modelo de Nubank/Inter).
 
-## 1. Banco de dados (migration única)
+## Arquitetura
 
-### Tabela `legal_documents`
-Armazena versões publicadas de Termos e Política.
-- `kind` ('terms' | 'privacy')
-- `version` (text, ex: "1.0.0")
-- `content_md` (markdown)
-- `published_at`
-- `is_current` (boolean)
+```text
+┌─────────────────────────────────────────────────────────┐
+│ AuthProvider (Supabase session — refresh automático)    │
+│   └─ SecurityProvider (novo)                            │
+│        ├─ rememberMe        (persistência de sessão)    │
+│        ├─ biometricEnabled  (toggle por dispositivo)    │
+│        ├─ lastActiveAt      (timeout de inatividade)    │
+│        ├─ locked            (mostra BiometricLock)      │
+│        └─ unlock()/lock()/forgetDevice()                │
+│             └─ AppContent ou <BiometricLockScreen/>     │
+└─────────────────────────────────────────────────────────┘
+```
 
-RLS: leitura pública autenticada; escrita só admin.
+### Banco de dados (1 tabela nova)
 
-### Tabela `user_legal_acceptances`
-Histórico de aceites (preserva auditoria).
-- `user_id`, `document_id`, `kind`, `version`, `accepted_at`, `ip` (opcional), `user_agent` (opcional)
+`device_credentials` — vincula credenciais WebAuthn a um usuário, permitindo no futuro listar/revogar dispositivos.
 
-RLS: usuário insere/lê o próprio; admin lê tudo.
+Campos de domínio:
+- `device_label` (ex.: "Chrome no Windows")
+- `credential_id` (id público da credencial WebAuthn, base64)
+- `public_key` (chave pública da credencial, base64)
+- `sign_count` (contador anti-replay)
+- `last_used_at`
+- `created_at`
 
-### Tabela `privacy_settings` (1:1 com usuário, colunas tipadas — sem JSON bagunçado)
-Colunas booleanas com default seguro:
-- `hide_avatar_in_shared_goals` (default false)
-- `hide_contribution_amount` (default false)
-- `hide_profile_in_public_lists` (default false)
-- `require_invite_approval` (default false)
-- `disable_social_recommendations` (default false)
-- `hide_recent_activity` (default false)
-- `ai_use_financial_data` (default true)
-- `ai_use_business_data` (default true)
-- `email_essential` (default true, sempre true — não desativável)
-- `email_marketing` (default false)
-- `email_product_updates` (default true)
-- `email_financial_tips` (default true)
-- `created_at`, `updated_at`
+Acesso: cada usuário lê/cria/remove apenas suas próprias credenciais. Admins não têm acesso especial.
 
-RLS: SELECT/INSERT/UPDATE próprio (`auth.uid() = user_id`).
+### Storage local (por dispositivo)
 
-Trigger: criar linha automática no `handle_new_user()` (estender função existente).
+`localStorage` (não-sensível, apenas flags):
+- `security.rememberMe` — boolean
+- `security.biometricEnabled` — boolean
+- `security.credentialId` — id da credencial WebAuthn neste dispositivo
+- `security.lastActiveAt` — timestamp ISO
 
-### Função RPC `has_accepted_current_legal(uid)`
-Retorna boolean — compara aceite mais recente com versão `is_current`. Usada no gate de reaceite.
+Nada de senha ou token cru é gravado. A sessão Supabase continua no storage padrão do SDK.
 
-### Seed
-Inserir versão "1.0.0" dos dois documentos com `is_current=true`.
+### Fluxos
 
----
+**1. Login normal**
+- Tela de login ganha checkbox "Manter conectado neste dispositivo" (padrão: ligado).
+- Se desligado: troca o storage do Supabase para `sessionStorage` *antes* do `signInWithPassword` (a sessão evapora ao fechar a aba).
+- Após login bem-sucedido, se o navegador suporta WebAuthn e ainda não há biometria neste dispositivo, abre um bottom-sheet elegante: "Entrar com biometria da próxima vez?" → registra credencial.
 
-## 2. Conteúdo dos documentos
+**2. Registro de biometria (WebAuthn `create`)**
+- `navigator.credentials.create()` com `authenticatorAttachment: "platform"` e `userVerification: "required"`.
+- Salva `credentialId` + `publicKey` em `device_credentials` (Supabase) e `credentialId` em `localStorage`.
+- Mostra confirmação visual com animação de check.
 
-Escrever Termos e Política em PT-BR, tom Pierre/Nubank — claro, humano, profissional. Markdown salvo no banco (renderizado com `react-markdown` já comum no stack ou simples parser).
+**3. Reabertura do app / inatividade**
+- Ao montar o `SecurityProvider`:
+  - Se há sessão Supabase válida **e** `biometricEnabled` **e** (`lastActiveAt` ausente ou > 5 min atrás) → `locked = true`.
+  - Caso contrário libera direto.
+- `BiometricLockScreen` chama `navigator.credentials.get()` com `allowCredentials: [credentialId]` e `userVerification: "required"`.
+- Sucesso → atualiza `last_used_at` na tabela, `locked = false`, atualiza `lastActiveAt`.
+- Falha/cancelamento → botão "Usar senha" que desloga e volta para `/auth` (fallback seguro).
 
-Seções obrigatórias da Política:
-- Quais dados coletamos (cadastro, financeiros, uso)
-- Uso da IA Harp (Gemini) e o que ela acessa
-- Dados financeiros e segurança
-- Armazenamento (Supabase) e retenção
-- Suporte
-- Assinaturas e pagamentos (Stripe)
-- Modo empresa
-- Vaquinhas e metas compartilhadas
-- Cookies/session/localStorage
-- LGPD: direitos do titular, DPO contato
-- Exclusão de conta
-- Responsabilidade do usuário
-- Limitações de responsabilidade
-- Como notificamos mudanças (reaceite)
+**4. Atividade do usuário**
+- Listener leve em `visibilitychange` + `focus`: ao voltar ao foco, se `now - lastActiveAt > 5 min` e biometria ativa → bloqueia.
+- Durante uso normal (clique, scroll), atualiza `lastActiveAt` a cada 30s no máximo (debounce). Nunca bloqueia durante uso ou troca de aba curta.
 
-Termos: contrato de uso, conta, conduta, propriedade intelectual, assinatura/cancelamento, foro.
+**5. Timeout de "Manter conectado"**
+- Se passar mais de 30 dias sem `lastActiveAt`, ao abrir o app: `signOut()` automático e redireciona para login. Configurável depois.
 
----
+**6. Esquecer este dispositivo**
+- Remove a credencial deste navegador da tabela `device_credentials`.
+- Limpa as chaves `security.*` do `localStorage`.
+- `signOut()` do Supabase.
 
-## 3. Aceite no cadastro
+### Detecção de suporte
 
-Editar `src/components/auth/SignupCredentialsStep.tsx`:
-- Adicionar checkbox obrigatório: "Li e aceito os [Termos de Uso] e a [Política de Privacidade]"
-- Links abrem `Dialog` (ou nova rota `/legal/termos` e `/legal/privacidade`) que carregam o markdown do banco
-- Botão "Continuar" desabilitado até marcar
-- Após signup bem-sucedido: inserir 2 linhas em `user_legal_acceptances` (terms + privacy versão atual)
+`window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()` → se falso, **esconde** todas as opções de biometria (toggle, prompt, lock screen). O resto continua funcionando.
 
-OAuth/callback: no `AuthCallbackPage`, se primeiro login e sem aceite, redirecionar para tela de aceite antes do onboarding.
+## UI
 
----
+**Login (`LoginForm.tsx`)**
+- Checkbox "Manter conectado neste dispositivo" abaixo da senha.
 
-## 4. Gate de reaceite
+**Após login (modal `EnableBiometricSheet`)**
+- Aparece uma vez, dispensável. Ícone de digital animado, copy "Desbloqueie rapidamente com sua digital" / "Este dispositivo será lembrado com segurança". Botões "Ativar" e "Agora não".
 
-Novo componente `LegalGate` em `App.tsx` (dentro de `ProtectedRoutes`, antes do onboarding check):
-- Chama RPC `has_accepted_current_legal`
-- Se falso → redireciona para `/legal/aceite` com checkbox + botões
-- Bloqueia o resto do app até aceitar a nova versão
+**`BiometricLockScreen.tsx`**
+- Fundo `gradient-primary` suave, avatar do usuário, ícone de digital com pulse, botão grande "Desbloquear com biometria", link discreto "Usar senha".
 
----
+**Perfil → nova seção "Segurança e acesso"** (`SecuritySection.tsx`)
+- Toggle "Manter conectado"
+- Toggle "Usar biometria" (escondido se não suportado)
+- Botão "Esquecer este dispositivo" em texto destrutivo
 
-## 5. Tela de Privacidade
+Tudo segue tokens do design system existente (`glass-card`, `gradient-primary`, `shadow-glow`, motion).
 
-Nova rota `/privacidade` (adicionar em `App.tsx` e `ProtectedRoutes`).
-Editar `ProfilePage.tsx`: trocar `action: () => {}` do item "Privacidade" por `navigate("/privacidade")`.
+## Arquivos
 
-### `src/pages/PrivacyPage.tsx`
-- Header com voltar
-- Hook `usePrivacySettings()` (novo) com React Query: fetch + mutation com debounce 400ms e optimistic update
-- Seções agrupadas:
-  1. **Vaquinhas e metas compartilhadas** — hide_avatar, hide_contribution_amount, require_invite_approval
-  2. **Perfil público** — hide_profile_in_public_lists, hide_recent_activity, disable_social_recommendations
-  3. **Harp.I.A** — ai_use_financial_data, ai_use_business_data
-  4. **E-mails** — marketing, product_updates, financial_tips (essential bloqueado/explicado)
-- Cada item: `<PrivacyToggleRow title description checked onChange loading />`
-- Feedback: micro-spinner inline + toast "Preferência salva"
-- Design: glass-card, mesmo padrão de `ProfilePage`
+**Novos**
+- `src/contexts/SecurityContext.tsx` — provider central
+- `src/lib/webauthn.ts` — helpers (`isBiometricSupported`, `registerCredential`, `verifyCredential`, `base64url` utils)
+- `src/lib/secureStorage.ts` — wrapper que escolhe `localStorage` vs `sessionStorage` para o cliente Supabase
+- `src/components/security/BiometricLockScreen.tsx`
+- `src/components/security/EnableBiometricSheet.tsx`
+- `src/components/security/SecuritySection.tsx`
+- `src/hooks/useDeviceCredentials.ts`
+- `supabase/migrations/<timestamp>_device_credentials.sql`
 
----
+**Editados**
+- `src/integrations/supabase/client.ts` — usar `secureStorage`
+- `src/contexts/AuthContext.tsx` — pequena ajuste para expor `rememberMe`
+- `src/components/auth/LoginForm.tsx` — checkbox + lógica
+- `src/App.tsx` — envolver `ProtectedRoutes` com `SecurityProvider`, renderizar `BiometricLockScreen` quando `locked`
+- `src/pages/ProfilePage.tsx` — incluir `SecuritySection`
 
-## 6. Aplicação REAL das preferências
+## Garantias contra os riscos citados
 
-Esta é a parte crítica — cada toggle precisa ter efeito.
+- **Sem loop de auth**: o `SecurityProvider` nunca chama `signOut` em re-render; só age em eventos discretos (`visibilitychange`, `focus`, mutação de toggle). `AuthContext` continua com listener único.
+- **Sem múltiplos listeners**: providers usam `useEffect` com cleanup, sem dependências instáveis.
+- **Sem perda de sessão**: o Supabase continua autorefresh; biometria só controla a tela de bloqueio local.
+- **Sem dados sensíveis em claro**: tokens permanecem onde o SDK do Supabase os coloca; nada novo é gravado em claro.
+- **Fallback**: falha de biometria sempre oferece "Usar senha".
+- **Detecção**: dispositivos sem WebAuthn nem veem a opção.
 
-### Vaquinhas (`SharedGoalCard`, `SharedGoalDetailDialog`, `useSharedGoals`)
-- Criar RPC `get_shared_goal_members_safe(goal_id)` que retorna membros respeitando a privacidade de cada um:
-  - se `hide_avatar_in_shared_goals` → `avatar_url = null`
-  - se `hide_profile_in_public_lists` → `display_name = "Membro"`
-  - se `hide_contribution_amount` → `total_contributed = null`
-- Substituir chamadas atuais a `get_shared_goal_profiles` por essa nova RPC com join em `privacy_settings`
-- UI: quando `total_contributed = null`, mostrar "—" no ranking
+## Fora do escopo desta entrega (preparado para o futuro)
 
-### Convite aprovado (`require_invite_approval`)
-- Em `JoinSharedGoalDialog` / fluxo de join: se admin tem flag, request entra como `pending` em `shared_goal_join_requests` (já existe a tabela). Caso contrário, fluxo direto atual.
-- Trigger ou lógica no hook que verifica `privacy_settings.require_invite_approval` do **criador** antes de adicionar membro.
-
-### Harp.I.A (`supabase/functions/harp-ia-chat/index.ts`)
-- No início da função, ler `privacy_settings` do usuário (via service role)
-- Se `ai_use_financial_data = false` → não anexar transações/metas/orçamentos ao prompt; system prompt instrui resposta genérica
-- Se `ai_use_business_data = false` e contexto é empresarial → idem para dados de `companies`
-- Adicionar nota no system prompt: "O usuário restringiu acesso aos dados financeiros pessoais; responda de forma genérica e educativa."
-
-### Atividade recente / badges / certificados públicos
-- Hoje são privados por RLS. Documentar que `hide_recent_activity` afetará futuras telas públicas; aplicar já em qualquer listagem cross-user existente (revisar `SharedGoalDetailDialog` para não mostrar badges de outros membros se flag ligada).
-
-### E-mails (`send-transactional-email`)
-- Antes de enviar, checar categoria vs `privacy_settings`:
-  - `marketing` → respeita `email_marketing`
-  - `product-updates` → respeita `email_product_updates`
-  - `financial-tips` → respeita `email_financial_tips`
-  - transacionais essenciais (payment-failed, support-reply, subscription-confirmed) → sempre enviam
-- Mapear templates existentes em `transactional-email-templates/registry.ts` para categorias.
-
-### Recomendações sociais
-- Sem feature ativa hoje — apenas reservar a flag. Documentar no código com TODO claro.
-
----
-
-## 7. Hooks/utilitários
-
-- `src/hooks/usePrivacySettings.ts` — React Query, cache global, optimistic updates
-- `src/hooks/useLegalDocuments.ts` — fetch documento atual por kind
-- `src/lib/privacy.ts` — helpers `applyMemberPrivacy(member, settings)` para uso client-side onde necessário
-
----
-
-## 8. Estabilidade e performance
-
-- `privacy_settings` lidas uma vez por sessão e mantidas em React Query (`staleTime: 5min`)
-- Mutations com debounce evitam spam de UPDATE
-- Edge functions leem direto do Postgres (não chamam o app)
-- RLS testada com linter após migration
-
----
-
-## 9. Arquivos a criar / editar
-
-**Criar:**
-- Migration (tabelas + RPC + seed + trigger update no handle_new_user)
-- `src/pages/PrivacyPage.tsx`
-- `src/pages/LegalPage.tsx` (visualização de termos/privacidade)
-- `src/pages/LegalAcceptPage.tsx` (gate de reaceite)
-- `src/components/privacy/PrivacyToggleRow.tsx`
-- `src/components/legal/LegalAcceptCheckbox.tsx`
-- `src/hooks/usePrivacySettings.ts`
-- `src/hooks/useLegalDocuments.ts`
-- `src/hooks/useLegalAcceptance.ts`
-- `src/lib/privacy.ts`
-
-**Editar:**
-- `src/App.tsx` (rotas + LegalGate)
-- `src/components/auth/SignupCredentialsStep.tsx` (checkbox + registro de aceite)
-- `src/pages/ProfilePage.tsx` (link Privacidade real)
-- `src/pages/AuthCallbackPage.tsx` (verificar aceite pós-OAuth)
-- `src/hooks/useSharedGoals.ts` + componentes de vaquinha (aplicar privacidade)
-- `src/components/goals/JoinSharedGoalDialog.tsx` (fluxo de aprovação)
-- `supabase/functions/harp-ia-chat/index.ts` (respeitar flags de IA)
-- `supabase/functions/send-transactional-email/index.ts` (respeitar opt-ins)
-
----
-
-## 10. Entrega em fases (numa única implementação, mas verificável por etapa)
-
-1. Migration + seed + RPCs
-2. Aceite no signup + gate de reaceite + páginas legais
-3. Tela de Privacidade + hook + persistência
-4. Aplicação real: vaquinhas, IA, e-mails
-5. QA: alternar cada toggle e validar efeito
-
-Pronto para implementar quando você aprovar.
+- Listagem visual de "dispositivos conectados" (a tabela já suporta).
+- Revogação remota de outros dispositivos (precisa de realtime; estrutura pronta).
+- Capacitor `@capacitor-community/biometric-auth` (não necessário: WebAuthn cobre os três alvos).
