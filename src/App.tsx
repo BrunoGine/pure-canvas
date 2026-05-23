@@ -86,6 +86,25 @@ const ProtectedRoutes = () => {
   return <Index />;
 };
 
+const SecurityGate = ({ children }: { children: React.ReactNode }) => {
+  const { locked } = useSecurity();
+  if (locked) return <BiometricLockScreen />;
+  return (
+    <>
+      {children}
+      <EnableBiometricSheet />
+    </>
+  );
+};
+
+const AuthedShell = () => (
+  <SecurityProvider>
+    <SecurityGate>
+      <ProtectedRoutes />
+    </SecurityGate>
+  </SecurityProvider>
+);
+
 const AuthPageWrapper = () => {
   const { session, loading } = useAuth();
   if (loading) return <Spinner />;
