@@ -20,8 +20,9 @@ import PrivacyPage from "./pages/PrivacyPage.tsx";
 import LegalPage from "./pages/LegalPage.tsx";
 import LegalAcceptPage from "./pages/LegalAcceptPage.tsx";
 import { PaywallProvider } from "@/contexts/PaywallContext";
-
-const queryClient = new QueryClient();
+import { SecurityProvider, useSecurity } from "@/contexts/SecurityContext";
+import BiometricLockScreen from "@/components/security/BiometricLockScreen";
+import EnableBiometricSheet from "@/components/security/EnableBiometricSheet";
 
 const Spinner = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
