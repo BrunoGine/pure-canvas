@@ -24,6 +24,9 @@ import { SecurityProvider, useSecurity } from "@/contexts/SecurityContext";
 import BiometricLockScreen from "@/components/security/BiometricLockScreen";
 import EnableBiometricSheet from "@/components/security/EnableBiometricSheet";
 
+const queryClient = new QueryClient();
+
+
 const Spinner = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
     <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
