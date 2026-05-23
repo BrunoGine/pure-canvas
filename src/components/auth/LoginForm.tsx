@@ -118,6 +118,15 @@ const LoginForm = ({ onBack, onForgot, onSignup }: Props) => {
             </button>
           </div>
 
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <Checkbox checked={remember} onCheckedChange={(v) => setRemember(!!v)} />
+            <span className="text-xs text-muted-foreground">
+              Manter conectado neste dispositivo
+            </span>
+          </label>
+
+
+
           <Button
             type="submit"
             disabled={loading}
