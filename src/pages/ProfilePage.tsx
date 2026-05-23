@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import FinancialProfileSection from "@/components/profile/FinancialProfileSection";
 import BusinessEntryCard from "@/components/business/BusinessEntryCard";
 import PlanStatusCard from "@/components/billing/PlanStatusCard";
+import SecuritySection from "@/components/security/SecuritySection";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
