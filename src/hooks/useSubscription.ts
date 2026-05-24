@@ -34,9 +34,12 @@ const isSameSubscription = (a: SubscriptionRecord | null, b: SubscriptionRecord 
 
 let subscriptionChannelInstance = 0;
 
+const PLAN_RANK: Record<PlanKey, number> = { free: 0, premium: 1, enterprise: 2 };
+
 export function useSubscription(): UseSubscriptionResult {
   const { user } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionRecord | null>(null);
+  const [overridePlan, setOverridePlan] = useState<PlanKey | null>(null);
   const [loading, setLoading] = useState(true);
   const channelInstanceRef = useRef<string>("");
 
@@ -48,18 +51,23 @@ export function useSubscription(): UseSubscriptionResult {
   const fetchSub = useCallback(async () => {
     if (!user?.id) {
       setSubscription(null);
+      setOverridePlan(null);
       setLoading(false);
       return;
     }
-    const { data } = await supabase
-      .from("subscriptions")
-      .select(
-        "plan,status,trial_started_at,trial_ends_at,current_period_end,cancel_at_period_end,billing_interval"
-      )
-      .eq("user_id", user.id)
-      .maybeSingle();
-    const next = (data as SubscriptionRecord | null) ?? null;
+    const [subRes, effRes] = await Promise.all([
+      supabase
+        .from("subscriptions")
+        .select(
+          "plan,status,trial_started_at,trial_ends_at,current_period_end,cancel_at_period_end,billing_interval"
+        )
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      (supabase as any).rpc("get_effective_plan", { _user_id: user.id }),
+    ]);
+    const next = (subRes.data as SubscriptionRecord | null) ?? null;
     setSubscription((current) => (isSameSubscription(current, next) ? current : next));
+    setOverridePlan((effRes.data as PlanKey | null) ?? null);
     setLoading(false);
   }, [user?.id]);
 
@@ -73,12 +81,12 @@ export function useSubscription(): UseSubscriptionResult {
     channel
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "subscriptions",
-          filter: `user_id=eq.${user.id}`,
-        },
+        { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${user.id}` },
+        () => fetchSub()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "subscription_overrides", filter: `user_id=eq.${user.id}` },
         () => fetchSub()
       )
       .subscribe();
@@ -87,7 +95,12 @@ export function useSubscription(): UseSubscriptionResult {
     };
   }, [user?.id, fetchSub]);
 
-  const effectivePlan = getEffectivePlan(subscription);
+  const stripeEffective = getEffectivePlan(subscription);
+  const effectivePlan: PlanKey =
+    overridePlan && PLAN_RANK[overridePlan] > PLAN_RANK[stripeEffective]
+      ? overridePlan
+      : stripeEffective;
+
   const isTrialing =
     subscription?.status === "trialing" &&
     !!subscription.trial_ends_at &&

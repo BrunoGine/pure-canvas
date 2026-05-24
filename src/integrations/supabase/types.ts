@@ -998,6 +998,48 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_overrides: {
+        Row: {
+          active: boolean
+          created_at: string
+          expires_at: string | null
+          granted_by: string
+          id: string
+          plan_type: Database["public"]["Enums"]["subscription_plan"]
+          reason: string
+          revoked_at: string | null
+          revoked_by: string | null
+          starts_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          granted_by: string
+          id?: string
+          plan_type: Database["public"]["Enums"]["subscription_plan"]
+          reason?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string
+          id?: string
+          plan_type?: Database["public"]["Enums"]["subscription_plan"]
+          reason?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          starts_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           billing_interval:
@@ -1315,6 +1357,63 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_grant_override: {
+        Args: {
+          _duration_days: number
+          _plan: Database["public"]["Enums"]["subscription_plan"]
+          _reason: string
+          _user_id: string
+        }
+        Returns: {
+          active: boolean
+          created_at: string
+          expires_at: string | null
+          granted_by: string
+          id: string
+          plan_type: Database["public"]["Enums"]["subscription_plan"]
+          reason: string
+          revoked_at: string | null
+          revoked_by: string | null
+          starts_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_overrides"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_revoke_override: {
+        Args: { _override_id: string }
+        Returns: {
+          active: boolean
+          created_at: string
+          expires_at: string | null
+          granted_by: string
+          id: string
+          plan_type: Database["public"]["Enums"]["subscription_plan"]
+          reason: string
+          revoked_at: string | null
+          revoked_by: string | null
+          starts_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_overrides"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_search_users: {
+        Args: { _query: string }
+        Returns: {
+          display_name: string
+          email: string
+          id: string
+        }[]
+      }
       approve_shared_contribution: {
         Args: { _contribution_id: string }
         Returns: string
@@ -1366,6 +1465,10 @@ export type Database = {
         }[]
       }
       gen_invite_code: { Args: never; Returns: string }
+      get_effective_plan: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["subscription_plan"]
+      }
       get_shared_goal_profiles: {
         Args: { _user_ids: string[] }
         Returns: {

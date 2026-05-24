@@ -90,6 +90,7 @@ const ProfilePage = () => {
     { icon: Shield, label: "Privacidade", action: () => navigate("/privacidade") },
     { icon: HelpCircle, label: "Ajuda", action: () => navigate("/suporte") },
     ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin: Suporte", action: () => navigate("/admin/suporte") }] : []),
+    ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin: Assinaturas", action: () => navigate("/admin/assinaturas") }] : []),
   ];
 
   return (

@@ -11,6 +11,7 @@ import ProfilePage from "./ProfilePage";
 import BusinessHomePage from "./business/BusinessHomePage";
 import SupportPage from "./SupportPage";
 import AdminSupportPage from "./admin/AdminSupportPage";
+import AdminSubscriptionsPage from "./admin/AdminSubscriptionsPage";
 
 const SWIPE_ORDER = ["/planilhas", "/cursos", "/", "/chat", "/perfil"];
 
@@ -80,6 +81,7 @@ const Index = () => {
           <Route path="suporte/:ticketId" element={<SupportPage />} />
           <Route path="admin/suporte" element={<AdminSupportPage />} />
           <Route path="admin/suporte/:ticketId" element={<AdminSupportPage />} />
+          <Route path="admin/assinaturas" element={<AdminSubscriptionsPage />} />
         </Routes>
       </main>
       <BottomNav />
