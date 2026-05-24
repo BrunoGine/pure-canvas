@@ -81,6 +81,7 @@ const Index = () => {
           <Route path="suporte/:ticketId" element={<SupportPage />} />
           <Route path="admin/suporte" element={<AdminSupportPage />} />
           <Route path="admin/suporte/:ticketId" element={<AdminSupportPage />} />
+          <Route path="admin/assinaturas" element={<AdminSubscriptionsPage />} />
         </Routes>
       </main>
       <BottomNav />
