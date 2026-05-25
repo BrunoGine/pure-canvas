@@ -101,7 +101,9 @@ const SecurityGate = ({ children }: { children: React.ReactNode }) => {
 const AuthedShell = () => (
   <SecurityProvider>
     <SecurityGate>
-      <ProtectedRoutes />
+      <AccountStatusGate>
+        <ProtectedRoutes />
+      </AccountStatusGate>
     </SecurityGate>
   </SecurityProvider>
 );
