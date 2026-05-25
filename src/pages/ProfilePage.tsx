@@ -89,8 +89,7 @@ const ProfilePage = () => {
     { icon: Bell, label: "Notificações", action: () => {} },
     { icon: Shield, label: "Privacidade", action: () => navigate("/privacidade") },
     { icon: HelpCircle, label: "Ajuda", action: () => navigate("/suporte") },
-    ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin: Suporte", action: () => navigate("/admin/suporte") }] : []),
-    ...(isAdmin ? [{ icon: ShieldCheck, label: "Admin: Assinaturas", action: () => navigate("/admin/assinaturas") }] : []),
+    ...(isAdmin ? [{ icon: ShieldCheck, label: "Painel Admin", action: () => navigate("/admin") }] : []),
   ];
 
   return (

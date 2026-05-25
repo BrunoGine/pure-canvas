@@ -23,6 +23,7 @@ import { PaywallProvider } from "@/contexts/PaywallContext";
 import { SecurityProvider, useSecurity } from "@/contexts/SecurityContext";
 import BiometricLockScreen from "@/components/security/BiometricLockScreen";
 import EnableBiometricSheet from "@/components/security/EnableBiometricSheet";
+import AccountStatusGate from "@/components/admin/AccountStatusGate";
 
 const queryClient = new QueryClient();
 
@@ -100,7 +101,9 @@ const SecurityGate = ({ children }: { children: React.ReactNode }) => {
 const AuthedShell = () => (
   <SecurityProvider>
     <SecurityGate>
-      <ProtectedRoutes />
+      <AccountStatusGate>
+        <ProtectedRoutes />
+      </AccountStatusGate>
     </SecurityGate>
   </SecurityProvider>
 );

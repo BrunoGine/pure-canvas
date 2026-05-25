@@ -12,6 +12,10 @@ import BusinessHomePage from "./business/BusinessHomePage";
 import SupportPage from "./SupportPage";
 import AdminSupportPage from "./admin/AdminSupportPage";
 import AdminSubscriptionsPage from "./admin/AdminSubscriptionsPage";
+import AdminDashboardPage from "./admin/AdminDashboardPage";
+import AdminUsersPage from "./admin/AdminUsersPage";
+import AdminUserDetailPage from "./admin/AdminUserDetailPage";
+import AdminLogsPage from "./admin/AdminLogsPage";
 
 const SWIPE_ORDER = ["/planilhas", "/cursos", "/", "/chat", "/perfil"];
 
@@ -82,6 +86,10 @@ const Index = () => {
           <Route path="admin/suporte" element={<AdminSupportPage />} />
           <Route path="admin/suporte/:ticketId" element={<AdminSupportPage />} />
           <Route path="admin/assinaturas" element={<AdminSubscriptionsPage />} />
+          <Route path="admin" element={<AdminDashboardPage />} />
+          <Route path="admin/usuarios" element={<AdminUsersPage />} />
+          <Route path="admin/usuarios/:id" element={<AdminUserDetailPage />} />
+          <Route path="admin/logs" element={<AdminLogsPage />} />
         </Routes>
       </main>
       <BottomNav />

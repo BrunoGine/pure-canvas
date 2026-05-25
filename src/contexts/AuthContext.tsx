@@ -40,7 +40,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => applySession(session)
+      (event, session) => {
+        applySession(session);
+        if (event === "SIGNED_IN" && session?.user) {
+          // fire-and-forget last_seen update
+          setTimeout(() => {
+            (supabase as any).rpc("touch_last_seen").then(() => {});
+          }, 0);
+        }
+      }
     );
 
     return () => {
