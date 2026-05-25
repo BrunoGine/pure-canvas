@@ -1,80 +1,107 @@
-# Concessão Manual de Assinaturas (Overrides)
+# Painel Administrativo Completo de Usuários
 
-Sistema híbrido: Stripe continua dono das assinaturas pagas; uma nova camada de **overrides** permite que admins liberem Premium/Empresa gratuitamente, por tempo determinado ou vitalício, sem tocar na tabela `subscriptions`.
+Sistema profissional de gestão de contas, inspirado em Stripe/Supabase/Linear, com ações reais (não fake), segurança server-side via RPCs SECURITY DEFINER + RLS, e UX moderna.
 
-## 1. Banco de dados
+## 1. Banco de dados (migração única)
 
-Nova tabela `subscription_overrides`:
+### Novas colunas em `profiles`
+- `account_status` enum `account_status` (`active` | `suspended` | `banned` | `deleted`) default `active`
+- `status_reason` text
+- `status_changed_at` timestamptz
+- `status_changed_by` uuid
+- `last_seen_at` timestamptz (atualizado por RPC `touch_last_seen` chamada no login/heartbeat)
+- `login_count` int default 0
+- `deleted_at` timestamptz (soft delete)
 
-- `id` uuid PK
-- `user_id` uuid (não FK para auth.users)
-- `plan_type` enum (`premium` | `enterprise`) — reusa `subscription_plan`
-- `starts_at` timestamptz default now()
-- `expires_at` timestamptz nullable (NULL = vitalício)
-- `granted_by` uuid (admin)
-- `reason` text (Beta, Influenciador, Parceiro, etc.)
-- `active` boolean default true
-- `revoked_at` / `revoked_by` nullable
-- `created_at` timestamptz
+### Nova tabela `admin_logs`
+- `id`, `admin_id`, `action` text (`grant_override`, `revoke_override`, `suspend_user`, `ban_user`, `unsuspend_user`, `soft_delete_user`, `hard_delete_user`, `restore_user`)
+- `target_user_id`, `metadata` jsonb, `created_at`
+- RLS: SELECT só admin; INSERT só via RPC (policy `false`).
 
-Índice em `(user_id, active)`.
+### Funções SECURITY DEFINER (todas com guard `has_role(auth.uid(),'admin')`)
+- `admin_list_users(_search text, _status text, _plan text, _inactive_days int, _limit int, _offset int)` → retorna linhas com profile + plano efetivo + contadores (transactions, goals, companies) + `last_seen_at` + total count. Usa LATERAL/COUNTs com limites para performance.
+- `admin_get_user_detail(_user_id uuid)` → dados completos: profile, email (auth.users), subscription, override ativo, histórico de overrides, contadores, últimas 10 ações de admin sobre ele.
+- `admin_set_account_status(_user_id, _status, _reason)` → atualiza profiles + insere admin_log. Se `banned`/`suspended`, chama `auth.admin` via edge function (ver §3) para revogar sessões.
+- `admin_soft_delete_user(_user_id, _reason)` → marca `account_status='deleted'`, `deleted_at=now()`, log.
+- `admin_restore_user(_user_id)` → volta para `active`, limpa `deleted_at`, log.
+- `admin_metrics()` → KPIs: total, ativos hoje (last_seen_at > now()-24h), novos 7d/30d, premium/enterprise (via get_effective_plan), empresas, trials ativos, inativos 30d, suspended/banned.
+- `touch_last_seen()` → atualiza last_seen_at + login_count++; chamada no AuthContext em SIGNED_IN.
+- Reescrever `admin_grant_override`/`admin_revoke_override` para também inserir em `admin_logs`.
 
-**RLS:**
-- SELECT: próprio usuário (vê só ativos seus) + admin (vê tudo)
-- INSERT/UPDATE/DELETE: apenas admin (via `has_role(auth.uid(), 'admin')`)
+### Gate de acesso
+- Atualizar `handle_new_user` para setar `account_status='active'`.
+- Adicionar RPC `current_account_status()` (stable, security definer) usada pelo cliente para detectar suspensão/ban e mostrar tela de bloqueio.
+- RLS adicional em `manual_transactions`/`goals` INSERT: bloquear quando `account_status != 'active'` via função `is_account_active(auth.uid())`.
 
-**Função SECURITY DEFINER** `get_effective_plan(_user_id uuid)` retornando `subscription_plan`:
-1. Se existe override ativo (`active=true`, `starts_at<=now()`, `expires_at IS NULL OR expires_at>now()`) → retorna maior plano do override (enterprise > premium).
-2. Senão consulta `subscriptions` (active/trialing válido) → retorna plano.
-3. Senão `free`.
+## 2. Edge function `admin-user-actions`
 
-**Função** `admin_grant_override(_user_id, _plan, _duration_days, _reason)` — SECURITY DEFINER, checa `has_role(auth.uid(),'admin')`, insere override (expires_at = NULL se duration_days IS NULL).
+Necessária para operações que exigem `service_role` (revogar sessões / deletar usuário do `auth.users`):
+- POST `{action: 'revoke_sessions'|'hard_delete', user_id, reason}`
+- Verifica JWT do chamador → checa `has_role(..., 'admin')`.
+- `revoke_sessions`: `supabase.auth.admin.signOut(user_id, 'global')`.
+- `hard_delete`: chama `admin_soft_delete_user` para auditoria + `supabase.auth.admin.deleteUser(user_id)` (cascata remove dados via FKs existentes; profile/subscription via trigger ou cleanup explícito). Insere admin_log `hard_delete_user`.
 
-**Função** `admin_revoke_override(_override_id)` — idem, marca `active=false`, `revoked_at`, `revoked_by`.
+## 3. Frontend
 
-**Função** `admin_search_users(_query text)` — SECURITY DEFINER, retorna `id, display_name, email` (lendo `auth.users` + `profiles`) limitado a 20, somente para admins. Usada no painel.
+### Rotas (registradas em `src/pages/Index.tsx`)
+- `/admin` → `AdminDashboardPage` (KPIs + atalhos)
+- `/admin/usuarios` → `AdminUsersPage` (tabela + busca + filtros + paginação)
+- `/admin/usuarios/:id` → `AdminUserDetailPage` (perfil completo + ações)
+- `/admin/assinaturas` → já existe
+- `/admin/logs` → `AdminLogsPage` (timeline de ações admin)
 
-## 2. Frontend
+Guard `<AdminRoute>` usa `useIsAdmin`; redireciona não-admins para `/`.
 
-**`src/hooks/useSubscription.ts`**: passa a chamar RPC `get_effective_plan` em paralelo à query atual; `effectivePlan` usa o resultado. Mantém estrutura para não quebrar consumidores. Inscreve realtime também em `subscription_overrides` filtrando por `user_id`.
+### Componentes
+- `src/components/admin/AdminShell.tsx`: layout com sidebar (Dashboard, Usuários, Assinaturas, Logs, Suporte) estilo Linear/Supabase.
+- `src/components/admin/MetricCard.tsx`, `UserStatusBadge.tsx`, `PlanBadge.tsx`.
+- `src/components/admin/UsersTable.tsx`: tabela sticky header, skeleton loading, paginação server-side, debounce 300ms na busca, filtros (status, plano, inatividade), preserva filtros via URL params.
+- `src/components/admin/UserActionsDialog.tsx`: confirmação dupla para ban/delete (digitar email).
+- `src/components/admin/SubscriptionPanel.tsx`: reaproveita lógica de grant/revoke da página atual em forma de painel embutido no detalhe.
 
-**`src/lib/plans.ts`**: adicionar tipo opcional `OverrideRecord` e helper `mergePlans(stripePlan, overridePlan)` (enterprise > premium > free).
+### Hooks
+- `useAdminUsers(filters)` — react-query com `keepPreviousData`, chave inclui filtros, RPC `admin_list_users`.
+- `useAdminUserDetail(id)`, `useAdminMetrics()`, `useAdminLogs(filters)`.
+- `useAdminUserMutations()`: suspend/unsuspend/ban/soft_delete/restore/hard_delete/revoke_sessions; invalida queries relevantes; toast de sucesso/erro.
 
-**Novo `src/pages/admin/AdminSubscriptionsPage.tsx`** (rota `/admin/assinaturas`, protegida por `useIsAdmin`):
-- Busca de usuário por nome/email (debounced, via RPC)
-- Card do usuário selecionado: plano Stripe atual, override ativo (se houver), expiração
-- Form: plano (premium/enterprise), duração (7d / 30d / 60d / 90d / vitalício / customizado), motivo (select + texto livre)
-- Botão "Conceder" e "Revogar atual"
-- Tabela: histórico de overrides do usuário
+### Gate de conta bloqueada
+- `useAccountStatus()` consulta `current_account_status` no SecurityContext (ou novo `AccountStatusGate`).
+- Se `suspended` → tela amigável "Sua conta está suspensa" + motivo + botão suporte; logout forçado opcional.
+- Se `banned` → tela "Conta banida" + signOut imediato.
+- Se `deleted` → tela "Conta excluída" + signOut.
 
-**`src/components/admin/AdminNav.tsx`** (ou link no `AdminSupportPage`): adicionar entrada "Assinaturas".
+### Link de admin
+- Substituir links soltos no `ProfilePage` por entrada única "Painel Admin" → `/admin`.
 
-**`src/App.tsx`**: registrar rota `/admin/assinaturas`.
+## 4. Segurança
 
-## 3. Segurança
+- Toda ação admin: RPC SECURITY DEFINER com `has_role` guard + RLS bloqueia escrita direta.
+- Edge function valida JWT e role antes de usar service_role.
+- Frontend nunca toca tabelas sensíveis diretamente; só lê via RPCs.
+- Hard delete pede confirmação textual (digitar email).
+- `admin_logs` imutável (sem UPDATE/DELETE policy).
+- Sessões revogadas no momento da suspensão/ban.
 
-- Toda concessão/revogação roteada via funções SECURITY DEFINER com guard `has_role`.
-- RLS impede usuário comum de inserir/alterar override.
-- `useIsAdmin` já é server-side (consulta `user_roles`).
-- Logs implícitos via `granted_by`/`revoked_by`/`reason`.
+## 5. Performance
 
-## 4. Migrações e ordem
+- `admin_list_users` paginada (limit 25, offset). Total via `count(*) OVER ()`.
+- Contadores por usuário via subqueries com COUNT — ok para escala média; índices em `manual_transactions(user_id)`, `goals(user_id)`, `companies(user_id)` (criar se faltarem).
+- React Query com `staleTime: 30s` + `keepPreviousData`.
+- Realtime apenas em `admin_logs` no dashboard de logs (opcional).
 
-1. Migration: enum reuso, tabela, RLS, funções.
-2. Atualizar `useSubscription` + `plans.ts`.
-3. Criar página admin + rota + link.
-4. Testar fluxo: conceder 7d, verificar `effectivePlan=premium`, revogar, verificar volta para free.
+## 6. Ordem de implementação
 
-## Fora de escopo
+1. Migração: enum, colunas, tabela `admin_logs`, todas as RPCs, índices.
+2. Edge function `admin-user-actions`.
+3. Hooks + componentes base (AdminShell, MetricCard, UsersTable).
+4. Páginas: Dashboard, Users, UserDetail, Logs.
+5. AccountStatusGate + integração no AuthedShell.
+6. `touch_last_seen` no AuthContext.
+7. Atualizar ProfilePage com link único Admin.
 
-- Notificação por email ao conceder (pode ser fase 2).
-- UI para o próprio usuário ver "cortesia ativa" (mostraremos apenas o badge de plano atual).
+## Fora de escopo (fase 2)
 
-```text
-[admin painel] --RPC--> admin_grant_override
-                              |
-                              v
-                  subscription_overrides
-                              |
-[useSubscription] --RPC--> get_effective_plan <-- subscriptions (Stripe)
-```
+- Notificação por email ao usuário ao suspender/banir.
+- Exportar CSV de usuários.
+- Bulk actions (selecionar múltiplos).
+- Gráficos temporais (apenas KPIs numéricos nesta fase).
