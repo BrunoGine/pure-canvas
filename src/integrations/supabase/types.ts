@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_usage_log: {
         Row: {
           created_at: string
@@ -739,43 +766,64 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: Database["public"]["Enums"]["account_status"]
           active_company_id: string | null
           avatar_url: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string | null
           financial_goal: string | null
           has_emergency_fund: boolean | null
           id: string
+          last_seen_at: string | null
+          login_count: number
           monthly_income: number | null
           onboarding_completed: boolean
+          status_changed_at: string | null
+          status_changed_by: string | null
+          status_reason: string | null
           theme_preference: string | null
           tracks_expenses: string | null
           updated_at: string
         }
         Insert: {
+          account_status?: Database["public"]["Enums"]["account_status"]
           active_company_id?: string | null
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           financial_goal?: string | null
           has_emergency_fund?: boolean | null
           id: string
+          last_seen_at?: string | null
+          login_count?: number
           monthly_income?: number | null
           onboarding_completed?: boolean
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          status_reason?: string | null
           theme_preference?: string | null
           tracks_expenses?: string | null
           updated_at?: string
         }
         Update: {
+          account_status?: Database["public"]["Enums"]["account_status"]
           active_company_id?: string | null
           avatar_url?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
           financial_goal?: string | null
           has_emergency_fund?: boolean | null
           id?: string
+          last_seen_at?: string | null
+          login_count?: number
           monthly_income?: number | null
           onboarding_completed?: boolean
+          status_changed_at?: string | null
+          status_changed_by?: string | null
+          status_reason?: string | null
           theme_preference?: string | null
           tracks_expenses?: string | null
           updated_at?: string
@@ -1357,6 +1405,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_user_detail: { Args: { _user_id: string }; Returns: Json }
       admin_grant_override: {
         Args: {
           _duration_days: number
@@ -1384,6 +1433,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_list_users: {
+        Args: {
+          _inactive_days?: number
+          _limit?: number
+          _offset?: number
+          _plan?: string
+          _search?: string
+          _status?: string
+        }
+        Returns: {
+          account_status: Database["public"]["Enums"]["account_status"]
+          active_company_id: string
+          companies_count: number
+          created_at: string
+          current_period_end: string
+          display_name: string
+          effective_plan: Database["public"]["Enums"]["subscription_plan"]
+          email: string
+          goals_count: number
+          id: string
+          last_seen_at: string
+          login_count: number
+          status_reason: string
+          subscription_status: Database["public"]["Enums"]["subscription_status"]
+          total_count: number
+          transactions_count: number
+          trial_ends_at: string
+        }[]
+      }
+      admin_log_action: {
+        Args: { _action: string; _metadata?: Json; _target_user_id: string }
+        Returns: undefined
+      }
+      admin_metrics: { Args: never; Returns: Json }
       admin_revoke_override: {
         Args: { _override_id: string }
         Returns: {
@@ -1413,6 +1496,36 @@ export type Database = {
           email: string
           id: string
         }[]
+      }
+      admin_set_account_status: {
+        Args: { _reason?: string; _status: string; _user_id: string }
+        Returns: {
+          account_status: Database["public"]["Enums"]["account_status"]
+          active_company_id: string | null
+          avatar_url: string | null
+          created_at: string
+          deleted_at: string | null
+          display_name: string | null
+          financial_goal: string | null
+          has_emergency_fund: boolean | null
+          id: string
+          last_seen_at: string | null
+          login_count: number
+          monthly_income: number | null
+          onboarding_completed: boolean
+          status_changed_at: string | null
+          status_changed_by: string | null
+          status_reason: string | null
+          theme_preference: string | null
+          tracks_expenses: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       approve_shared_contribution: {
         Args: { _contribution_id: string }
@@ -1451,6 +1564,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      current_account_status: {
+        Args: never
+        Returns: Database["public"]["Enums"]["account_status"]
       }
       find_shared_goal_by_code: {
         Args: { _code: string }
@@ -1496,6 +1613,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_account_active: { Args: { _uid: string }; Returns: boolean }
       is_shared_goal_admin: {
         Args: { _goal: string; _user: string }
         Returns: boolean
@@ -1520,6 +1638,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      touch_last_seen: { Args: never; Returns: undefined }
       update_streak: {
         Args: { _user_id: string }
         Returns: {
@@ -1541,6 +1660,7 @@ export type Database = {
       }
     }
     Enums: {
+      account_status: "active" | "suspended" | "banned" | "deleted"
       app_role: "admin" | "user"
       billing_interval: "month" | "year"
       payment_gateway: "stripe" | "mercadopago" | "none"
@@ -1680,6 +1800,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["active", "suspended", "banned", "deleted"],
       app_role: ["admin", "user"],
       billing_interval: ["month", "year"],
       payment_gateway: ["stripe", "mercadopago", "none"],
