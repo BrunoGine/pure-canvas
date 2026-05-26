@@ -39,17 +39,27 @@ export const useAdminUsers = (filters: AdminUserFilters) => {
     queryKey: ["admin_users", filters],
     placeholderData: keepPreviousData,
     staleTime: 30_000,
+    retry: false,
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("admin_list_users", {
+      const params = {
         _search: filters.search || null,
         _status: filters.status || null,
         _plan: filters.plan || null,
         _inactive_days: filters.inactiveDays ?? null,
         _limit: pageSize,
         _offset: page * pageSize,
-      });
-      if (error) throw error;
+      };
+      // eslint-disable-next-line no-console
+      console.log("[admin_list_users] calling", params);
+      const { data, error } = await (supabase as any).rpc("admin_list_users", params);
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error("[admin_list_users] error", error);
+        throw error;
+      }
       const rows = (data as AdminUserRow[]) ?? [];
+      // eslint-disable-next-line no-console
+      console.log("[admin_list_users] received rows:", rows.length, "total:", rows[0]?.total_count ?? 0);
       return {
         rows,
         total: rows[0]?.total_count ?? 0,
