@@ -118,7 +118,20 @@ const AdminUsersPage = () => {
         </Card>
 
         <div className="mt-4 space-y-2">
-          {isLoading ? (
+          {error ? (
+            <Card className="p-4 border-destructive/40 bg-destructive/5 text-sm">
+              <p className="font-medium text-destructive">Erro ao carregar usuários</p>
+              <p className="mt-1 text-xs text-muted-foreground break-words">
+                {(error as any)?.message || String(error)}
+              </p>
+              {(error as any)?.hint && (
+                <p className="mt-1 text-xs text-muted-foreground">Hint: {(error as any).hint}</p>
+              )}
+              {(error as any)?.code && (
+                <p className="mt-1 text-xs text-muted-foreground">Código: {(error as any).code}</p>
+              )}
+            </Card>
+          ) : isLoading ? (
             Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)
           ) : data?.rows.length === 0 ? (
             <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum usuário encontrado.</Card>
