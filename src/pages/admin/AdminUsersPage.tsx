@@ -50,7 +50,7 @@ const AdminUsersPage = () => {
 
   const debouncedSearch = useDebounced(search, 300);
 
-  const { data, isLoading, isFetching } = useAdminUsers({
+  const { data, isLoading, isFetching, error } = useAdminUsers({
     search: debouncedSearch,
     status,
     plan,
