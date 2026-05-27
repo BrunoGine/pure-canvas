@@ -90,10 +90,11 @@ const SwipePager = ({ activeIndex, onIndexChange, children }: Props) => {
           <div
             key={i}
             className="shrink-0"
-            style={{ width: `${100 / count}%` }}
+            style={{
+              width: `${100 / count}%`,
+              pointerEvents: dragging && i !== activeIndex ? "none" : undefined,
+            }}
             aria-hidden={i !== activeIndex}
-            // Block clicks on non-active slots while dragging
-            inert={dragging && i !== activeIndex ? "" as any : undefined}
           >
             {child}
           </div>
