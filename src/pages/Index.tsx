@@ -1,14 +1,11 @@
-import { useMemo, useCallback } from "react";
+import { useRef } from "react";
 import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
-import SwipePager from "@/components/SwipePager";
 import ContextSwitcher from "@/components/business/ContextSwitcher";
 import TrialBanner from "@/components/billing/TrialBanner";
-import { useCompany } from "@/contexts/CompanyContext";
 import HomePage from "./HomePage";
 import SpreadsheetsPage from "./SpreadsheetsPage";
 import CoursesPage from "./CoursesPage";
-import WorldMap from "@/components/courses/WorldMap";
 import ChatPage from "./ChatPage";
 import ProfilePage from "./ProfilePage";
 import BusinessHomePage from "./business/BusinessHomePage";
@@ -20,75 +17,80 @@ import AdminUsersPage from "./admin/AdminUsersPage";
 import AdminUserDetailPage from "./admin/AdminUserDetailPage";
 import AdminLogsPage from "./admin/AdminLogsPage";
 
-// Bottom-nav height in px (h-auto py-2 with 20px icon + label ≈ 64px)
-const BOTTOM_NAV_PAD = 80;
-
-const SlotScroller = ({ children }: { children: React.ReactNode }) => (
-  <div
-    className="h-full overflow-y-auto overscroll-contain px-4"
-    style={{ paddingBottom: BOTTOM_NAV_PAD }}
-  >
-    {children}
-  </div>
-);
+const SWIPE_ORDER = ["/planilhas", "/cursos", "/", "/chat", "/perfil"];
 
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { mode } = useCompany();
+  const touch = useRef<{ x: number; y: number; t: number } | null>(null);
 
-  const homePath = mode === "business" ? "/empresa" : "/";
-  const swipeOrder = useMemo(
-    () => ["/planilhas", "/cursos", homePath, "/chat", "/perfil"],
-    [homePath]
-  );
+  const currentIndex = () => {
+    const p = location.pathname;
+    if (p === "/") return SWIPE_ORDER.indexOf("/");
+    const idx = SWIPE_ORDER.findIndex((r) => r !== "/" && p.startsWith(r));
+    return idx === -1 ? SWIPE_ORDER.indexOf("/") : idx;
+  };
 
-  const pathname = location.pathname;
-  const activeIndex = swipeOrder.indexOf(pathname);
-  const isRootTab = activeIndex !== -1;
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touch.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+  };
 
-  const handleIndexChange = useCallback(
-    (idx: number) => navigate(swipeOrder[idx]),
-    [navigate, swipeOrder]
-  );
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (!touch.current) return;
+    const start = touch.current;
+    touch.current = null;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const dt = Date.now() - start.t;
+    if (dt > 600) return;
+    if (Math.abs(dx) < 60) return;
+    if (Math.abs(dy) > Math.abs(dx) * 0.7) return; // mostly vertical → ignore
+
+    // Ignore swipes that started on horizontally-scrollable elements
+    let el = e.target as HTMLElement | null;
+    while (el && el !== e.currentTarget) {
+      if (el.scrollWidth > el.clientWidth) return;
+      // Skip swipe inside known interactive horizontal components
+      if (el.closest("[data-no-swipe]")) return;
+      el = el.parentElement;
+    }
+
+    const idx = currentIndex();
+    const nextIdx = dx < 0 ? idx + 1 : idx - 1;
+    if (nextIdx < 0 || nextIdx >= SWIPE_ORDER.length) return;
+    navigate(SWIPE_ORDER[nextIdx]);
+  };
 
   return (
-    <div className="h-dvh bg-background flex flex-col items-center ambient-glow overflow-hidden">
-      <div className="w-full max-w-lg px-4 pt-3 relative z-20 shrink-0">
+    <div
+      className="min-h-screen bg-background flex flex-col items-center ambient-glow overflow-x-hidden"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="w-full max-w-lg px-4 pt-3 relative z-20">
         <ContextSwitcher />
       </div>
-      <div className="w-full max-w-lg shrink-0">
-        <TrialBanner />
-      </div>
-      <main className="w-full max-w-lg flex-1 min-h-0 pt-4 relative z-10">
-        {isRootTab ? (
-          <SwipePager activeIndex={activeIndex} onIndexChange={handleIndexChange}>
-            <SlotScroller><SpreadsheetsPage /></SlotScroller>
-            <SlotScroller><WorldMap /></SlotScroller>
-            <SlotScroller>{mode === "business" ? <BusinessHomePage /> : <HomePage />}</SlotScroller>
-            <SlotScroller><ChatPage /></SlotScroller>
-            <SlotScroller><ProfilePage /></SlotScroller>
-          </SwipePager>
-        ) : (
-          <div
-            className="h-full overflow-y-auto overscroll-contain px-4"
-            style={{ paddingBottom: BOTTOM_NAV_PAD }}
-          >
-            <Routes>
-              <Route path="empresa" element={<BusinessHomePage />} />
-              <Route path="cursos/*" element={<CoursesPage />} />
-              <Route path="suporte" element={<SupportPage />} />
-              <Route path="suporte/:ticketId" element={<SupportPage />} />
-              <Route path="admin/suporte" element={<AdminSupportPage />} />
-              <Route path="admin/suporte/:ticketId" element={<AdminSupportPage />} />
-              <Route path="admin/assinaturas" element={<AdminSubscriptionsPage />} />
-              <Route path="admin" element={<AdminDashboardPage />} />
-              <Route path="admin/usuarios" element={<AdminUsersPage />} />
-              <Route path="admin/usuarios/:id" element={<AdminUserDetailPage />} />
-              <Route path="admin/logs" element={<AdminLogsPage />} />
-            </Routes>
-          </div>
-        )}
+      <TrialBanner />
+      <main className="w-full max-w-lg px-4 pt-4 relative z-10">
+        <Routes>
+          <Route index element={<HomePage />} />
+          <Route path="empresa" element={<BusinessHomePage />} />
+          <Route path="planilhas" element={<SpreadsheetsPage />} />
+          <Route path="cursos/*" element={<CoursesPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="perfil" element={<ProfilePage />} />
+          <Route path="suporte" element={<SupportPage />} />
+          <Route path="suporte/:ticketId" element={<SupportPage />} />
+          <Route path="admin/suporte" element={<AdminSupportPage />} />
+          <Route path="admin/suporte/:ticketId" element={<AdminSupportPage />} />
+          <Route path="admin/assinaturas" element={<AdminSubscriptionsPage />} />
+          <Route path="admin" element={<AdminDashboardPage />} />
+          <Route path="admin/usuarios" element={<AdminUsersPage />} />
+          <Route path="admin/usuarios/:id" element={<AdminUserDetailPage />} />
+          <Route path="admin/logs" element={<AdminLogsPage />} />
+        </Routes>
       </main>
       <BottomNav />
     </div>
