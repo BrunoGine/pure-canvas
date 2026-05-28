@@ -8,6 +8,7 @@ import { useCompany } from "@/contexts/CompanyContext";
 import HomePage from "./HomePage";
 import SpreadsheetsPage from "./SpreadsheetsPage";
 import CoursesPage from "./CoursesPage";
+import WorldMap from "@/components/courses/WorldMap";
 import ChatPage from "./ChatPage";
 import ProfilePage from "./ProfilePage";
 import BusinessHomePage from "./business/BusinessHomePage";
@@ -18,6 +19,18 @@ import AdminDashboardPage from "./admin/AdminDashboardPage";
 import AdminUsersPage from "./admin/AdminUsersPage";
 import AdminUserDetailPage from "./admin/AdminUserDetailPage";
 import AdminLogsPage from "./admin/AdminLogsPage";
+
+// Bottom-nav height in px (h-auto py-2 with 20px icon + label ≈ 64px)
+const BOTTOM_NAV_PAD = 80;
+
+const SlotScroller = ({ children }: { children: React.ReactNode }) => (
+  <div
+    className="h-full overflow-y-auto overscroll-contain px-4"
+    style={{ paddingBottom: BOTTOM_NAV_PAD }}
+  >
+    {children}
+  </div>
+);
 
 const Index = () => {
   const location = useLocation();
@@ -40,22 +53,27 @@ const Index = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center ambient-glow overflow-x-hidden">
-      <div className="w-full max-w-lg px-4 pt-3 relative z-20">
+    <div className="h-dvh bg-background flex flex-col items-center ambient-glow overflow-hidden">
+      <div className="w-full max-w-lg px-4 pt-3 relative z-20 shrink-0">
         <ContextSwitcher />
       </div>
-      <TrialBanner />
-      <main className="w-full max-w-lg pt-4 relative z-10">
+      <div className="w-full max-w-lg shrink-0">
+        <TrialBanner />
+      </div>
+      <main className="w-full max-w-lg flex-1 min-h-0 pt-4 relative z-10">
         {isRootTab ? (
           <SwipePager activeIndex={activeIndex} onIndexChange={handleIndexChange}>
-            <div className="px-4"><SpreadsheetsPage /></div>
-            <div className="px-4"><CoursesPage /></div>
-            <div className="px-4">{mode === "business" ? <BusinessHomePage /> : <HomePage />}</div>
-            <div className="px-4"><ChatPage /></div>
-            <div className="px-4"><ProfilePage /></div>
+            <SlotScroller><SpreadsheetsPage /></SlotScroller>
+            <SlotScroller><WorldMap /></SlotScroller>
+            <SlotScroller>{mode === "business" ? <BusinessHomePage /> : <HomePage />}</SlotScroller>
+            <SlotScroller><ChatPage /></SlotScroller>
+            <SlotScroller><ProfilePage /></SlotScroller>
           </SwipePager>
         ) : (
-          <div className="px-4">
+          <div
+            className="h-full overflow-y-auto overscroll-contain px-4"
+            style={{ paddingBottom: BOTTOM_NAV_PAD }}
+          >
             <Routes>
               <Route path="empresa" element={<BusinessHomePage />} />
               <Route path="cursos/*" element={<CoursesPage />} />
