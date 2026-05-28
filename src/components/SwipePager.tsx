@@ -117,14 +117,14 @@ const SwipePager = ({ activeIndex, onIndexChange, children }: Props) => {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden"
+      className="relative w-full h-full overflow-hidden"
       style={{ touchAction: "pan-y" }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
       <motion.div
-        className="flex"
+        className="flex h-full"
         style={{
           x,
           width: trackWidth ?? "100%",
@@ -140,7 +140,7 @@ const SwipePager = ({ activeIndex, onIndexChange, children }: Props) => {
         {children.map((child, i) => (
           <div
             key={i}
-            className="shrink-0"
+            className="shrink-0 h-full"
             style={{
               width: slotWidth ?? "100%",
               pointerEvents: dragging && i !== activeIndex ? "none" : undefined,
