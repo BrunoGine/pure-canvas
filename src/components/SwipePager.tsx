@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { motion, useMotionValue, animate, PanInfo } from "framer-motion";
 
 interface Props {
@@ -15,20 +15,36 @@ const SwipePager = ({ activeIndex, onIndexChange, children }: Props) => {
   const [width, setWidth] = useState(0);
   const [dragging, setDragging] = useState(false);
   const draggingRef = useRef(false);
+  const dragEnabledRef = useRef(true);
+  const [dragEnabled, setDragEnabled] = useState(true);
+  const activeIndexRef = useRef(activeIndex);
   const count = children.length;
 
-  // Measure container width
-  useEffect(() => {
-    if (!containerRef.current) return;
+  activeIndexRef.current = activeIndex;
+
+  // Measure synchronously to avoid a 0-width first paint flash.
+  useLayoutEffect(() => {
     const el = containerRef.current;
-    const update = () => setWidth(el.clientWidth);
-    update();
-    const ro = new ResizeObserver(update);
+    if (!el) return;
+    const apply = (w: number) => {
+      if (!w) return;
+      setWidth(w);
+      // If not mid-drag, snap x to the current active slot immediately (no animation),
+      // so the correct page is visible on first paint and after layout changes.
+      if (!draggingRef.current) {
+        x.set(-activeIndexRef.current * w);
+      }
+    };
+    apply(el.clientWidth);
+    const ro = new ResizeObserver((entries) => {
+      apply(entries[0].contentRect.width);
+    });
     ro.observe(el);
     return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Animate to active index when route changes (and not currently dragging)
+  // Animate when activeIndex changes externally (BottomNav click, etc.)
   useEffect(() => {
     if (!width) return;
     if (draggingRef.current) return;
@@ -42,7 +58,7 @@ const SwipePager = ({ activeIndex, onIndexChange, children }: Props) => {
     setDragging(true);
   };
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
     draggingRef.current = false;
     setDragging(false);
     if (!width) return;
@@ -53,33 +69,68 @@ const SwipePager = ({ activeIndex, onIndexChange, children }: Props) => {
     if (offset < -threshold || velocity < -500) next = Math.min(count - 1, activeIndex + 1);
     else if (offset > threshold || velocity > 500) next = Math.max(0, activeIndex - 1);
 
-    const target = -next * width;
-    animate(x, target, SPRING);
+    animate(x, -next * width, SPRING);
     if (next !== activeIndex) onIndexChange(next);
+    // re-enable drag for next gesture in case it was disabled on pointerdown
+    dragEnabledRef.current = true;
+    setDragEnabled(true);
   };
 
-  // Block drag start when finger lands on horizontally scrollable / no-swipe elements
-  const handlePointerDownCapture = (e: React.PointerEvent) => {
+  // Disable drag entirely when the finger lands on a no-swipe / horizontally-scrollable element.
+  // We re-enable on pointerup.
+  const handlePointerDown = (e: React.PointerEvent) => {
     let el = e.target as HTMLElement | null;
+    let blocked = false;
     while (el && el !== e.currentTarget) {
-      if (el.hasAttribute && el.closest?.("[data-no-swipe]")) return;
-      if (el.scrollWidth > el.clientWidth && getComputedStyle(el).overflowX !== "visible") return;
+      if (el.dataset?.noSwipe !== undefined || el.closest?.("[data-no-swipe]")) {
+        blocked = true;
+        break;
+      }
+      const style = getComputedStyle(el);
+      const ox = style.overflowX;
+      if ((ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth) {
+        blocked = true;
+        break;
+      }
       el = el.parentElement;
     }
+    if (blocked) {
+      dragEnabledRef.current = false;
+      setDragEnabled(false);
+    } else if (!dragEnabledRef.current) {
+      dragEnabledRef.current = true;
+      setDragEnabled(true);
+    }
   };
+
+  const handlePointerUp = () => {
+    if (!draggingRef.current && !dragEnabledRef.current) {
+      dragEnabledRef.current = true;
+      setDragEnabled(true);
+    }
+  };
+
+  // Use pixel-based widths (not %) so we never get a 0-width collapsed first paint.
+  const trackWidth = width ? count * width : undefined;
+  const slotWidth = width || undefined;
 
   return (
     <div
       ref={containerRef}
       className="relative w-full overflow-hidden"
       style={{ touchAction: "pan-y" }}
-      onPointerDownCapture={handlePointerDownCapture}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <motion.div
         className="flex"
-        style={{ x, width: `${count * 100}%`, willChange: "transform" }}
-        drag="x"
-        dragDirectionLock
+        style={{
+          x,
+          width: trackWidth ?? "100%",
+          willChange: "transform",
+        }}
+        drag={dragEnabled && width ? "x" : false}
         dragElastic={0.18}
         dragMomentum={false}
         dragConstraints={{ left: -(count - 1) * width, right: 0 }}
@@ -91,7 +142,7 @@ const SwipePager = ({ activeIndex, onIndexChange, children }: Props) => {
             key={i}
             className="shrink-0"
             style={{
-              width: `${100 / count}%`,
+              width: slotWidth ?? "100%",
               pointerEvents: dragging && i !== activeIndex ? "none" : undefined,
             }}
             aria-hidden={i !== activeIndex}
