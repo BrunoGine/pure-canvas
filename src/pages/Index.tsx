@@ -16,6 +16,8 @@ import AdminDashboardPage from "./admin/AdminDashboardPage";
 import AdminUsersPage from "./admin/AdminUsersPage";
 import AdminUserDetailPage from "./admin/AdminUserDetailPage";
 import AdminLogsPage from "./admin/AdminLogsPage";
+import NotificationSettingsPage from "./NotificationSettingsPage";
+import PushPermissionPrompt from "@/components/notifications/PushPermissionPrompt";
 
 const SWIPE_ORDER = ["/planilhas", "/cursos", "/", "/chat", "/perfil"];
 
@@ -81,6 +83,7 @@ const Index = () => {
           <Route path="cursos/*" element={<CoursesPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="perfil" element={<ProfilePage />} />
+          <Route path="perfil/notificacoes" element={<NotificationSettingsPage />} />
           <Route path="suporte" element={<SupportPage />} />
           <Route path="suporte/:ticketId" element={<SupportPage />} />
           <Route path="admin/suporte" element={<AdminSupportPage />} />
@@ -93,6 +96,7 @@ const Index = () => {
         </Routes>
       </main>
       <BottomNav />
+      <PushPermissionPrompt />
     </div>
   );
 };

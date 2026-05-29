@@ -86,7 +86,7 @@ const ProfilePage = () => {
 
   const menuItems = [
     
-    { icon: Bell, label: "Notificações", action: () => {} },
+    { icon: Bell, label: "Notificações", action: () => navigate("/perfil/notificacoes") },
     { icon: Shield, label: "Privacidade", action: () => navigate("/privacidade") },
     { icon: HelpCircle, label: "Ajuda", action: () => navigate("/suporte") },
     ...(isAdmin ? [{ icon: ShieldCheck, label: "Painel Admin", action: () => navigate("/admin") }] : []),
