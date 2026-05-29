@@ -1,107 +1,138 @@
-# Painel Administrativo Completo de Usuários
 
-Sistema profissional de gestão de contas, inspirado em Stripe/Supabase/Linear, com ações reais (não fake), segurança server-side via RPCs SECURITY DEFINER + RLS, e UX moderna.
+# Sistema de Push Notifications — PWA + arquitetura desacoplada
 
-## 1. Banco de dados (migração única)
+Web Push real funcionando hoje (Android/iOS 16.4+/Desktop) com uma camada de abstração que permite plugar FCM, APNs ou OneSignal depois **sem refazer banco, edge functions nem UI**.
 
-### Novas colunas em `profiles`
-- `account_status` enum `account_status` (`active` | `suspended` | `banned` | `deleted`) default `active`
-- `status_reason` text
-- `status_changed_at` timestamptz
-- `status_changed_by` uuid
-- `last_seen_at` timestamptz (atualizado por RPC `touch_last_seen` chamada no login/heartbeat)
-- `login_count` int default 0
-- `deleted_at` timestamptz (soft delete)
+---
 
-### Nova tabela `admin_logs`
-- `id`, `admin_id`, `action` text (`grant_override`, `revoke_override`, `suspend_user`, `ban_user`, `unsuspend_user`, `soft_delete_user`, `hard_delete_user`, `restore_user`)
-- `target_user_id`, `metadata` jsonb, `created_at`
-- RLS: SELECT só admin; INSERT só via RPC (policy `false`).
+## 1. Banco de dados (1 migração)
 
-### Funções SECURITY DEFINER (todas com guard `has_role(auth.uid(),'admin')`)
-- `admin_list_users(_search text, _status text, _plan text, _inactive_days int, _limit int, _offset int)` → retorna linhas com profile + plano efetivo + contadores (transactions, goals, companies) + `last_seen_at` + total count. Usa LATERAL/COUNTs com limites para performance.
-- `admin_get_user_detail(_user_id uuid)` → dados completos: profile, email (auth.users), subscription, override ativo, histórico de overrides, contadores, últimas 10 ações de admin sobre ele.
-- `admin_set_account_status(_user_id, _status, _reason)` → atualiza profiles + insere admin_log. Se `banned`/`suspended`, chama `auth.admin` via edge function (ver §3) para revogar sessões.
-- `admin_soft_delete_user(_user_id, _reason)` → marca `account_status='deleted'`, `deleted_at=now()`, log.
-- `admin_restore_user(_user_id)` → volta para `active`, limpa `deleted_at`, log.
-- `admin_metrics()` → KPIs: total, ativos hoje (last_seen_at > now()-24h), novos 7d/30d, premium/enterprise (via get_effective_plan), empresas, trials ativos, inativos 30d, suspended/banned.
-- `touch_last_seen()` → atualiza last_seen_at + login_count++; chamada no AuthContext em SIGNED_IN.
-- Reescrever `admin_grant_override`/`admin_revoke_override` para também inserir em `admin_logs`.
+**Tabelas novas** (todas com GRANTs + RLS escopada a `auth.uid()`):
 
-### Gate de acesso
-- Atualizar `handle_new_user` para setar `account_status='active'`.
-- Adicionar RPC `current_account_status()` (stable, security definer) usada pelo cliente para detectar suspensão/ban e mostrar tela de bloqueio.
-- RLS adicional em `manual_transactions`/`goals` INSERT: bloquear quando `account_status != 'active'` via função `is_account_active(auth.uid())`.
+- `notification_devices` — um registro por dispositivo/navegador
+  - `user_id`, `provider` (`'web_push' | 'fcm' | 'apns' | 'onesignal'`), `token` (endpoint para web push, FCM token depois), `p256dh`, `auth` (chaves VAPID do navegador), `platform` (`web|android|ios`), `user_agent`, `last_seen_at`, `enabled`, `created_at`
+  - UNIQUE(`user_id`, `token`)
+- `notification_preferences` — uma linha por usuário
+  - `user_id` PK, `master_enabled`, mais um booleano por categoria: `financial`, `goals`, `courses`, `streak`, `harpia`, `business`, `shared_goals`, `security`, `marketing`
+  - `quiet_hours_start`, `quiet_hours_end`, `timezone`
+  - Trigger `handle_new_user` ganha INSERT default (`security` sempre true)
+- `notification_logs` — auditoria + dedupe + rate limit
+  - `user_id`, `category`, `dedupe_key`, `title`, `body`, `data jsonb`, `status` (`sent|skipped|failed`), `skip_reason`, `provider_response jsonb`, `sent_at`
+  - Índices: (`user_id`, `category`, `sent_at desc`), (`user_id`, `dedupe_key`)
 
-## 2. Edge function `admin-user-actions`
+**RPCs SECURITY DEFINER:**
+- `register_notification_device(provider, token, p256dh, auth, platform, ua)` — upsert idempotente
+- `unregister_notification_device(token)`
+- `can_send_notification(_user_id, _category, _dedupe_key, _cooldown_minutes, _daily_cap)` → boolean — checa master + categoria + quiet hours (no fuso do usuário) + cooldown + dedupe + cap diário
 
-Necessária para operações que exigem `service_role` (revogar sessões / deletar usuário do `auth.users`):
-- POST `{action: 'revoke_sessions'|'hard_delete', user_id, reason}`
-- Verifica JWT do chamador → checa `has_role(..., 'admin')`.
-- `revoke_sessions`: `supabase.auth.admin.signOut(user_id, 'global')`.
-- `hard_delete`: chama `admin_soft_delete_user` para auditoria + `supabase.auth.admin.deleteUser(user_id)` (cascata remove dados via FKs existentes; profile/subscription via trigger ou cleanup explícito). Insere admin_log `hard_delete_user`.
+---
 
-## 3. Frontend
+## 2. PWA + Service Worker (mínimo necessário para Web Push)
 
-### Rotas (registradas em `src/pages/Index.tsx`)
-- `/admin` → `AdminDashboardPage` (KPIs + atalhos)
-- `/admin/usuarios` → `AdminUsersPage` (tabela + busca + filtros + paginação)
-- `/admin/usuarios/:id` → `AdminUserDetailPage` (perfil completo + ações)
-- `/admin/assinaturas` → já existe
-- `/admin/logs` → `AdminLogsPage` (timeline de ações admin)
+Aviso importante: PWA só funciona no app publicado, não no preview do Lovable.
 
-Guard `<AdminRoute>` usa `useIsAdmin`; redireciona não-admins para `/`.
+- Adicionar `vite-plugin-pwa` com `devOptions.enabled: false`, `NetworkFirst` para HTML, `navigateFallbackDenylist: [/^\/~oauth/]`
+- Em `src/main.tsx`: guard para **não registrar** SW em iframe nem em hosts `lovableproject.com`/`id-preview--`
+- `manifest.webmanifest` com nome, ícones, `display: standalone`
+- `public/sw.js` customizado com handlers `push` e `notificationclick` (abre/foca janela na rota do `data.url`)
 
-### Componentes
-- `src/components/admin/AdminShell.tsx`: layout com sidebar (Dashboard, Usuários, Assinaturas, Logs, Suporte) estilo Linear/Supabase.
-- `src/components/admin/MetricCard.tsx`, `UserStatusBadge.tsx`, `PlanBadge.tsx`.
-- `src/components/admin/UsersTable.tsx`: tabela sticky header, skeleton loading, paginação server-side, debounce 300ms na busca, filtros (status, plano, inatividade), preserva filtros via URL params.
-- `src/components/admin/UserActionsDialog.tsx`: confirmação dupla para ban/delete (digitar email).
-- `src/components/admin/SubscriptionPanel.tsx`: reaproveita lógica de grant/revoke da página atual em forma de painel embutido no detalhe.
+---
 
-### Hooks
-- `useAdminUsers(filters)` — react-query com `keepPreviousData`, chave inclui filtros, RPC `admin_list_users`.
-- `useAdminUserDetail(id)`, `useAdminMetrics()`, `useAdminLogs(filters)`.
-- `useAdminUserMutations()`: suspend/unsuspend/ban/soft_delete/restore/hard_delete/revoke_sessions; invalida queries relevantes; toast de sucesso/erro.
+## 3. Camada de abstração de provider (frontend)
 
-### Gate de conta bloqueada
-- `useAccountStatus()` consulta `current_account_status` no SecurityContext (ou novo `AccountStatusGate`).
-- Se `suspended` → tela amigável "Sua conta está suspensa" + motivo + botão suporte; logout forçado opcional.
-- Se `banned` → tela "Conta banida" + signOut imediato.
-- Se `deleted` → tela "Conta excluída" + signOut.
+`src/lib/push/` — interface única, troca de provider via 1 arquivo:
 
-### Link de admin
-- Substituir links soltos no `ProfilePage` por entrada única "Painel Admin" → `/admin`.
+```text
+src/lib/push/
+  types.ts              PushProvider interface
+  webPushProvider.ts    implementa via navigator.serviceWorker.pushManager
+  index.ts              export const pushProvider = webPushProvider
+                        (amanhã: fcmProvider, onesignalProvider)
+```
 
-## 4. Segurança
+Cada provider expõe: `isSupported()`, `getPermission()`, `requestPermission()`, `subscribe()` → token, `unsubscribe()`.
 
-- Toda ação admin: RPC SECURITY DEFINER com `has_role` guard + RLS bloqueia escrita direta.
-- Edge function valida JWT e role antes de usar service_role.
-- Frontend nunca toca tabelas sensíveis diretamente; só lê via RPCs.
-- Hard delete pede confirmação textual (digitar email).
-- `admin_logs` imutável (sem UPDATE/DELETE policy).
-- Sessões revogadas no momento da suspensão/ban.
+---
 
-## 5. Performance
+## 4. Edge functions
 
-- `admin_list_users` paginada (limit 25, offset). Total via `count(*) OVER ()`.
-- Contadores por usuário via subqueries com COUNT — ok para escala média; índices em `manual_transactions(user_id)`, `goals(user_id)`, `companies(user_id)` (criar se faltarem).
-- React Query com `staleTime: 30s` + `keepPreviousData`.
-- Realtime apenas em `admin_logs` no dashboard de logs (opcional).
+**`push-send`** (central, chamada por todos os triggers):
+- Input: `{ user_id, category, dedupe_key, title, body, data, cooldown_minutes?, daily_cap? }`
+- Chama `can_send_notification` → se false, loga `skipped` e retorna
+- Busca devices ativos do user, despacha por provider (hoje só `web_push` via VAPID + `npm:web-push`), grava `notification_logs`
+- Limpa tokens com 410/404
 
-## 6. Ordem de implementação
+**`push-vapid-public-key`** — devolve a public key VAPID (secret) pro frontend usar no subscribe
 
-1. Migração: enum, colunas, tabela `admin_logs`, todas as RPCs, índices.
-2. Edge function `admin-user-actions`.
-3. Hooks + componentes base (AdminShell, MetricCard, UsersTable).
-4. Páginas: Dashboard, Users, UserDetail, Logs.
-5. AccountStatusGate + integração no AuthedShell.
-6. `touch_last_seen` no AuthContext.
-7. Atualizar ProfilePage com link único Admin.
+**Secrets a criar:** `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`mailto:...`)
 
-## Fora de escopo (fase 2)
+**Triggers do MVP** (todos via `push-send`):
+- `notify-budget-threshold` — cron diário + após insert de `manual_transactions`; checa orçamento ≥80%
+- `notify-weekly-summary` — cron domingo 19h (no fuso do user)
+- `notify-goal-progress` — trigger DB em update de `goals.current_amount` cruzando marcos (25/50/75/90%)
+- `notify-shared-goal-events` — trigger em `shared_goal_contributions` + `shared_goal_join_requests`
+- `notify-streak-risk` — cron diário 19h se streak ativo e sem atividade hoje
+- `notify-level-up` — já existe lógica em `award_xp`; adicionar chamada
+- `notify-security` — hook em mudança de senha + novo login (via `touch_last_seen`/auth webhook); **sempre enviado**, ignora master toggle
 
-- Notificação por email ao usuário ao suspender/banir.
-- Exportar CSV de usuários.
-- Bulk actions (selecionar múltiplos).
-- Gráficos temporais (apenas KPIs numéricos nesta fase).
+Reuso: criamos helper compartilhado `_shared/push.ts` que invoca `push-send`.
+
+---
+
+## 5. UX de permissão (contextual, não invasiva)
+
+- **Não pede no load**. Componente `<PushPermissionPrompt/>` aparece como bottom sheet **após** primeiras ações de valor: criar meta, registrar 1ª transação, completar 1ª lição
+- Estado `push_prompt_dismissed_at` em `localStorage` — não re-perguntar antes de 7 dias
+- Se aceito → `subscribe()` → `register_notification_device` → toast de sucesso
+- Tela `/perfil/notificacoes` com:
+  - Toggle master grande no topo + estado da permissão do navegador
+  - Card por categoria com toggle + descrição curta + ícone
+  - Card de horário silencioso (sliders de hora)
+  - Lista de dispositivos registrados com botão "remover"
+  - Botão "Enviar notificação de teste"
+- Hook `usePushPermission()` + `useNotificationPreferences()` com optimistic update (padrão do `usePrivacySettings`)
+- Entrada nova em `ProfilePage` menu: "Notificações" → `/perfil/notificacoes`
+
+---
+
+## 6. Anti-spam (regras no `can_send_notification`)
+
+- **Master off** → skip tudo (exceto `security`)
+- **Categoria off** → skip
+- **Quiet hours** (default 22h–8h no fuso do user) → skip não-críticos
+- **Cooldown por dedupe_key** (ex: orçamento Lazer 80% só 1x/dia)
+- **Cap diário por categoria** (financial: 3, goals: 2, marketing: 1, security: ilimitado)
+- **Cap global**: máx 6 notificações/dia
+
+---
+
+## 7. Detalhes técnicos
+
+- Web Push usa `npm:web-push` no edge (Deno suporta via npm specifier)
+- Encryption payload AES128GCM já cuidado pela lib
+- `notificationclick` no SW: `clients.matchAll` → foca janela existente ou abre `data.url`
+- iOS PWA: notificações só funcionam se instalado como home screen + iOS 16.4+. Mostrar dica na tela de configurações quando detectar Safari iOS não-instalado
+- Tipos do Supabase serão regenerados após a migração
+
+---
+
+## 8. O que NÃO entra agora (preparado pra depois)
+
+- FCM Android/iOS nativo (precisa Capacitor + projeto Firebase)
+- APNs direto (precisa Apple Developer)
+- Notificações via Harp.I.A (insights gerados por IA) — categoria já existe, trigger fica para versão 2
+- Cron de horário inteligente baseado em atividade (estrutura `timezone` já fica salva)
+
+---
+
+## Ordem de execução
+
+1. Migração: tabelas + RPCs + RLS + GRANTs + trigger no handle_new_user
+2. Secrets VAPID
+3. Edge function `push-send` + `push-vapid-public-key`
+4. Triggers (cron + DB triggers + edge functions de notificação)
+5. PWA setup (vite-plugin-pwa + sw.js + guards)
+6. Camada `src/lib/push/` + hooks
+7. Tela `/perfil/notificacoes` + entrada no menu
+8. `<PushPermissionPrompt/>` contextual
+9. Botão de teste e validação ponta-a-ponta no app publicado
