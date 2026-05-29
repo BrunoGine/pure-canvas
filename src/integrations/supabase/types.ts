@@ -662,6 +662,147 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_devices: {
+        Row: {
+          auth: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          last_seen_at: string
+          p256dh: string | null
+          platform: string
+          provider: string
+          token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_seen_at?: string
+          p256dh?: string | null
+          platform?: string
+          provider: string
+          token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_seen_at?: string
+          p256dh?: string | null
+          platform?: string
+          provider?: string
+          token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_logs: {
+        Row: {
+          body: string
+          category: string
+          data: Json
+          dedupe_key: string | null
+          id: string
+          provider_response: Json | null
+          sent_at: string
+          skip_reason: string | null
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          category: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          provider_response?: Json | null
+          sent_at?: string
+          skip_reason?: string | null
+          status: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          data?: Json
+          dedupe_key?: string | null
+          id?: string
+          provider_response?: Json | null
+          sent_at?: string
+          skip_reason?: string | null
+          status?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          business: boolean
+          courses: boolean
+          created_at: string
+          financial: boolean
+          goals: boolean
+          harpia: boolean
+          marketing: boolean
+          master_enabled: boolean
+          quiet_hours_end: number
+          quiet_hours_start: number
+          security: boolean
+          shared_goals: boolean
+          streak: boolean
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business?: boolean
+          courses?: boolean
+          created_at?: string
+          financial?: boolean
+          goals?: boolean
+          harpia?: boolean
+          marketing?: boolean
+          master_enabled?: boolean
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          security?: boolean
+          shared_goals?: boolean
+          streak?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business?: boolean
+          courses?: boolean
+          created_at?: string
+          financial?: boolean
+          goals?: boolean
+          harpia?: boolean
+          marketing?: boolean
+          master_enabled?: boolean
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          security?: boolean
+          shared_goals?: boolean
+          streak?: boolean
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
@@ -1565,6 +1706,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      can_send_notification: {
+        Args: {
+          _category: string
+          _cooldown_minutes?: number
+          _daily_cap?: number
+          _dedupe_key?: string
+          _user_id: string
+        }
+        Returns: {
+          allowed: boolean
+          reason: string
+        }[]
+      }
       current_account_status: {
         Args: never
         Returns: Database["public"]["Enums"]["account_status"]
@@ -1638,7 +1792,40 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      register_notification_device: {
+        Args: {
+          _auth?: string
+          _p256dh?: string
+          _platform?: string
+          _provider: string
+          _token: string
+          _user_agent?: string
+        }
+        Returns: {
+          auth: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          last_seen_at: string
+          p256dh: string | null
+          platform: string
+          provider: string
+          token: string
+          user_agent: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_devices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       touch_last_seen: { Args: never; Returns: undefined }
+      unregister_notification_device: {
+        Args: { _token: string }
+        Returns: undefined
+      }
       update_streak: {
         Args: { _user_id: string }
         Returns: {
