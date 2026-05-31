@@ -1,20 +1,28 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote, ShieldCheck, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import { useAvailableBalance } from "@/hooks/useAvailableBalance";
 import GoalsSection from "@/components/goals/GoalsSection";
 import SharedGoalsSection from "@/components/goals/SharedGoalsSection";
 
 const HomePage = () => {
   const { user } = useAuth();
   const { transactions } = useTransactions();
-  const { recurringTransactions } = useRecurringTransactions();
+  const {
+    balance,
+    income,
+    expenses,
+    openInvoices,
+    recurringPendingExpense,
+    recurringPendingIncome,
+    available,
+  } = useAvailableBalance();
   const [userName, setUserName] = useState("Usuário");
   const [hideBalances, setHideBalancesState] = useState<boolean>(() => {
     try {
