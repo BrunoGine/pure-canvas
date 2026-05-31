@@ -16,6 +16,10 @@ export interface Transaction {
   payment_method?: string | null;
 }
 
+// Module-level pub/sub so every useTransactions instance stays in sync.
+const txListeners = new Set<() => void>();
+const notifyTx = () => txListeners.forEach((l) => l());
+
 export function useTransactions() {
   const { user } = useAuth();
   const { activeCompanyId, mode } = useCompany();
@@ -50,6 +54,14 @@ export function useTransactions() {
 
   useEffect(() => {
     fetchTransactions();
+    const l = () => fetchTransactions();
+    txListeners.add(l);
+    const onFocus = () => fetchTransactions();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      txListeners.delete(l);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [fetchTransactions]);
 
   const addTransaction = useCallback(
