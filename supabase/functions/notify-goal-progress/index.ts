@@ -59,6 +59,16 @@ Deno.serve(async (req) => {
   }
 
   if (shared_goal_id) {
+    // Caller must be a member of the shared goal.
+    const { data: membership } = await supabase
+      .from("shared_goal_members")
+      .select("user_id")
+      .eq("shared_goal_id", shared_goal_id)
+      .eq("user_id", callerId)
+      .maybeSingle();
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }});
+    }
     const { data: sg } = await supabase.from("shared_goals").select("*").eq("id", shared_goal_id).maybeSingle();
     if (!sg) return new Response(JSON.stringify({ error: "Not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }});
     const goal = sg as any;

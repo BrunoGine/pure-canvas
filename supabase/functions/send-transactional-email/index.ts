@@ -117,6 +117,45 @@ Deno.serve(async (req) => {
     )
   }
 
+  // Authorization: if the template does not pin a recipient, require the caller
+  // to either be service-role (server-side trigger) or to be sending to their own email.
+  // This prevents anon JWT holders from sending phishing emails to arbitrary addresses.
+  if (!template.to) {
+    const authHeader = req.headers.get('Authorization') || ''
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const isServiceRole = !!token && !!serviceRoleKey && token === serviceRoleKey
+
+    if (!isServiceRole) {
+      try {
+        const authClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', {
+          global: { headers: { Authorization: authHeader } },
+        })
+        const { data: userData, error: userErr } = await authClient.auth.getUser(token)
+        const callerEmail = userData?.user?.email?.toLowerCase() ?? null
+        if (userErr || !callerEmail || callerEmail !== effectiveRecipient.toLowerCase()) {
+          return new Response(
+            JSON.stringify({ error: 'Forbidden: recipient must match authenticated user' }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+      } catch (e) {
+        console.error('Auth check failed', e)
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    }
+  }
+
+
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 

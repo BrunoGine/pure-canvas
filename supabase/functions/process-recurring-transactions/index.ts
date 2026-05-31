@@ -10,6 +10,15 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Cron-only endpoint: require shared secret.
+  const auth = req.headers.get("Authorization") || "";
+  const expected = `Bearer ${Deno.env.get("CRON_SECRET") ?? ""}`;
+  if (!Deno.env.get("CRON_SECRET") || auth !== expected) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceRoleKey);
