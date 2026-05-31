@@ -298,4 +298,11 @@ const HomePage = () => {
   );
 };
 
+const Row = ({ label, value, muted, bold }: { label: string; value: string; muted?: boolean; bold?: boolean }) => (
+  <div className="flex items-center justify-between gap-2">
+    <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+    <span className={`tabular-nums ${bold ? "font-display font-bold text-primary" : "font-semibold"}`}>{value}</span>
+  </div>
+);
+
 export default HomePage;
