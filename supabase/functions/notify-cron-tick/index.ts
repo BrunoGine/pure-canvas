@@ -90,6 +90,16 @@ async function runStreakRisk(userId: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // Cron-only endpoint: require shared secret.
+  const auth = req.headers.get("Authorization") || "";
+  const expected = `Bearer ${Deno.env.get("CRON_SECRET") ?? ""}`;
+  if (!Deno.env.get("CRON_SECRET") || auth !== expected) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+
   const { data: prefs } = await supabase
     .from("notification_preferences")
     .select("user_id, timezone, master_enabled");
