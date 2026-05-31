@@ -90,6 +90,7 @@ export function useRecurringTransactions() {
           { ...data, type: data.type as "income" | "expense" },
           ...prev,
         ]);
+        notifyRec();
         toast.success("Transação recorrente criada!");
       }
     },
@@ -108,6 +109,7 @@ export function useRecurringTransactions() {
         toast.error("Erro ao remover recorrência");
       } else {
         setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
+        notifyRec();
       }
     },
     [user]
@@ -126,6 +128,7 @@ export function useRecurringTransactions() {
         setRecurringTransactions((prev) =>
           prev.map((r) => (r.id === id ? { ...r, active } : r))
         );
+        notifyRec();
       }
     },
     []
@@ -154,6 +157,7 @@ export function useRecurringTransactions() {
         setRecurringTransactions((prev) =>
           prev.map((r) => (r.id === id ? { ...data, type: data.type as "income" | "expense" } : r)),
         );
+        notifyRec();
         toast.success("Recorrência atualizada");
       }
     },
