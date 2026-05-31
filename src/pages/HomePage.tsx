@@ -150,14 +150,57 @@ const HomePage = () => {
           <div className="absolute top-0 left-0 right-0 h-px bg-foreground/10" />
 
           <div className="relative p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center border border-primary/20">
-                <ShieldCheck size={16} className="text-primary" />
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center border border-primary/20 shrink-0">
+                  <ShieldCheck size={16} className="text-primary" />
+                </div>
+                <p className="text-muted-foreground text-sm font-medium truncate">Disponível para Uso</p>
               </div>
-              <p className="text-muted-foreground text-sm font-medium">Disponível para Uso</p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Como calculamos este valor?"
+                    className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <HelpCircle size={16} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="end" className="w-80 p-4 text-xs space-y-3">
+                  <div>
+                    <p className="font-display font-semibold text-sm mb-1">Como calculamos</p>
+                    <p className="text-muted-foreground">
+                      Subtraímos do seu saldo realizado os compromissos já assumidos.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 border-t border-border/50 pt-3">
+                    <Row label="Saldo Atual" value={`R$ ${fmt(balance)}`} />
+                    <Row label="− Faturas abertas (todos cartões)" value={`R$ ${fmt(openInvoices)}`} muted />
+                    <Row label="− Recorrências pendentes" value={`R$ ${fmt(recurringPendingExpense)}`} muted />
+                    {recurringPendingIncome > 0 && (
+                      <Row label="+ Receitas recorrentes pendentes" value={`R$ ${fmt(recurringPendingIncome)}`} muted />
+                    )}
+                    <div className="border-t border-border/50 pt-2 mt-2">
+                      <Row
+                        label="Disponível para Uso"
+                        value={`R$ ${fmt(available)}`}
+                        bold
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed border-t border-border/50 pt-2">
+                    <strong>Faturas:</strong> somamos compras no crédito do ciclo já fechado + ciclo aberto de cada cartão, usando o dia de fechamento.
+                    <br />
+                    <strong>Recorrências:</strong> apenas ativas que ainda não rodaram neste mês.
+                    <br />
+                    <strong>Metas:</strong> não entram aqui — as contribuições já viram despesa no saldo.
+                  </p>
+                </PopoverContent>
+              </Popover>
             </div>
-            <p className={`text-3xl font-display font-bold mt-2 ${availableBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-              R$ {fmt(availableBalance)}
+            <p className={`text-3xl font-display font-bold mt-2 ${available < 0 ? "text-destructive" : "text-foreground"}`}>
+              R$ {fmt(available)}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
               Saldo após reservar faturas e recorrências do mês
@@ -166,15 +209,23 @@ const HomePage = () => {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Faturas do crédito</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {fmt(creditInvoices)}
+                  − R$ {fmt(openInvoices)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Recorrências pendentes</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {fmt(recurringPending)}
+                  − R$ {fmt(recurringPendingExpense)}
                 </span>
               </div>
+              {recurringPendingIncome > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Receitas recorrentes</span>
+                  <span className="font-semibold tabular-nums text-primary">
+                    + R$ {fmt(recurringPendingIncome)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
