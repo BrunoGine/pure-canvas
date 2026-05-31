@@ -92,6 +92,7 @@ export function useTransactions() {
           { ...data, type: data.type as "income" | "expense" },
           ...prev,
         ]);
+        notifyTx();
       }
     },
     [user, mode, activeCompanyId]
@@ -121,6 +122,7 @@ export function useTransactions() {
         setTransactions((prev) =>
           prev.map((t) => (t.id === id ? { ...data, type: data.type as "income" | "expense" } : t)),
         );
+        notifyTx();
         toast.success("Transação atualizada");
       }
     },
@@ -140,6 +142,7 @@ export function useTransactions() {
         toast.error("Erro ao remover transação");
       } else {
         setTransactions((prev) => prev.filter((t) => t.id !== id));
+        notifyTx();
       }
     },
     [user]
