@@ -59,45 +59,6 @@ const HomePage = () => {
       });
   }, [user]);
 
-  const { income, expenses, balance } = useMemo(() => {
-    const isCredit = (t: typeof transactions[number]) => t.payment_method === "credito";
-    const inc = transactions
-      .filter((t) => t.type === "income" && !isCredit(t))
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-    const exp = transactions
-      .filter((t) => t.type === "expense" && !isCredit(t))
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-    return { income: inc, expenses: exp, balance: inc - exp };
-  }, [transactions]);
-
-  const { creditInvoices, recurringPending, availableBalance } = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    const monthStart = new Date(y, m, 1);
-
-    const invoices = transactions
-      .filter((t) => t.type === "expense" && t.payment_method === "credito")
-      .filter((t) => {
-        const d = parseISO(t.date);
-        return d.getFullYear() === y && d.getMonth() === m;
-      })
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-
-    const recPending = recurringTransactions
-      .filter((r) => r.active && r.type === "expense")
-      .filter((r) => {
-        if (!r.last_executed_at) return true;
-        return parseISO(r.last_executed_at) < monthStart;
-      })
-      .reduce((s, r) => s + Math.abs(r.amount), 0);
-
-    return {
-      creditInvoices: invoices,
-      recurringPending: recPending,
-      availableBalance: balance - invoices - recPending,
-    };
-  }, [transactions, recurringTransactions, balance]);
 
   const recentTransactions = useMemo(
     () =>
