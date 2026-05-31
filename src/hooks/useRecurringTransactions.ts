@@ -18,6 +18,9 @@ export interface RecurringTransaction {
   last_executed_at?: string | null;
 }
 
+const recListeners = new Set<() => void>();
+const notifyRec = () => recListeners.forEach((l) => l());
+
 export function useRecurringTransactions() {
   const { user } = useAuth();
   const { activeCompanyId, mode } = useCompany();
@@ -49,6 +52,14 @@ export function useRecurringTransactions() {
 
   useEffect(() => {
     fetchRecurring();
+    const l = () => fetchRecurring();
+    recListeners.add(l);
+    const onFocus = () => fetchRecurring();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      recListeners.delete(l);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [fetchRecurring]);
 
   const addRecurring = useCallback(
