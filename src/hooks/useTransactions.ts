@@ -16,6 +16,10 @@ export interface Transaction {
   payment_method?: string | null;
 }
 
+// Module-level pub/sub so every useTransactions instance stays in sync.
+const txListeners = new Set<() => void>();
+const notifyTx = () => txListeners.forEach((l) => l());
+
 export function useTransactions() {
   const { user } = useAuth();
   const { activeCompanyId, mode } = useCompany();
@@ -50,6 +54,14 @@ export function useTransactions() {
 
   useEffect(() => {
     fetchTransactions();
+    const l = () => fetchTransactions();
+    txListeners.add(l);
+    const onFocus = () => fetchTransactions();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      txListeners.delete(l);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [fetchTransactions]);
 
   const addTransaction = useCallback(
@@ -80,6 +92,7 @@ export function useTransactions() {
           { ...data, type: data.type as "income" | "expense" },
           ...prev,
         ]);
+        notifyTx();
       }
     },
     [user, mode, activeCompanyId]
@@ -109,6 +122,7 @@ export function useTransactions() {
         setTransactions((prev) =>
           prev.map((t) => (t.id === id ? { ...data, type: data.type as "income" | "expense" } : t)),
         );
+        notifyTx();
         toast.success("Transação atualizada");
       }
     },
@@ -128,6 +142,7 @@ export function useTransactions() {
         toast.error("Erro ao remover transação");
       } else {
         setTransactions((prev) => prev.filter((t) => t.id !== id));
+        notifyTx();
       }
     },
     [user]

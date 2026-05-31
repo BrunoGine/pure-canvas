@@ -1,20 +1,28 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, Sparkles, StickyNote, ShieldCheck, Eye, EyeOff, HelpCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useRecurringTransactions } from "@/hooks/useRecurringTransactions";
+import { useAvailableBalance } from "@/hooks/useAvailableBalance";
 import GoalsSection from "@/components/goals/GoalsSection";
 import SharedGoalsSection from "@/components/goals/SharedGoalsSection";
 
 const HomePage = () => {
   const { user } = useAuth();
   const { transactions } = useTransactions();
-  const { recurringTransactions } = useRecurringTransactions();
+  const {
+    balance,
+    income,
+    expenses,
+    openInvoices,
+    recurringPendingExpense,
+    recurringPendingIncome,
+    available,
+  } = useAvailableBalance();
   const [userName, setUserName] = useState("Usuário");
   const [hideBalances, setHideBalancesState] = useState<boolean>(() => {
     try {
@@ -51,45 +59,6 @@ const HomePage = () => {
       });
   }, [user]);
 
-  const { income, expenses, balance } = useMemo(() => {
-    const isCredit = (t: typeof transactions[number]) => t.payment_method === "credito";
-    const inc = transactions
-      .filter((t) => t.type === "income" && !isCredit(t))
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-    const exp = transactions
-      .filter((t) => t.type === "expense" && !isCredit(t))
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-    return { income: inc, expenses: exp, balance: inc - exp };
-  }, [transactions]);
-
-  const { creditInvoices, recurringPending, availableBalance } = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    const monthStart = new Date(y, m, 1);
-
-    const invoices = transactions
-      .filter((t) => t.type === "expense" && t.payment_method === "credito")
-      .filter((t) => {
-        const d = parseISO(t.date);
-        return d.getFullYear() === y && d.getMonth() === m;
-      })
-      .reduce((s, t) => s + Math.abs(t.amount), 0);
-
-    const recPending = recurringTransactions
-      .filter((r) => r.active && r.type === "expense")
-      .filter((r) => {
-        if (!r.last_executed_at) return true;
-        return parseISO(r.last_executed_at) < monthStart;
-      })
-      .reduce((s, r) => s + Math.abs(r.amount), 0);
-
-    return {
-      creditInvoices: invoices,
-      recurringPending: recPending,
-      availableBalance: balance - invoices - recPending,
-    };
-  }, [transactions, recurringTransactions, balance]);
 
   const recentTransactions = useMemo(
     () =>
@@ -181,14 +150,57 @@ const HomePage = () => {
           <div className="absolute top-0 left-0 right-0 h-px bg-foreground/10" />
 
           <div className="relative p-6">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center border border-primary/20">
-                <ShieldCheck size={16} className="text-primary" />
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center border border-primary/20 shrink-0">
+                  <ShieldCheck size={16} className="text-primary" />
+                </div>
+                <p className="text-muted-foreground text-sm font-medium truncate">Disponível para Uso</p>
               </div>
-              <p className="text-muted-foreground text-sm font-medium">Disponível para Uso</p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Como calculamos este valor?"
+                    className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <HelpCircle size={16} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="end" className="w-80 p-4 text-xs space-y-3">
+                  <div>
+                    <p className="font-display font-semibold text-sm mb-1">Como calculamos</p>
+                    <p className="text-muted-foreground">
+                      Subtraímos do seu saldo realizado os compromissos já assumidos.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 border-t border-border/50 pt-3">
+                    <Row label="Saldo Atual" value={`R$ ${fmt(balance)}`} />
+                    <Row label="− Faturas abertas (todos cartões)" value={`R$ ${fmt(openInvoices)}`} muted />
+                    <Row label="− Recorrências pendentes" value={`R$ ${fmt(recurringPendingExpense)}`} muted />
+                    {recurringPendingIncome > 0 && (
+                      <Row label="+ Receitas recorrentes pendentes" value={`R$ ${fmt(recurringPendingIncome)}`} muted />
+                    )}
+                    <div className="border-t border-border/50 pt-2 mt-2">
+                      <Row
+                        label="Disponível para Uso"
+                        value={`R$ ${fmt(available)}`}
+                        bold
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-relaxed border-t border-border/50 pt-2">
+                    <strong>Faturas:</strong> somamos compras no crédito do ciclo já fechado + ciclo aberto de cada cartão, usando o dia de fechamento.
+                    <br />
+                    <strong>Recorrências:</strong> apenas ativas que ainda não rodaram neste mês.
+                    <br />
+                    <strong>Metas:</strong> não entram aqui — as contribuições já viram despesa no saldo.
+                  </p>
+                </PopoverContent>
+              </Popover>
             </div>
-            <p className={`text-3xl font-display font-bold mt-2 ${availableBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-              R$ {fmt(availableBalance)}
+            <p className={`text-3xl font-display font-bold mt-2 ${available < 0 ? "text-destructive" : "text-foreground"}`}>
+              R$ {fmt(available)}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
               Saldo após reservar faturas e recorrências do mês
@@ -197,15 +209,23 @@ const HomePage = () => {
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Faturas do crédito</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {fmt(creditInvoices)}
+                  − R$ {fmt(openInvoices)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Recorrências pendentes</span>
                 <span className="font-semibold tabular-nums">
-                  − R$ {fmt(recurringPending)}
+                  − R$ {fmt(recurringPendingExpense)}
                 </span>
               </div>
+              {recurringPendingIncome > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Receitas recorrentes</span>
+                  <span className="font-semibold tabular-nums text-primary">
+                    + R$ {fmt(recurringPendingIncome)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -277,5 +297,12 @@ const HomePage = () => {
     </div>
   );
 };
+
+const Row = ({ label, value, muted, bold }: { label: string; value: string; muted?: boolean; bold?: boolean }) => (
+  <div className="flex items-center justify-between gap-2">
+    <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+    <span className={`tabular-nums ${bold ? "font-display font-bold text-primary" : "font-semibold"}`}>{value}</span>
+  </div>
+);
 
 export default HomePage;
