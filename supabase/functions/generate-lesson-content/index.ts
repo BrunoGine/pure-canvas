@@ -45,6 +45,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Admin-only: this endpoint mutates lesson content via service role.
+    const { data: roleRow } = await userClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { lesson_id } = await req.json();
     if (!lesson_id || typeof lesson_id !== "string") {
       return new Response(JSON.stringify({ error: "lesson_id required" }), {
